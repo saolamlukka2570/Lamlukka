@@ -93,7 +93,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/supabase-client.js?v=2"></script>
 <script src="assets/js/app.js?v=20260922"></script>
-<script src="assets/js/digital-data-service.js?v=2"></script>
+<script src="assets/js/digital-data-service.js?v=20261112"></script>
 <script src="assets/js/gis-service.js?v=2"></script>
 <script src="assets/js/responsive.js?v=2"></script>
 <script>
@@ -129,9 +129,9 @@ function updateRadius(){
     document.getElementById('radiusLabel').textContent=v+' km';
 }
 function updateStats(data){
-    document.getElementById('markerCount').textContent=data.filter(h=>h.latitude&&h.longitude).length;
-    document.getElementById('householdCount').textContent=data.length;
-    document.getElementById('popCount').textContent=data.reduce((s,h)=>s+(h.total_members||0),0);
+    document.getElementById('markerCount').textContent=data.filter(h=>h.latitude&&h.longitude).length.toLocaleString('th-TH');
+    document.getElementById('householdCount').textContent=data.length.toLocaleString('th-TH');
+    document.getElementById('popCount').textContent=data.reduce((s,h)=>s+(h.total_members||0),0).toLocaleString('th-TH');
 }
 </script>
 </body>

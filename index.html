@@ -946,7 +946,9 @@
                 }
 
                 // Redirect ตามบทบาทหรือกอง
-                if (data.role === 'Super Admin') {
+                if ((data.department || '').toLowerCase() === 'digital data center') {
+                    window.location.href = 'digital-data-dashboard.html';
+                } else if (data.role === 'Super Admin') {
                     window.location.href = 'dashboard.html';
                 } else if (data.department === 'กองคลัง') {
                     window.location.href = 'finance.html';

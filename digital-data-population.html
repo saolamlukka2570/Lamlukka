@@ -74,6 +74,7 @@
                         <tbody id="populationBody"><tr><td colspan="7" class="text-center py-5 text-muted"><div class="spinner-border text-primary spinner-border-sm me-2"></div>กำลังโหลดข้อมูล...</td></tr></tbody>
                     </table>
                 </div>
+                <div id="populationPagination" class="d-flex justify-content-between align-items-center px-4 py-3 border-top bg-light flex-wrap gap-2"></div>
             </div>
         </div>
     </div>
@@ -84,20 +85,36 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/supabase-client.js"></script>
 <script src="assets/js/app.js?v=20260922"></script>
-<script src="assets/js/digital-data-service.js"></script>
-<script src="assets/js/household-service.js"></script>
+<script src="assets/js/digital-data-service.js?v=20261112"></script>
+<script src="assets/js/household-service.js?v=20261112"></script>
 <script src="assets/js/responsive.js"></script>
 <script>
 let populationData=[];
+let filteredPopulationData=[];
+let currentPopPage=1;
+const POP_PAGE_SIZE=100;
+
 document.addEventListener('DOMContentLoaded',async()=>{ await loadData(); });
 async function loadData(){
     const mapData = await DigitalDataService.getAllPopulation();
-    populationData = mapData; 
+    populationData = mapData;
+    filteredPopulationData = mapData;
+    currentPopPage = 1;
     renderTable(mapData);
 }
 
-function renderTable(data){
+function changePopPage(page) {
+    const totalPages = Math.max(1, Math.ceil(filteredPopulationData.length / POP_PAGE_SIZE));
+    if (page < 1 || page > totalPages) return;
+    currentPopPage = page;
+    renderTable(filteredPopulationData, false);
+}
+
+function renderTable(data, resetPage = true){
+    filteredPopulationData = data;
+    if (resetPage) currentPopPage = 1;
     const tbody=document.getElementById('populationBody');
+    const pagEl=document.getElementById('populationPagination');
     
     const q = document.getElementById('searchInput') ? document.getElementById('searchInput').value.trim().toLowerCase() : '';
     const vEl = document.getElementById('filterVillage');
@@ -112,9 +129,17 @@ function renderTable(data){
     }
     document.getElementById('resultCount').innerHTML = `<span class="fw-semibold text-primary" style="font-size: 0.95rem;">${summaryText}</span>`;
     
-    if(!data.length){tbody.innerHTML='<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';return;}
+    if(!data.length){
+        tbody.innerHTML='<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';
+        if (pagEl) pagEl.innerHTML = '';
+        return;
+    }
+
+    const totalPages = Math.ceil(data.length / POP_PAGE_SIZE);
+    const startIdx = (currentPopPage - 1) * POP_PAGE_SIZE;
+    const pageItems = data.slice(startIdx, startIdx + POP_PAGE_SIZE);
     
-    tbody.innerHTML=data.map(m=> {
+    tbody.innerHTML=pageItems.map(m=> {
         const h = m.dd_households || {};
         const houseNo = h.house_number || '-';
         const villageNo = h.village_no ? `หมู่ ${h.village_no}` : '-';
@@ -146,6 +171,20 @@ function renderTable(data){
             </td>
         </tr>`;
     }).join('');
+
+    if (pagEl) {
+        const endIdx = Math.min(startIdx + POP_PAGE_SIZE, data.length);
+        pagEl.innerHTML = `
+            <div class="text-muted small">แสดงรายการที่ <b>${(startIdx + 1).toLocaleString('th-TH')} - ${endIdx.toLocaleString('th-TH')}</b> จากทั้งหมด <b>${data.length.toLocaleString('th-TH')}</b> คน</div>
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary" onclick="changePopPage(1)" ${currentPopPage === 1 ? 'disabled' : ''}>หน้าแรก</button>
+                <button class="btn btn-outline-secondary" onclick="changePopPage(${currentPopPage - 1})" ${currentPopPage === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i> ก่อนหน้า</button>
+                <span class="btn btn-light disabled fw-semibold">หน้า ${currentPopPage.toLocaleString('th-TH')} / ${totalPages.toLocaleString('th-TH')}</span>
+                <button class="btn btn-outline-secondary" onclick="changePopPage(${currentPopPage + 1})" ${currentPopPage === totalPages ? 'disabled' : ''}>ถัดไป <i class="fa-solid fa-chevron-right"></i></button>
+                <button class="btn btn-outline-secondary" onclick="changePopPage(${totalPages})" ${currentPopPage === totalPages ? 'disabled' : ''}>หน้าสุดท้าย</button>
+            </div>
+        `;
+    }
 }
 function filterTable(){
     const q=document.getElementById('searchInput').value.toLowerCase();

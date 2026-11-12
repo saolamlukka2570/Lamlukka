@@ -78,6 +78,7 @@
                         <tbody id="householdBody"><tr><td colspan="8" class="text-center py-5 text-muted"><div class="spinner-border text-primary spinner-border-sm me-2"></div>กำลังโหลดข้อมูล...</td></tr></tbody>
                     </table>
                 </div>
+                <div id="householdPagination" class="d-flex justify-content-between align-items-center px-4 py-3 border-top bg-light flex-wrap gap-2"></div>
             </div>
         </div>
     </div>
@@ -152,7 +153,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                <button type="button" class="btn btn-success" id="btnConfirmTR14Import" onclick="confirmTR14Import()"><i class="fa-solid fa-check me-2"></i>ยืนยันการนำเข้า</button>
+                <button type="button" class="btn btn-primary" id="btnImportAllTR14" onclick="confirmTR14Import(true)"><i class="fa-solid fa-file-import me-2"></i>นำเข้าทั้งหมด (ข้อมูลผิดเป็นค่าว่าง)</button>
+                <button type="button" class="btn btn-success" id="btnConfirmTR14Import" onclick="confirmTR14Import(false)"><i class="fa-solid fa-check me-2"></i>ยืนยันการนำเข้า</button>
             </div>
         </div>
     </div>
@@ -162,18 +164,40 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/supabase-client.js"></script>
 <script src="assets/js/app.js?v=20260922"></script>
-<script src="assets/js/digital-data-service.js"></script>
-<script src="assets/js/household-service.js"></script>
+<script src="assets/js/digital-data-service.js?v=20261112"></script>
+<script src="assets/js/household-service.js?v=20261112"></script>
 <script src="assets/js/responsive.js"></script>
 <script>
-let householdData=[], editingId=null;
-document.addEventListener('DOMContentLoaded',async()=>{ await loadData(); });
+let householdData=[], filteredHouseholdData=[], editingId=null;
+let currentHousePage=1;
+const HOUSE_PAGE_SIZE=100;
+
+document.addEventListener('DOMContentLoaded',async()=>{
+    await loadData();
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get('edit');
+    if (editId) {
+        editHousehold(editId);
+    }
+});
 async function loadData(){
     const mapData = await DigitalDataService.getHouseholdMap();
-    householdData=mapData; renderTable(mapData);
+    householdData=mapData;
+    filteredHouseholdData=mapData;
+    currentHousePage=1;
+    renderTable(mapData);
 }
-function renderTable(data){
+function changeHousePage(page){
+    const totalPages = Math.max(1, Math.ceil(filteredHouseholdData.length / HOUSE_PAGE_SIZE));
+    if (page < 1 || page > totalPages) return;
+    currentHousePage = page;
+    renderTable(filteredHouseholdData, false);
+}
+function renderTable(data, resetPage = true){
+    filteredHouseholdData = data;
+    if (resetPage) currentHousePage = 1;
     const tbody=document.getElementById('householdBody');
+    const pagEl=document.getElementById('householdPagination');
     
     const q = document.getElementById('searchInput') ? document.getElementById('searchInput').value.trim() : '';
     const vEl = document.getElementById('filterVillage');
@@ -188,8 +212,17 @@ function renderTable(data){
     }
     document.getElementById('resultCount').innerHTML = `<span class="fw-semibold text-primary" style="font-size: 0.95rem;">${summaryText}</span>`;
     
-    if(!data.length){tbody.innerHTML='<tr><td colspan="8" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';return;}
-    tbody.innerHTML=data.map(h=>`<tr style="border-bottom: 1px solid #f1f5f9; transition: background-color 0.2s;">
+    if(!data.length){
+        tbody.innerHTML='<tr><td colspan="8" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';
+        if (pagEl) pagEl.innerHTML = '';
+        return;
+    }
+
+    const totalPages = Math.ceil(data.length / HOUSE_PAGE_SIZE);
+    const startIdx = (currentHousePage - 1) * HOUSE_PAGE_SIZE;
+    const pageItems = data.slice(startIdx, startIdx + HOUSE_PAGE_SIZE);
+
+    tbody.innerHTML=pageItems.map(h=>`<tr style="border-bottom: 1px solid #f1f5f9; transition: background-color 0.2s;">
         <td class="ps-4">
             <div class="bg-primary text-white rounded d-flex align-items-center justify-content-center shadow-sm" style="width: 54px; height: 36px; font-weight: 600; font-size: 0.95rem; letter-spacing: 0.5px;">
                 ${h.house_number||'-'}
@@ -212,6 +245,20 @@ function renderTable(data){
             <button class="btn btn-sm btn-outline-secondary shadow-sm" style="border-radius: 8px;" onclick="editHousehold('${h.id}')" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
         </td>
     </tr>`).join('');
+
+    if (pagEl) {
+        const endIdx = Math.min(startIdx + HOUSE_PAGE_SIZE, data.length);
+        pagEl.innerHTML = `
+            <div class="text-muted small">แสดงรายการที่ <b>${(startIdx + 1).toLocaleString('th-TH')} - ${endIdx.toLocaleString('th-TH')}</b> จากทั้งหมด <b>${data.length.toLocaleString('th-TH')}</b> ครัวเรือน</div>
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary" onclick="changeHousePage(1)" ${currentHousePage === 1 ? 'disabled' : ''}>หน้าแรก</button>
+                <button class="btn btn-outline-secondary" onclick="changeHousePage(${currentHousePage - 1})" ${currentHousePage === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i> ก่อนหน้า</button>
+                <span class="btn btn-light disabled fw-semibold">หน้า ${currentHousePage.toLocaleString('th-TH')} / ${totalPages.toLocaleString('th-TH')}</span>
+                <button class="btn btn-outline-secondary" onclick="changeHousePage(${currentHousePage + 1})" ${currentHousePage === totalPages ? 'disabled' : ''}>ถัดไป <i class="fa-solid fa-chevron-right"></i></button>
+                <button class="btn btn-outline-secondary" onclick="changeHousePage(${totalPages})" ${currentHousePage === totalPages ? 'disabled' : ''}>หน้าสุดท้าย</button>
+            </div>
+        `;
+    }
 }
 function filterTable(){
     const q=document.getElementById('searchInput').value.toLowerCase();
@@ -645,11 +692,11 @@ function renderTR14PreviewTable() {
         
         // Date parsing (BE to CE)
         let bDate = row['วันเกิด'];
-        let displayDate = bDate;
+        const hadRawDate = bDate !== undefined && bDate !== null && String(bDate).trim() !== '' && String(bDate).trim() !== '-';
         let isDateError = false;
         
         if (bDate instanceof Date) {
-            bDate = bDate.toISOString().split('T')[0];
+            bDate = isNaN(bDate.getTime()) ? '' : bDate.toISOString().split('T')[0];
         } else if (bDate) {
             bDate = String(bDate).trim();
             if (bDate.includes('/')) {
@@ -657,38 +704,45 @@ function renderTR14PreviewTable() {
                 if (parts.length === 3) {
                     let d = parts[0].padStart(2, '0');
                     let mStr = parts[1].padStart(2, '0');
-                    let y = parseInt(parts[2]);
+                    let y = parseInt(parts[2], 10);
                     if (y > 2400) y = y - 543;
                     bDate = `${y}-${mStr}-${d}`;
                 }
             } else if (bDate.includes('-')) {
                 const parts = bDate.split('-');
                 if (parts.length === 3 && parts[0].length === 4) {
-                    let y = parseInt(parts[0]);
+                    let y = parseInt(parts[0], 10);
                     if (y > 2400) y = y - 543;
-                    bDate = `${y}-${parts[1]}-${parts[2]}`;
+                    bDate = `${y}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
                 }
             }
         }
         
-        // Strictly validate date regex & valid date logic
-        if (!bDate || bDate === 'NaN-NaN-NaN' || bDate.includes('undefined') || !bDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            bDate = ''; // Set empty to allow user to edit
+        // Strictly validate date regex & valid calendar date logic
+        if (!bDate || bDate === 'NaN-NaN-NaN' || bDate.includes('undefined') || !/^\d{4}-\d{2}-\d{2}$/.test(bDate)) {
+            bDate = ''; // Set empty to allow user to edit or import as blank
+            if (hadRawDate) {
+                isDateError = true;
+                hasError = true;
+            }
         } else {
-            // Check if it's a real calendar date (e.g., prevent 1958-06-39)
+            // Check if it's a real calendar date (e.g., prevent 1923-05-00 or 1958-06-39)
+            const yNum = parseInt(bDate.split('-')[0], 10);
             const dObj = new Date(bDate);
-            if (isNaN(dObj.getTime()) || dObj.toISOString().split('T')[0] !== bDate) {
+            if (isNaN(dObj.getTime()) || dObj.toISOString().split('T')[0] !== bDate || yNum < 1850 || yNum > new Date().getFullYear()) {
                 bDate = '';
                 isDateError = true;
                 hasError = true;
             }
         }
         
-        if(isDateError) hasError = true;
+        if (isDateError) hasError = true;
         
         // Save cleaned back to pending
         pendingTR14Data[index]['_clean_date'] = bDate;
         pendingTR14Data[index]['_clean_gender'] = g;
+        pendingTR14Data[index]['_is_date_error'] = isDateError;
+        pendingTR14Data[index]['_has_error'] = hasError;
         
         if (hasError) errorCount++;
         
@@ -720,7 +774,7 @@ function renderTR14PreviewTable() {
     const summary = document.getElementById('tr14PreviewSummary');
     if (errorCount > 0) {
         summary.className = 'alert alert-danger';
-        summary.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-2"></i>พบข้อมูลที่มีปัญหา (ช่องสีแดง) จำนวน ${errorCount} รายการ กรุณาแก้ไขในตารางก่อนกดยืนยัน`;
+        summary.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-2"></i>พบข้อมูลที่มีปัญหา (ช่องสีแดง) จำนวน ${errorCount} รายการ กรุณาแก้ไขในตาราง หรือกด <b>"นำเข้าทั้งหมด (ข้อมูลผิดเป็นค่าว่าง)"</b> เพื่อนำเข้าโดยเว้นว่างข้อมูลที่ผิดพลาด`;
     } else {
         summary.className = 'alert alert-success';
         summary.innerHTML = `<i class="fa-solid fa-circle-check me-2"></i>ข้อมูลทั้งหมด ${pendingTR14Data.length} รายการ ถูกต้องพร้อมนำเข้า`;
@@ -761,6 +815,12 @@ function updatePendingName(index, val) {
 
 function updatePendingDate(index, val) {
     pendingTR14Data[index]['_clean_date'] = val;
+    pendingTR14Data[index]['_is_date_error'] = false;
+    const rows = document.getElementById('tr14PreviewBody').querySelectorAll('tr');
+    if (rows[index]) {
+        const dateInput = rows[index].querySelector('input[type="date"]');
+        if (dateInput) dateInput.classList.remove('is-invalid', 'border-danger');
+    }
     recheckErrors();
 }
 
@@ -775,24 +835,26 @@ function recheckErrors() {
     
     pendingTR14Data.forEach((row, idx) => {
         const houseNo = String(row['บ้านเลขที่'] || '').trim();
+        const villageNo = String(row['หมู่ที่'] || '').trim();
         const fName = String(row['ชื่อ'] || '').trim();
-        const bDate = row['_clean_date'];
+        const isDateError = Boolean(row['_is_date_error']);
         
         let hasError = false;
-        if (!houseNo || !fName) hasError = true;
+        if (!houseNo || !villageNo || !fName || isDateError) hasError = true;
+        row['_has_error'] = hasError;
         
         if (hasError) {
             errorCount++;
-            rows[idx].classList.add('table-danger');
+            if (rows[idx]) rows[idx].classList.add('table-danger');
         } else {
-            rows[idx].classList.remove('table-danger');
+            if (rows[idx]) rows[idx].classList.remove('table-danger');
         }
     });
     
     const summary = document.getElementById('tr14PreviewSummary');
     if (errorCount > 0) {
         summary.className = 'alert alert-danger';
-        summary.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-2"></i>พบข้อมูลที่มีปัญหา (ช่องสีแดง) จำนวน ${errorCount} รายการ กรุณาแก้ไขในตารางก่อนกดยืนยัน`;
+        summary.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-2"></i>พบข้อมูลที่มีปัญหา (ช่องสีแดง) จำนวน ${errorCount} รายการ กรุณาแก้ไขในตาราง หรือกด <b>"นำเข้าทั้งหมด (ข้อมูลผิดเป็นค่าว่าง)"</b> เพื่อนำเข้าโดยเว้นว่างข้อมูลที่ผิดพลาด`;
     } else {
         summary.className = 'alert alert-success';
         summary.innerHTML = `<i class="fa-solid fa-circle-check me-2"></i>ข้อมูลทั้งหมด ${pendingTR14Data.length} รายการ ถูกต้องพร้อมนำเข้า`;
@@ -820,19 +882,38 @@ function toggleErrorFilter() {
     });
 }
 
-async function confirmTR14Import() {
-    // Check if any errors remain
+function isValidISODate(dateStr) {
+    if (!dateStr || typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+    const y = parseInt(dateStr.split('-')[0], 10);
+    if (isNaN(y) || y < 1850 || y > new Date().getFullYear()) return false;
+    const d = new Date(dateStr);
+    return !isNaN(d.getTime()) && d.toISOString().split('T')[0] === dateStr;
+}
+
+async function confirmTR14Import(forceImportAll = false) {
+    let importAllMode = Boolean(forceImportAll);
     const errorCount = document.querySelectorAll('#tr14PreviewBody tr.table-danger').length;
-    if (errorCount > 0) {
-        const confirm = await Swal.fire({
+    
+    if (!importAllMode && errorCount > 0) {
+        const result = await Swal.fire({
             title: 'มีข้อมูลผิดพลาด',
-            text: 'ยังมีแถวที่เป็นสีแดงอยู่ คุณต้องการข้ามข้อมูลเหล่านั้นและนำเข้าเฉพาะข้อมูลที่ถูกต้องหรือไม่?',
+            html: `พบแถวที่มีข้อมูลผิดพลาดจำนวน <b>${errorCount}</b> รายการ<br>คุณต้องการนำเข้าทั้งหมดโดยให้ข้อมูลที่ผิดพลาดเป็นค่าว่าง หรือนำเข้าเฉพาะข้อมูลที่ถูกต้อง?`,
             icon: 'warning',
+            showDenyButton: true,
             showCancelButton: true,
-            confirmButtonText: 'ยืนยันนำเข้า (ข้ามตัวผิด)',
-            cancelButtonText: 'กลับไปแก้ไข'
+            confirmButtonText: '<i class="fa-solid fa-file-import me-1"></i>นำเข้าทั้งหมด (ข้อมูลผิดเป็นค่าว่าง)',
+            denyButtonText: 'นำเข้าเฉพาะที่ถูกต้อง (ข้ามตัวผิด)',
+            cancelButtonText: 'กลับไปแก้ไข',
+            confirmButtonColor: '#0d6efd',
+            denyButtonColor: '#198754'
         });
-        if (!confirm.isConfirmed) return;
+        if (result.isConfirmed) {
+            importAllMode = true;
+        } else if (result.isDenied) {
+            importAllMode = false;
+        } else {
+            return;
+        }
     }
     
     bootstrap.Modal.getInstance(document.getElementById('tr14PreviewModal')).hide();
@@ -849,42 +930,59 @@ async function confirmTR14Import() {
         
         pendingTR14Data.forEach((row, idx) => {
             const houseNo = String(row['บ้านเลขที่'] || '').trim();
-            const villageNo = String(row['หมู่ที่'] || '').trim();
+            const villageNoStr = String(row['หมู่ที่'] || '').trim();
+            const parsedVillageNo = parseInt(villageNoStr, 10);
+            const validVillageNo = (!isNaN(parsedVillageNo) && parsedVillageNo > 0) ? parsedVillageNo : null;
             const fName = String(row['ชื่อ'] || '').trim();
-            const bDate = row['_clean_date'];
+            const lName = String(row['นามสกุล'] || '').trim();
+            const rawBDate = row['_clean_date'];
+            const validBDate = isValidISODate(rawBDate) ? rawBDate : null;
             
-            // Skip rows with critical errors
-            if (!houseNo || !villageNo || !fName) return; 
+            // In skip-errors mode, skip any row flagged with errors or missing required fields
+            if (!importAllMode) {
+                if (row['_has_error'] || !houseNo || validVillageNo === null || !fName) return;
+            }
             
-            const key = houseNo + '_' + villageNo;
-            if(!householdsMap[key]) {
+            const tr14No = String(row['รหัสประจำบ้าน'] || '').trim();
+            const key = (houseNo || validVillageNo !== null)
+                ? `${houseNo}_${validVillageNo ?? ''}`
+                : (tr14No ? `tr14_${tr14No}` : `row_${idx}`);
+                
+            if (!householdsMap[key]) {
                 householdsMap[key] = {
-                    house_number: houseNo,
-                    village_no: parseInt(villageNo) || 1,
-                    village_name: row['ชื่อหมู่บ้าน'] || '',
-                    tr14_number: row['รหัสประจำบ้าน'] || '',
+                    house_number: houseNo || '',
+                    village_no: validVillageNo,
+                    village_name: String(row['ชื่อหมู่บ้าน'] || '').trim(),
+                    tr14_number: tr14No,
                     members: [],
                     owner_name: ''
                 };
             }
             
-            const isHead = (row['สถานะในบ้าน'] === 'เจ้าบ้าน');
+            const isHead = (String(row['สถานะในบ้าน'] || '').trim() === 'เจ้าบ้าน');
             const normalizedPrefix = normalizePrefix(String(row['คำนำหน้า'] || '').trim());
-            const lName = String(row['นามสกุล'] || '').trim();
             
-            const fullName = (normalizedPrefix ? normalizedPrefix + (normalizedPrefix.endsWith('.') ? '' : ' ') : '') + fName + ' ' + lName;
-            if (isHead) {
-                householdsMap[key].owner_name = fullName.trim();
+            const fullName = ((normalizedPrefix ? normalizedPrefix + (normalizedPrefix.endsWith('.') ? '' : ' ') : '') + fName + (lName ? ' ' + lName : '')).trim();
+            if (isHead && fullName) {
+                householdsMap[key].owner_name = fullName;
             }
+            
+            // Sanitize citizen_id: strip hyphens/non-digits; if not valid 13 digits, store empty string ''
+            const digitsCid = String(row['เลขบัตรประชาชน'] || '').replace(/\D/g, '');
+            const cleanCitizenId = (digitsCid.length === 13) ? digitsCid : '';
+            
+            // Sanitize gender: only allow valid enum values or null
+            const rawGender = String(row['_clean_gender'] || '').trim();
+            const cleanGender = (rawGender === 'ชาย' || rawGender === 'หญิง' || rawGender === 'อื่นๆ') ? rawGender : null;
             
             householdsMap[key].members.push({
                 is_head: isHead,
-                prefix: normalizedPrefix,
-                first_name: fName,
-                last_name: lName,
-                citizen_id: String(row['เลขบัตรประชาชน'] || '').trim(),
-                birth_date: bDate,
-                gender: row['_clean_gender'],
+                prefix: normalizedPrefix || '',
+                first_name: fName || '',
+                last_name: lName || '',
+                citizen_id: cleanCitizenId,
+                birth_date: validBDate,
+                gender: cleanGender,
                 relationship: String(row['สถานะในบ้าน'] || '').trim() || 'ผู้อยู่อาศัย'
             });
         });
@@ -895,7 +993,7 @@ async function confirmTR14Import() {
         for (const key in householdsMap) {
             const hData = householdsMap[key];
             
-            if(!hData.owner_name && hData.members.length > 0) {
+            if (!hData.owner_name && hData.members.length > 0) {
                 hData.owner_name = (hData.members[0].first_name + ' ' + hData.members[0].last_name).trim();
             }
             
@@ -903,17 +1001,19 @@ async function confirmTR14Import() {
                 house_number: hData.house_number,
                 village_no: hData.village_no,
                 village_name: hData.village_name,
-                tr14_number: String(hData.tr14_number),
+                tr14_number: String(hData.tr14_number || ''),
                 owner_name: hData.owner_name,
                 total_members: hData.members.length,
                 poverty_status: false
             };
             
             let houseId = null;
-            const existingHouse = householdData.find(h => 
-                String(h.house_number) === String(hData.house_number) && 
-                String(h.village_no) === String(hData.village_no)
-            );
+            const existingHouse = (hData.house_number && hData.village_no !== null)
+                ? householdData.find(h => 
+                    String(h.house_number) === String(hData.house_number) && 
+                    String(h.village_no) === String(hData.village_no)
+                )
+                : (hData.tr14_number ? householdData.find(h => String(h.tr14_number) === String(hData.tr14_number)) : null);
             
             if (existingHouse) {
                 houseId = existingHouse.id;
@@ -924,24 +1024,27 @@ async function confirmTR14Import() {
                 hCount++;
             }
             
-            for(const m of hData.members) {
+            for (const m of hData.members) {
                 let calculatedAge = null;
                 if (m.birth_date) {
-                    const birthYear = parseInt(m.birth_date.split('-')[0]);
+                    const birthYear = parseInt(m.birth_date.split('-')[0], 10);
                     const currentYear = new Date().getFullYear();
-                    calculatedAge = currentYear - birthYear;
+                    const ageVal = currentYear - birthYear;
+                    if (!isNaN(ageVal) && ageVal >= 0 && ageVal <= 150) {
+                        calculatedAge = ageVal;
+                    }
                 }
 
                 const memberPayload = {
                     is_head: m.is_head,
-                    prefix: m.prefix,
-                    first_name: m.first_name,
-                    last_name: m.last_name,
-                    citizen_id: m.citizen_id,
+                    prefix: m.prefix || '',
+                    first_name: m.first_name || '',
+                    last_name: m.last_name || '',
+                    citizen_id: m.citizen_id || '',
                     birth_date: m.birth_date || null,
                     age: calculatedAge,
-                    gender: m.gender,
-                    relationship: m.relationship
+                    gender: m.gender || null,
+                    relationship: m.relationship || ''
                 };
                 
                 await HouseholdService.linkMember(houseId, memberPayload);
