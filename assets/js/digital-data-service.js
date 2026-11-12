@@ -3,16 +3,90 @@
  * Smart Governance Municipality Platform
  */
 const DigitalDataService = {
+    /**
+     * Fetch all rows from a Supabase table by paging in chunks of 1,000
+     * to bypass PostgREST's default 1,000-row limit.
+     */
+    async _fetchAll(table, selectCols = '*', filterFn = null) {
+        const PAGE_SIZE = 1000;
+        const buildQuery = (withCount = false) => {
+            let q = supabaseClient
+                .from(table)
+                .select(selectCols, withCount ? { count: 'exact' } : undefined)
+                .order('id', { ascending: true });
+            if (filterFn) q = filterFn(q);
+            return q;
+        };
+
+        const firstRes = await buildQuery(true).range(0, PAGE_SIZE - 1);
+        if (firstRes.error) throw firstRes.error;
+
+        let allData = firstRes.data || [];
+        const totalCount = typeof firstRes.count === 'number' ? firstRes.count : allData.length;
+
+        if (totalCount <= PAGE_SIZE || allData.length < PAGE_SIZE) {
+            return allData;
+        }
+
+        const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+        const pageIndices = [];
+        for (let p = 1; p < totalPages; p++) {
+            pageIndices.push(p);
+        }
+
+        const BATCH_SIZE = 6;
+        for (let i = 0; i < pageIndices.length; i += BATCH_SIZE) {
+            const batch = pageIndices.slice(i, i + BATCH_SIZE);
+            const results = await Promise.all(
+                batch.map(p => {
+                    const from = p * PAGE_SIZE;
+                    const to = from + PAGE_SIZE - 1;
+                    return buildQuery(false).range(from, to);
+                })
+            );
+            results.forEach(r => {
+                if (r.error) throw r.error;
+                if (r.data && r.data.length) {
+                    allData = allData.concat(r.data);
+                }
+            });
+        }
+
+        return allData;
+    },
+
     async getDashboardStats() {
         if (!supabaseClient) return this._getMockStats();
         try {
-            const { data: households, error: hErr } = await supabaseClient.from('dd_households').select('id, poverty_status, jp2t_failed, village_no, village_name, dd_poor_households(id, jp2t_status)');
-            if (hErr) throw hErr;
-            
-            // Fetch all members with their relations to accurately count elderly, disabled, bedridden
-            const { data: members, error: mErr } = await supabaseClient.from('dd_household_members').select('id, household_id, gender, age, dd_elderly(id), dd_disabled_persons(id), dd_bedridden_patients(id), dd_newborns(id)');
-            if (mErr) throw mErr;
-            
+            const [
+                households,
+                members,
+                poorList,
+                elderlyList,
+                disabledList,
+                bedriddenList,
+                newbornList
+            ] = await Promise.all([
+                this._fetchAll('dd_households', 'id, poverty_status, jp2t_failed, village_no, village_name'),
+                this._fetchAll('dd_household_members', 'id, household_id, gender, age, birth_date'),
+                this._fetchAll('dd_poor_households', 'id, household_id, jp2t_status'),
+                this._fetchAll('dd_elderly', 'id, household_member_id'),
+                this._fetchAll('dd_disabled_persons', 'id, household_member_id'),
+                this._fetchAll('dd_bedridden_patients', 'id, household_member_id'),
+                this._fetchAll('dd_newborns', 'id, household_member_id')
+            ]);
+
+            const elderlySet = new Set((elderlyList || []).map(x => x.household_member_id));
+            const disabledSet = new Set((disabledList || []).map(x => x.household_member_id));
+            const bedriddenSet = new Set((bedriddenList || []).map(x => x.household_member_id));
+            const newbornSet = new Set((newbornList || []).map(x => x.household_member_id));
+
+            const poorByHouse = {};
+            (poorList || []).forEach(p => {
+                if (!poorByHouse[p.household_id]) poorByHouse[p.household_id] = [];
+                poorByHouse[p.household_id].push(p);
+            });
+
             const s = { 
                 totalHouseholds: households.length, 
                 totalPopulation: members.length, 
@@ -27,15 +101,22 @@ const DigitalDataService = {
                 villageBreakdown: {} 
             };
             
+            const currentYear = new Date().getFullYear();
             const membersByHouse = {};
             members.forEach(m => {
                 if (m.gender === 'ชาย') s.totalMale++;
                 else if (m.gender === 'หญิง') s.totalFemale++;
                 
-                if (m.dd_newborns && m.dd_newborns.length > 0) s.totalNewborn++;
-                if (m.age >= 60 || (m.dd_elderly && m.dd_elderly.length > 0)) s.totalElderly++;
-                if (m.dd_disabled_persons && m.dd_disabled_persons.length > 0) s.totalDisabled++;
-                if (m.dd_bedridden_patients && m.dd_bedridden_patients.length > 0) s.totalBedridden++;
+                let effAge = (m.age !== null && m.age !== undefined) ? Number(m.age) : null;
+                if (effAge === null && m.birth_date) {
+                    const by = parseInt(String(m.birth_date).split('-')[0], 10);
+                    if (!isNaN(by) && by > 1850 && by <= currentYear) effAge = currentYear - by;
+                }
+
+                if (newbornSet.has(m.id)) s.totalNewborn++;
+                if ((effAge !== null && effAge >= 60) || elderlySet.has(m.id)) s.totalElderly++;
+                if (disabledSet.has(m.id)) s.totalDisabled++;
+                if (bedriddenSet.has(m.id)) s.totalBedridden++;
                 
                 if (!membersByHouse[m.household_id]) membersByHouse[m.household_id] = { pop: 0, m: 0, f: 0 };
                 membersByHouse[m.household_id].pop++;
@@ -44,18 +125,19 @@ const DigitalDataService = {
             });
             
             households.forEach(h => {
-                if(h.dd_poor_households && h.dd_poor_households.length > 0) {
+                const pRecords = poorByHouse[h.id];
+                if (pRecords && pRecords.length > 0) {
                     s.totalPoor++; 
-                    if(h.dd_poor_households.some(p => p.jp2t_status)) {
+                    if (pRecords.some(p => p.jp2t_status)) {
                         s.totalJP2TFailed++;
                     }
                 } else {
-                    if(h.poverty_status) s.totalPoor++;
-                    if(h.jp2t_failed) s.totalJP2TFailed++;
+                    if (h.poverty_status) s.totalPoor++;
+                    if (h.jp2t_failed) s.totalJP2TFailed++;
                 }
                 
                 const k = `หมู่ ${h.village_no||'?'} ${h.village_name||''}`.trim();
-                if(!s.villageBreakdown[k]) s.villageBreakdown[k] = {households:0, population:0, male:0, female:0};
+                if (!s.villageBreakdown[k]) s.villageBreakdown[k] = {households:0, population:0, male:0, female:0};
                 
                 s.villageBreakdown[k].households++; 
                 const mStats = membersByHouse[h.id] || { pop:0, m:0, f:0 };
@@ -71,23 +153,45 @@ const DigitalDataService = {
     async getHouseholdMap(filters={}) {
         if (!supabaseClient) return this._getMockMapData();
         try {
-            let q = supabaseClient.from('dd_households').select(`
-                id,house_code,house_number,village_no,village_name,latitude,longitude,owner_name,poverty_status,
-                dd_poor_households ( id ),
-                dd_household_members ( 
-                    prefix, first_name, last_name, is_head,
-                    dd_elderly (id),
-                    dd_disabled_persons (id),
-                    dd_bedridden_patients (id),
-                    dd_newborns (id)
-                )
-            `);
-            if(filters.village_no) q=q.eq('village_no',filters.village_no);
-            const { data,error } = await q; if(error) throw error; 
-            
-            let result = data || [];
+            const [
+                households,
+                members,
+                poorList,
+                elderlyList,
+                disabledList,
+                bedriddenList,
+                newbornList
+            ] = await Promise.all([
+                this._fetchAll(
+                    'dd_households',
+                    'id,house_code,tr14_number,house_number,village_no,village_name,latitude,longitude,owner_name,poverty_status,total_members',
+                    q => filters.village_no ? q.eq('village_no', filters.village_no) : q
+                ),
+                this._fetchAll('dd_household_members', 'id,household_id,prefix,first_name,last_name,is_head,age'),
+                this._fetchAll('dd_poor_households', 'id,household_id'),
+                this._fetchAll('dd_elderly', 'id,household_member_id'),
+                this._fetchAll('dd_disabled_persons', 'id,household_member_id'),
+                this._fetchAll('dd_bedridden_patients', 'id,household_member_id'),
+                this._fetchAll('dd_newborns', 'id,household_member_id')
+            ]);
+
+            const poorHouseSet = new Set((poorList || []).map(p => p.household_id));
+            const elderlySet = new Set((elderlyList || []).map(x => x.household_member_id));
+            const disabledSet = new Set((disabledList || []).map(x => x.household_member_id));
+            const bedriddenSet = new Set((bedriddenList || []).map(x => x.household_member_id));
+            const newbornSet = new Set((newbornList || []).map(x => x.household_member_id));
+
+            const membersByHouse = {};
+            (members || []).forEach(m => {
+                if (!m.household_id) return;
+                if (!membersByHouse[m.household_id]) membersByHouse[m.household_id] = [];
+                membersByHouse[m.household_id].push(m);
+            });
+
+            let result = households || [];
             result.forEach(h => {
-                h.total_members = 0;
+                const hMembers = membersByHouse[h.id] || [];
+                h.total_members = hMembers.length;
                 h.elderly_count = 0;
                 h.disabled_count = 0;
                 h.bedridden_count = 0;
@@ -96,26 +200,26 @@ const DigitalDataService = {
                 h.disabled_names = [];
                 h.bedridden_names = [];
                 h.newborn_names = [];
-                if (h.dd_poor_households && h.dd_poor_households.length > 0) {
+                if (poorHouseSet.has(h.id)) {
                     h.poverty_status = 'ยากจน';
                 }
-                if (h.dd_household_members && h.dd_household_members.length > 0) {
-                    h.total_members = h.dd_household_members.length;
-                    let head = h.dd_household_members.find(m => m.is_head);
-                    if (!head) head = h.dd_household_members[0];
+                if (hMembers.length > 0) {
+                    let head = hMembers.find(m => m.is_head);
+                    if (!head) head = hMembers[0];
                     if (!h.owner_name && head) {
                         h.owner_name = `${head.prefix || ''} ${head.first_name || ''} ${head.last_name || ''}`.trim();
                     }
-                    h.dd_household_members.forEach(m => {
+                    hMembers.forEach(m => {
                         const fullName = `${m.prefix || ''}${m.first_name || ''} ${m.last_name || ''}`.trim();
-                        if (m.dd_elderly && m.dd_elderly.length > 0) { h.elderly_count++; h.elderly_names.push(fullName); }
-                        if (m.dd_disabled_persons && m.dd_disabled_persons.length > 0) { h.disabled_count++; h.disabled_names.push(fullName); }
-                        if (m.dd_bedridden_patients && m.dd_bedridden_patients.length > 0) { h.bedridden_count++; h.bedridden_names.push(fullName); }
-                        if (m.dd_newborns && m.dd_newborns.length > 0) { h.newborn_count++; h.newborn_names.push(fullName); }
+                        if (elderlySet.has(m.id) || (m.age !== null && m.age !== undefined && Number(m.age) >= 60)) {
+                            h.elderly_count++;
+                            h.elderly_names.push(fullName);
+                        }
+                        if (disabledSet.has(m.id)) { h.disabled_count++; h.disabled_names.push(fullName); }
+                        if (bedriddenSet.has(m.id)) { h.bedridden_count++; h.bedridden_names.push(fullName); }
+                        if (newbornSet.has(m.id)) { h.newborn_count++; h.newborn_names.push(fullName); }
                     });
                 }
-                delete h.dd_household_members;
-                delete h.dd_poor_households;
             });
 
             result.sort((a, b) => {
@@ -136,51 +240,40 @@ const DigitalDataService = {
 
     async getAllPopulation(filters={}) {
         if (!supabaseClient) {
-            // Mock data fallback
             return this._getMockProfile().members.map(m => {
                 return { ...m, dd_households: { house_number: '45/3', village_no: 2, poverty_status: true } };
             });
         }
         try {
-            // Fetch basic members and household
-            let q = supabaseClient.from('dd_household_members').select(`
-                id, prefix, first_name, last_name, age, gender, citizen_id, household_id,
-                dd_households ( id, house_number, village_no, poverty_status )
-            `);
-            
-            const [membersRes, elderlyRes, disabledRes] = await Promise.all([
-                q,
-                supabaseClient.from('dd_elderly').select('household_member_id, dependency_level'),
-                supabaseClient.from('dd_disabled_persons').select('household_member_id')
+            const [membersData, householdsData, elderlyData, disabledData] = await Promise.all([
+                this._fetchAll('dd_household_members', 'id, prefix, first_name, last_name, age, gender, citizen_id, household_id'),
+                this._fetchAll('dd_households', 'id, house_number, village_no, poverty_status'),
+                this._fetchAll('dd_elderly', 'id, household_member_id, dependency_level'),
+                this._fetchAll('dd_disabled_persons', 'id, household_member_id')
             ]);
             
-            if(membersRes.error) {
-                console.error('getAllPopulation Error:', membersRes.error);
-                throw membersRes.error;
-            }
-            
+            const householdMap = {};
+            (householdsData || []).forEach(h => { householdMap[h.id] = h; });
+
             const elderlyMap = {};
-            if(elderlyRes.data) elderlyRes.data.forEach(e => { elderlyMap[e.household_member_id] = e; });
+            (elderlyData || []).forEach(e => { elderlyMap[e.household_member_id] = e; });
             
             const disabledMap = {};
-            if(disabledRes.data) disabledRes.data.forEach(d => { disabledMap[d.household_member_id] = d; });
+            (disabledData || []).forEach(d => { disabledMap[d.household_member_id] = d; });
             
-            let result = membersRes.data || [];
-            
-            // Map the data
-            result = result.map(m => {
+            let result = (membersData || []).map(m => {
                 return {
                     ...m,
+                    dd_households: householdMap[m.household_id] || null,
                     dd_elderly: elderlyMap[m.id] ? [elderlyMap[m.id]] : [],
                     dd_disabled_persons: disabledMap[m.id] ? [disabledMap[m.id]] : []
                 };
             });
             
-            if(filters.village_no) {
+            if (filters.village_no) {
                 result = result.filter(m => m.dd_households && String(m.dd_households.village_no) === String(filters.village_no));
             }
             
-            // Sort by village, then house number
             result.sort((a, b) => {
                 const ha = a.dd_households || {};
                 const hb = b.dd_households || {};
@@ -237,11 +330,18 @@ const DigitalDataService = {
     async getPopulationAnalytics() {
         if (!supabaseClient) return this._getMockAnalytics();
         try {
-            const {data:members} = await supabaseClient.from('dd_household_members').select('age,gender');
+            const members = await this._fetchAll('dd_household_members', 'id, age, birth_date, gender');
+            const currentYear = new Date().getFullYear();
             const ag={'0-5':{m:0,f:0},'6-14':{m:0,f:0},'15-24':{m:0,f:0},'25-59':{m:0,f:0},'60+':{m:0,f:0}};
             (members||[]).forEach(r => {
-                let g='25-59'; if(r.age<6)g='0-5'; else if(r.age<15)g='6-14'; else if(r.age<25)g='15-24'; else if(r.age>=60)g='60+';
-                if(r.gender==='ชาย') ag[g].m++; else ag[g].f++;
+                let effAge = (r.age !== null && r.age !== undefined) ? Number(r.age) : null;
+                if (effAge === null && r.birth_date) {
+                    const by = parseInt(String(r.birth_date).split('-')[0], 10);
+                    if (!isNaN(by) && by > 1850 && by <= currentYear) effAge = currentYear - by;
+                }
+                if (effAge === null || isNaN(effAge)) return;
+                let g='25-59'; if(effAge<6)g='0-5'; else if(effAge<15)g='6-14'; else if(effAge<25)g='15-24'; else if(effAge>=60)g='60+';
+                if(r.gender==='ชาย') ag[g].m++; else if(r.gender==='หญิง') ag[g].f++;
             });
             return { ageDistribution:ag, totalMembers:members?.length||0 };
         } catch(e) { console.error('getPopulationAnalytics:',e); return this._getMockAnalytics(); }

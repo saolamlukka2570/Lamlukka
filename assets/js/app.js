@@ -9,17 +9,17 @@
 // =============================================
 const NAV_ITEMS = [
     { href: 'dashboard.html', icon: 'fa-solid fa-chart-pie', label: 'แดชบอร์ด', key: 'dashboard', depts: [] },
-    { href: 'digital-data-dashboard.html', icon: 'fa-solid fa-database', label: 'Digital Data Center', key: 'digital-data-dashboard', depts: [] },
-    { href: 'digital-data-map.html', icon: 'fa-solid fa-map-location-dot', label: 'GIS Map', key: 'digital-data-map', depts: [], parent: 'digital-data-dashboard' },
-    { href: 'digital-data-households.html', icon: 'fa-solid fa-house-chimney', label: 'ครัวเรือน', key: 'digital-data-households', depts: [], parent: 'digital-data-dashboard' },
-    { href: 'digital-data-population.html', icon: 'fa-solid fa-users', label: 'ประชากร', key: 'digital-data-population', depts: [], parent: 'digital-data-dashboard' },
-    { href: 'digital-data-elderly.html', icon: 'fa-solid fa-person-cane', label: 'ผู้สูงอายุ', key: 'digital-data-elderly', depts: [], parent: 'digital-data-dashboard' },
-    { href: 'digital-data-disabled.html', icon: 'fa-solid fa-wheelchair', label: 'ผู้พิการ', key: 'digital-data-disabled', depts: [], parent: 'digital-data-dashboard' },
-    { href: 'digital-data-bedridden.html', icon: 'fa-solid fa-bed-pulse', label: 'ผู้ป่วยติดเตียง', key: 'digital-data-bedridden', depts: [], parent: 'digital-data-dashboard' },
-    { href: 'digital-data-newborn.html', icon: 'fa-solid fa-baby', label: 'เด็กแรกเกิด', key: 'digital-data-newborn', depts: [], parent: 'digital-data-dashboard' },
-    { href: 'digital-data-poor.html', icon: 'fa-solid fa-hand-holding-heart', label: 'ครัวเรือนยากจน', key: 'digital-data-poor', depts: [], parent: 'digital-data-dashboard' },
-    { href: 'digital-data-scholars.html', icon: 'fa-solid fa-graduation-cap', label: 'ปราชญ์ชุมชน', key: 'digital-data-scholars', depts: [], parent: 'digital-data-dashboard' },
-    { href: 'digital-data-leaders.html', icon: 'fa-solid fa-people-group', label: 'ผู้นำ/อาสาสมัคร', key: 'digital-data-leaders', depts: [], parent: 'digital-data-dashboard' },
+    { href: 'digital-data-dashboard.html', icon: 'fa-solid fa-database', label: 'Digital Data Center', key: 'digital-data-dashboard', depts: ['Digital Data Center'] },
+    { href: 'digital-data-map.html', icon: 'fa-solid fa-map-location-dot', label: 'GIS Map', key: 'digital-data-map', depts: ['Digital Data Center'], parent: 'digital-data-dashboard' },
+    { href: 'digital-data-households.html', icon: 'fa-solid fa-house-chimney', label: 'ครัวเรือน', key: 'digital-data-households', depts: ['Digital Data Center'], parent: 'digital-data-dashboard' },
+    { href: 'digital-data-population.html', icon: 'fa-solid fa-users', label: 'ประชากร', key: 'digital-data-population', depts: ['Digital Data Center'], parent: 'digital-data-dashboard' },
+    { href: 'digital-data-elderly.html', icon: 'fa-solid fa-person-cane', label: 'ผู้สูงอายุ', key: 'digital-data-elderly', depts: ['Digital Data Center'], parent: 'digital-data-dashboard' },
+    { href: 'digital-data-disabled.html', icon: 'fa-solid fa-wheelchair', label: 'ผู้พิการ', key: 'digital-data-disabled', depts: ['Digital Data Center'], parent: 'digital-data-dashboard' },
+    { href: 'digital-data-bedridden.html', icon: 'fa-solid fa-bed-pulse', label: 'ผู้ป่วยติดเตียง', key: 'digital-data-bedridden', depts: ['Digital Data Center'], parent: 'digital-data-dashboard' },
+    { href: 'digital-data-newborn.html', icon: 'fa-solid fa-baby', label: 'เด็กแรกเกิด', key: 'digital-data-newborn', depts: ['Digital Data Center'], parent: 'digital-data-dashboard' },
+    { href: 'digital-data-poor.html', icon: 'fa-solid fa-hand-holding-heart', label: 'ครัวเรือนยากจน', key: 'digital-data-poor', depts: ['Digital Data Center'], parent: 'digital-data-dashboard' },
+    { href: 'digital-data-scholars.html', icon: 'fa-solid fa-graduation-cap', label: 'ปราชญ์ชุมชน', key: 'digital-data-scholars', depts: ['Digital Data Center'], parent: 'digital-data-dashboard' },
+    { href: 'digital-data-leaders.html', icon: 'fa-solid fa-people-group', label: 'ผู้นำ/อาสาสมัคร', key: 'digital-data-leaders', depts: ['Digital Data Center'], parent: 'digital-data-dashboard' },
     { href: 'secretary.html', icon: 'fa-solid fa-building-user', label: 'สำนักปลัด', key: 'secretary', depts: ['สำนักปลัด'] },
     { href: 'secretary-documents.html', icon: 'fa-solid fa-file-signature', label: 'งานสารบรรณ', key: 'secretary-documents', depts: ['สำนักปลัด'], parent: 'secretary' },
     { href: 'secretary-meetings.html', icon: 'fa-solid fa-calendar-check', label: 'งานประชุม', key: 'secretary-meetings', depts: ['สำนักปลัด'], parent: 'secretary' },
@@ -131,8 +131,12 @@ function buildSidebar(activeKey) {
 
     const userRole = (user.role || '').toLowerCase();
     const userDept = user.dept || '';
+    const isDigitalDataCenterUser = userDept.toLowerCase() === 'digital data center';
 
     const filteredNav = NAV_ITEMS.filter(item => {
+        if (isDigitalDataCenterUser) {
+            return item.depts && item.depts.some(d => d.toLowerCase() === 'digital data center');
+        }
         if (userRole === 'super admin') return true;
         if (item.depts && item.depts.includes('ALL')) return true;
         return item.depts && item.depts.includes(userDept);
@@ -191,7 +195,7 @@ function buildSidebar(activeKey) {
                 `;
             }).join('')}
             
-            ${userRole === 'super admin' ? `
+            ${userRole === 'super admin' && !isDigitalDataCenterUser ? `
             <li class="sidebar-section-label mt-2">ระบบ</li>
             <li>
                 <a href="settings.html" class="${activeKey === 'settings' ? 'active' : ''}">
@@ -313,7 +317,7 @@ function buildNavbar(pageTitle) {
                     </li>
                     <li><hr class="dropdown-divider my-1"></li>
                     <li><a class="dropdown-item text-sm py-2" href="#"><i class="fa-solid fa-user me-2 text-muted"></i>โปรไฟล์ของฉัน</a></li>
-                    <li><a class="dropdown-item text-sm py-2" href="settings.html"><i class="fa-solid fa-gear me-2 text-muted"></i>ตั้งค่า</a></li>
+                    ${userRole === 'super admin' && userDept.toLowerCase() !== 'digital data center' ? `<li><a class="dropdown-item text-sm py-2" href="settings.html"><i class="fa-solid fa-gear me-2 text-muted"></i>ตั้งค่า</a></li>` : ''}
                     <li><hr class="dropdown-divider my-1"></li>
                     <li><a class="dropdown-item text-sm py-2 text-danger" href="javascript:void(0)" onclick="logout()"><i class="fa-solid fa-right-from-bracket me-2"></i>ออกจากระบบ</a></li>
                 </ul>
@@ -465,32 +469,62 @@ document.addEventListener('DOMContentLoaded', function () {
         const currentNavItem = NAV_ITEMS.find(item => item.href === currentPage);
         const userRole = (user.role || '').toLowerCase();
         const userDept = user.dept || '';
+        const isDigitalDataCenterUser = userDept.toLowerCase() === 'digital data center';
+        const isDigitalDataPage = currentPage.startsWith('digital-data-');
 
-        // ถ้าเป็นหน้าที่มีการจำกัดกอง (และไม่ใช่ Super Admin)
-        if (currentNavItem && userRole !== 'super admin') {
-            if (!currentNavItem.depts.includes('ALL') && !currentNavItem.depts.includes(userDept)) {
+        // 1. กรณี USER สังกัด Digital Data Center ให้เห็นและเข้าถึงได้เฉพาะ Digital Data Center เท่านั้น
+        if (isDigitalDataCenterUser) {
+            if (!isDigitalDataPage) {
+                alert('ขออภัย คุณมีสิทธิ์เข้าใช้งานเฉพาะส่วนงาน Digital Data Center เท่านั้น');
+                window.location.href = 'digital-data-dashboard.html';
+                return;
+            }
+            // ซ่อนปุ่มหรือลิงก์ที่ชี้กลับไปหน้าอื่นนอกเหนือจาก Digital Data Center
+            document.querySelectorAll('a[href="dashboard.html"], a[href="secretary.html"]').forEach(link => {
+                const breadcrumbItem = link.closest('.breadcrumb-item');
+                if (breadcrumbItem) {
+                    breadcrumbItem.style.display = 'none';
+                } else if (link.parentElement && link.parentElement.children.length === 1) {
+                    link.parentElement.style.display = 'none';
+                } else {
+                    link.style.display = 'none';
+                }
+            });
+        } else {
+            // 2. ถ้าเป็นหน้าที่มีการจำกัดกอง (และไม่ใช่ Super Admin)
+            if (currentNavItem && userRole !== 'super admin') {
+                const hasAccess = currentNavItem.depts.includes('ALL') || currentNavItem.depts.some(d => d.toLowerCase() === userDept.toLowerCase());
+                if (!hasAccess) {
+                    alert('ขออภัย คุณไม่มีสิทธิ์เข้าใช้งานในส่วนงานนี้');
+                    let fallback = 'index.html';
+                    if (userDept === 'กองคลัง') fallback = 'finance.html';
+                    else if (userDept === 'กองช่าง') fallback = 'publicworks.html';
+                    else if (userDept === 'กองการศึกษา') fallback = 'education.html';
+                    else if (userDept === 'กองสาธารณสุขฯ' || userDept === 'กองสาธารณสุขและสิ่งแวดล้อม') fallback = 'health.html';
+                    else if (userDept === 'สำนักปลัด' || userDept === 'สำนักปลัดเทศบาล') fallback = 'secretary.html';
+                    else if (userDept === 'กองสวัสดิการฯ' || userDept === 'กองสวัสดิการสังคม') fallback = 'welfare.html';
+                    else if (userDept === 'กองยุทธศาสตร์ฯ' || userDept === 'กองยุทธศาสตร์และงบประมาณ') fallback = 'planning.html';
+                    window.location.href = fallback;
+                    return;
+                }
+            }
+
+            // ป้องกันการเข้าหน้าย่อยของ Digital Data Center (เช่น digital-data-profile.html) สำหรับกองอื่นที่ไม่ใช่ Super Admin
+            if (isDigitalDataPage && userRole !== 'super admin') {
                 alert('ขออภัย คุณไม่มีสิทธิ์เข้าใช้งานในส่วนงานนี้');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // จำกัดการเข้าถึงหน้า Settings เฉพาะ Super Admin เท่านั้น
+            if (currentPage === 'settings.html' && userRole !== 'super admin') {
+                alert('เฉพาะผู้ดูแลระบบสูงสุด (Super Admin) เท่านั้นที่สามารถเข้าถึงการตั้งค่าได้');
                 let fallback = 'index.html';
                 if (userDept === 'กองคลัง') fallback = 'finance.html';
                 else if (userDept === 'กองช่าง') fallback = 'publicworks.html';
-                else if (userDept === 'กองการศึกษา') fallback = 'education.html';
-                else if (userDept === 'กองสาธารณสุขฯ') fallback = 'health.html';
-                else if (userDept === 'สำนักปลัด') fallback = 'secretary.html';
-                else if (userDept === 'กองสวัสดิการฯ') fallback = 'welfare.html';
-                else if (userDept === 'กองยุทธศาสตร์ฯ') fallback = 'planning.html';
                 window.location.href = fallback;
                 return;
             }
-        }
-
-        // จำกัดการเข้าถึงหน้า Settings เฉพาะ Super Admin เท่านั้น
-        if (currentPage === 'settings.html' && userRole !== 'super admin') {
-            alert('เฉพาะผู้ดูแลระบบสูงสุด (Super Admin) เท่านั้นที่สามารถเข้าถึงการตั้งค่าได้');
-            let fallback = 'index.html';
-            if (userDept === 'กองคลัง') fallback = 'finance.html';
-            else if (userDept === 'กองช่าง') fallback = 'publicworks.html';
-            window.location.href = fallback;
-            return;
         }
     }
 

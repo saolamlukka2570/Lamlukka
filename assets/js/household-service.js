@@ -171,40 +171,40 @@ const HouseholdService = {
         }
         if(error) throw error; return {success:true};
     },
+    async _fetchAll(table, selectCols = '*') {
+        if (typeof DigitalDataService !== 'undefined' && DigitalDataService._fetchAll) {
+            return await DigitalDataService._fetchAll(table, selectCols);
+        }
+        const { data } = await supabaseClient.from(table).select(selectCols).order('id', { ascending: true });
+        return data || [];
+    },
     // Specialized queries
     async getElderlyList() {
         if(!supabaseClient) return [];
-        const {data} = await supabaseClient.from('dd_elderly').select('*,dd_household_members(household_id,prefix,first_name,last_name,age,gender,citizen_id,dd_households(id,house_number,village_no,village_name))').order('created_at', {ascending: false});
-        return data||[];
+        return await this._fetchAll('dd_elderly', '*,dd_household_members(household_id,prefix,first_name,last_name,age,gender,citizen_id,dd_households(id,house_number,village_no,village_name))');
     },
     async getDisabledList() {
         if(!supabaseClient) return [];
-        const {data} = await supabaseClient.from('dd_disabled_persons').select('*,dd_household_members(household_id,prefix,first_name,last_name,age,gender,citizen_id,dd_households(id,house_number,village_no,village_name))').order('created_at', {ascending: false});
-        return data||[];
+        return await this._fetchAll('dd_disabled_persons', '*,dd_household_members(household_id,prefix,first_name,last_name,age,gender,citizen_id,dd_households(id,house_number,village_no,village_name))');
     },
     async getBedriddenList() {
         if(!supabaseClient) return [];
-        const {data} = await supabaseClient.from('dd_bedridden_patients').select('*,dd_household_members(household_id,prefix,first_name,last_name,age,gender,citizen_id,dd_households(id,house_number,village_no,village_name))').order('created_at', {ascending: false});
-        return data||[];
+        return await this._fetchAll('dd_bedridden_patients', '*,dd_household_members(household_id,prefix,first_name,last_name,age,gender,citizen_id,dd_households(id,house_number,village_no,village_name))');
     },
     async getNewbornList() {
         if(!supabaseClient) return [];
-        const {data} = await supabaseClient.from('dd_newborns').select('*,dd_household_members(household_id,prefix,first_name,last_name,age,gender,citizen_id,dd_households(id,house_number,village_no,village_name))').order('created_at', {ascending: false});
-        return data||[];
+        return await this._fetchAll('dd_newborns', '*,dd_household_members(household_id,prefix,first_name,last_name,age,gender,citizen_id,dd_households(id,house_number,village_no,village_name))');
     },
     async getPoorList() {
         if(!supabaseClient) return [];
-        const {data} = await supabaseClient.from('dd_poor_households').select('*,dd_households(house_number,village_no,village_name,owner_name,total_members)');
-        return data||[];
+        return await this._fetchAll('dd_poor_households', '*,dd_households(house_number,village_no,village_name,owner_name,total_members)');
     },
     async getScholarList() {
         if(!supabaseClient) return [];
-        const {data} = await supabaseClient.from('dd_community_scholars').select('*,dd_household_members(prefix,first_name,last_name,age,gender,dd_households(house_number,village_no,village_name))');
-        return data||[];
+        return await this._fetchAll('dd_community_scholars', '*,dd_household_members(prefix,first_name,last_name,age,gender,dd_households(house_number,village_no,village_name))');
     },
     async getLeaderList() {
         if(!supabaseClient) return [];
-        const {data} = await supabaseClient.from('dd_leaders_volunteers').select('*,dd_household_members(prefix,first_name,last_name,age,gender,dd_households(house_number,village_no,village_name))');
-        return data||[];
+        return await this._fetchAll('dd_leaders_volunteers', '*,dd_household_members(prefix,first_name,last_name,age,gender,dd_households(house_number,village_no,village_name))');
     }
 };
