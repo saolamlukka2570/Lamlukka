@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Digital Data Center - ศูนย์ข้อมูลดิจิทัล ระบบฐานข้อมูลประชากรและครัวเรือน GIS">
+    <title>Digital Data Center - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <style>
+        .dd-hero{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#1a56db 100%);border-radius:16px;padding:2rem;color:#fff;position:relative;overflow:hidden;margin-bottom:1.5rem}
+        .dd-hero::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.04)}
+        .dd-hero::after{content:'';position:absolute;bottom:-60px;left:-30px;width:160px;height:160px;border-radius:50%;background:rgba(59,130,246,0.1)}
+        .dd-hero h4{font-weight:700;margin-bottom:4px}.dd-hero p{opacity:0.7;font-size:0.85rem;margin:0}
+        .dd-stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0.75rem}
+        .dd-stat{background:#fff;border-radius:12px;padding:1rem;box-shadow:0 1px 3px rgba(0,0,0,0.06);transition:transform .15s}
+        .dd-stat:hover{transform:translateY(-2px)}
+        .dd-stat .dd-stat-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+        .dd-stat .dd-stat-val{font-size:1.5rem;font-weight:700;line-height:1.1}
+        .dd-stat .dd-stat-label{font-size:0.72rem;color:#6b7280}
+        .pyramid-bar{height:22px;border-radius:4px;transition:width .5s ease;min-width:2px}
+        .section-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;font-weight:600;color:#6b7280;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem}
+        .dd-stat.large { padding: 1.25rem; border-radius: 16px; border: 1px solid #f3f4f6; }
+        .dd-stat.large .dd-stat-val { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; margin-top: 2px; line-height: 1; }
+        .dd-stat.large .dd-stat-label { font-size: 0.8rem; color: #6b7280; font-weight: 600; margin-bottom: 0; line-height: 1; }
+        .dd-stat.large .dd-stat-icon.lg { width: 52px; height: 52px; font-size: 1.4rem; border-radius: 14px; }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="Digital Data Center"></div>
+    <div class="page-content">
+        <div class="mb-3"><a href="dashboard.html" class="btn btn-light shadow-sm border fw-bold" style="border-radius:10px;"><i class="fa-solid fa-arrow-left me-2"></i>กลับสู่แดชบอร์ดหลัก</a></div>
+
+        <!-- Hero Banner -->
+        <div class="dd-hero fade-in-up">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div>
+                    <h4><i class="fa-solid fa-database me-2"></i>Digital Data Center</h4>
+                    <p>ศูนย์ข้อมูลดิจิทัล — Population Intelligence & Household GIS System</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-light" onclick="refreshDashboard()"><i class="fa-solid fa-arrows-rotate me-1"></i>รีเฟรช</button>
+                    <a href="digital-data-map.html" class="btn btn-sm btn-outline-light"><i class="fa-solid fa-map-location-dot me-1"></i>เปิดแผนที่ GIS</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-3"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+            <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+            <li class="breadcrumb-item"><a href="secretary.html" class="text-decoration-none">สำนักปลัด</a></li>
+            <li class="breadcrumb-item active">Digital Data Center</li>
+        </ol></nav>
+
+        <!-- KPI Stats Grid -->
+        <div class="section-label"><i class="fa-solid fa-chart-pie text-primary"></i> ข้อมูลประชากรภาพรวม (Population Overview)</div>
+        
+        <!-- Top Main Stats -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="bg-primary text-white p-4 shadow-sm position-relative overflow-hidden fade-in-up" style="border-radius:16px; background:linear-gradient(135deg, #1e3a8a, #3b82f6) !important;">
+                    <div class="position-absolute opacity-25" style="top:-10px; right:-10px; font-size: 8rem; line-height:1;"><i class="fa-solid fa-users"></i></div>
+                    <div class="position-relative z-1">
+                        <h6 class="opacity-75 mb-2 text-uppercase fw-semibold" style="letter-spacing: 0.5px;">ประชากรรวมทั้งหมด (คน)</h6>
+                        <h2 class="display-4 fw-bold mb-0" id="kpiPopulation" style="letter-spacing:-1px;">—</h2>
+                        <div class="mt-2 text-white-50" style="font-size: 0.85rem;"><i class="fa-solid fa-chart-line me-1"></i> อัปเดตข้อมูลแบบเรียลไทม์</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="bg-success text-white p-4 shadow-sm position-relative overflow-hidden fade-in-up" style="animation-delay: 0.1s; border-radius:16px; background:linear-gradient(135deg, #064e3b, #10b981) !important;">
+                    <div class="position-absolute opacity-25" style="top:-10px; right:-10px; font-size: 8rem; line-height:1;"><i class="fa-solid fa-house-chimney"></i></div>
+                    <div class="position-relative z-1">
+                        <h6 class="opacity-75 mb-2 text-uppercase fw-semibold" style="letter-spacing: 0.5px;">ครัวเรือนทั้งหมด (หลัง)</h6>
+                        <h2 class="display-4 fw-bold mb-0" id="kpiHouseholds" style="letter-spacing:-1px;">—</h2>
+                        <div class="mt-2 text-white-50" style="font-size: 0.85rem;"><i class="fa-solid fa-map-location-dot me-1"></i> ครอบคลุมพื้นที่ในความดูแล</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Secondary Stats Grid -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3"><div class="dd-stat large fade-in-up" style="animation-delay:0.2s"><div class="d-flex align-items-center gap-3"><div class="dd-stat-icon lg" style="background:rgba(59,130,246,0.1);color:#3b82f6"><i class="fa-solid fa-mars"></i></div><div><div class="dd-stat-label">ชาย</div><div class="dd-stat-val text-primary" id="kpiMale">—</div></div></div></div></div>
+            <div class="col-6 col-md-3"><div class="dd-stat large fade-in-up" style="animation-delay:0.3s"><div class="d-flex align-items-center gap-3"><div class="dd-stat-icon lg" style="background:rgba(236,72,153,0.1);color:#ec4899"><i class="fa-solid fa-venus"></i></div><div><div class="dd-stat-label">หญิง</div><div class="dd-stat-val" style="color:#ec4899" id="kpiFemale">—</div></div></div></div></div>
+            <div class="col-6 col-md-3"><div class="dd-stat large fade-in-up" style="animation-delay:0.4s"><div class="d-flex align-items-center gap-3"><div class="dd-stat-icon lg bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-person-cane"></i></div><div><div class="dd-stat-label">ผู้สูงอายุ (60+)</div><div class="dd-stat-val text-warning" id="kpiElderly">—</div></div></div></div></div>
+            <div class="col-6 col-md-3"><div class="dd-stat large fade-in-up" style="animation-delay:0.5s"><div class="d-flex align-items-center gap-3"><div class="dd-stat-icon lg" style="background:rgba(139,92,246,0.1);color:#8b5cf6"><i class="fa-solid fa-wheelchair"></i></div><div><div class="dd-stat-label">ผู้พิการ</div><div class="dd-stat-val" style="color:#8b5cf6" id="kpiDisabled">—</div></div></div></div></div>
+            <div class="col-6 col-md-3"><div class="dd-stat large fade-in-up" style="animation-delay:0.6s"><div class="d-flex align-items-center gap-3"><div class="dd-stat-icon lg bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-bed-pulse"></i></div><div><div class="dd-stat-label">ผู้ป่วยติดเตียง</div><div class="dd-stat-val text-danger" id="kpiBedridden">—</div></div></div></div></div>
+            <div class="col-6 col-md-3"><div class="dd-stat large fade-in-up" style="animation-delay:0.7s"><div class="d-flex align-items-center gap-3"><div class="dd-stat-icon lg" style="background:rgba(16,185,129,0.1);color:#10b981"><i class="fa-solid fa-baby"></i></div><div><div class="dd-stat-label">เด็กแรกเกิด</div><div class="dd-stat-val text-success" id="kpiNewborn">—</div></div></div></div></div>
+            <div class="col-6 col-md-3"><div class="dd-stat large fade-in-up" style="animation-delay:0.8s"><div class="d-flex align-items-center gap-3"><div class="dd-stat-icon lg" style="background:rgba(220,38,38,0.1);color:#dc2626"><i class="fa-solid fa-hand-holding-heart"></i></div><div><div class="dd-stat-label">ครัวเรือนยากจน</div><div class="dd-stat-val text-danger" id="kpiPoor">—</div></div></div></div></div>
+            <div class="col-6 col-md-3"><div class="dd-stat large fade-in-up" style="animation-delay:0.9s"><div class="d-flex align-items-center gap-3"><div class="dd-stat-icon lg" style="background:rgba(245,158,11,0.1);color:#f59e0b"><i class="fa-solid fa-triangle-exclamation"></i></div><div><div class="dd-stat-label">จปฐ. ตกเกณฑ์</div><div class="dd-stat-val text-warning" id="kpiJP2T">—</div></div></div></div></div>
+        </div>
+
+        <!-- Quick Access Modules -->
+        <div class="section-label"><i class="fa-solid fa-grid-2 text-info"></i> เข้าถึงระบบงาน (Quick Access)</div>
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3"><a href="digital-data-map.html" class="module-tile" style="background:linear-gradient(135deg,#0f172a,#1a56db);"><i class="fa-solid fa-map-location-dot"></i><h5>GIS Map</h5><small>แผนที่ครัวเรือน</small></a></div>
+            <div class="col-6 col-md-3"><a href="digital-data-households.html" class="module-tile" style="background:linear-gradient(135deg,#057a55,#10b981);"><i class="fa-solid fa-house-chimney"></i><h5>ครัวเรือน</h5><small>ทะเบียนครัวเรือน</small></a></div>
+            <div class="col-6 col-md-3"><a href="digital-data-population.html" class="module-tile" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);"><i class="fa-solid fa-users"></i><h5>ประชากร</h5><small>ข้อมูลประชากรทั้งหมด</small></a></div>
+            <div class="col-6 col-md-3"><a href="digital-data-elderly.html" class="module-tile" style="background:linear-gradient(135deg,#c27803,#f59e0b);"><i class="fa-solid fa-person-cane"></i><h5>ผู้สูงอายุ</h5><small>ฐานข้อมูลผู้สูงอายุ</small></a></div>
+            <div class="col-6 col-md-3"><a href="digital-data-poor.html" class="module-tile" style="background:linear-gradient(135deg,#c81e1e,#ef4444);"><i class="fa-solid fa-hand-holding-heart"></i><h5>ครัวเรือนยากจน</h5><small>สถานะความยากจน</small></a></div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row g-3 mb-4">
+            <div class="col-lg-7">
+                <div class="card"><div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-chart-bar text-primary me-2"></i>Population Pyramid — โครงสร้างอายุประชากร</h6></div>
+                <div class="card-body"><canvas id="pyramidChart" height="300"></canvas></div></div>
+            </div>
+            <div class="col-lg-5">
+                <div class="card"><div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-chart-pie text-danger me-2"></i>สัดส่วนเพศ</h6></div>
+                <div class="card-body"><canvas id="genderChart" height="300"></canvas></div></div>
+            </div>
+        </div>
+
+        <!-- Village Breakdown Table -->
+        <div class="card mb-4">
+            <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-table-cells text-success me-2"></i>ข้อมูลรายหมู่บ้าน (Village Breakdown)</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive"><table class="table table-hover mb-0">
+                    <thead><tr><th class="ps-4">หมู่บ้าน</th><th class="text-center">ครัวเรือน</th><th class="text-center">ประชากร</th><th class="text-center text-primary">ชาย</th><th class="text-center" style="color: #ec4899;">หญิง</th><th class="text-center">สัดส่วน</th></tr></thead>
+                    <tbody id="villageTableBody"><tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody>
+                </table></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/digital-data-service.js"></script>
+<script src="assets/js/responsive.js"></script>
+<script>
+function fmt(n){return new Intl.NumberFormat('th-TH').format(n||0)}
+async function refreshDashboard(){
+    const s = await DigitalDataService.getDashboardStats();
+    document.getElementById('kpiPopulation').textContent=fmt(s.totalPopulation);
+    document.getElementById('kpiHouseholds').textContent=fmt(s.totalHouseholds);
+    document.getElementById('kpiMale').textContent=fmt(s.totalMale);
+    document.getElementById('kpiFemale').textContent=fmt(s.totalFemale);
+    document.getElementById('kpiElderly').textContent=fmt(s.totalElderly);
+    document.getElementById('kpiDisabled').textContent=fmt(s.totalDisabled);
+    document.getElementById('kpiBedridden').textContent=fmt(s.totalBedridden);
+    document.getElementById('kpiNewborn').textContent=fmt(s.totalNewborn);
+    document.getElementById('kpiPoor').textContent=fmt(s.totalPoor);
+    document.getElementById('kpiJP2T').textContent=fmt(s.totalJP2TFailed);
+
+    // Village table
+    const vb=s.villageBreakdown, tbody=document.getElementById('villageTableBody');
+    const entries=Object.entries(vb).sort((a,b)=>b[1].population-a[1].population);
+    tbody.innerHTML=entries.map(([name,v])=>{
+        const pct=s.totalPopulation>0?((v.population/s.totalPopulation)*100).toFixed(1):0;
+        return `<tr><td class="ps-4 fw-semibold">${name}</td><td class="text-center">${fmt(v.households)}</td><td class="text-center fw-bold">${fmt(v.population)}</td><td class="text-center text-primary">${fmt(v.male)}</td><td class="text-center" style="color: #ec4899;">${fmt(v.female)}</td><td class="text-center"><div class="d-flex align-items-center gap-2 justify-content-center"><div style="width:80px;height:6px;background:#e5e7eb;border-radius:3px;"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#1a56db,#3b82f6);border-radius:3px;"></div></div><span class="text-xs text-muted">${pct}%</span></div></td></tr>`;
+    }).join('');
+
+    // Charts
+    const a = await DigitalDataService.getPopulationAnalytics();
+    const labels=Object.keys(a.ageDistribution);
+    const maleData=labels.map(k=>a.ageDistribution[k].m);
+    const femaleData=labels.map(k=>a.ageDistribution[k].f);
+
+    Chart.register(ChartDataLabels);
+
+    if(window._pyramidChart) window._pyramidChart.destroy();
+    window._pyramidChart=new Chart(document.getElementById('pyramidChart'),{
+        type:'bar',data:{labels,datasets:[
+            {label:'ชาย',data:maleData.map(v=>-v),backgroundColor:'rgba(59,130,246,0.8)',borderRadius:4,borderSkipped:false},
+            {label:'หญิง',data:femaleData,backgroundColor:'rgba(236,72,153,0.8)',borderRadius:4,borderSkipped:false}
+        ]},options:{
+            indexAxis:'y',
+            responsive:true,
+            plugins:{
+                legend:{position:'bottom'},
+                tooltip:{
+                    callbacks:{
+                        label:ctx=>`${ctx.dataset.label}: ${fmt(Math.abs(ctx.raw))} คน`,
+                        afterLabel:ctx=>{
+                            const idx = ctx.dataIndex;
+                            const total = maleData[idx] + femaleData[idx];
+                            return `รวมชายหญิง (ช่วงอายุนี้): ${fmt(total)} คน`;
+                        }
+                    }
+                },
+                datalabels: {
+                    color: '#ffffff',
+                    font: { weight: 'bold', size: 11 },
+                    formatter: (value) => {
+                        const val = Math.abs(value);
+                        return val > 0 ? fmt(val) : '';
+                    }
+                }
+            },
+            scales:{x:{ticks:{callback:v=>fmt(Math.abs(v))}},y:{stacked:true}}
+        }
+    });
+
+    if(window._genderChart) window._genderChart.destroy();
+    window._genderChart=new Chart(document.getElementById('genderChart'),{
+        type:'doughnut',data:{labels:['ชาย','หญิง'],datasets:[{data:[s.totalMale,s.totalFemale],backgroundColor:['#3b82f6','#ec4899'],borderWidth:0}]},
+        options:{
+            responsive:true,
+            cutout:'60%',
+            plugins:{
+                legend:{position:'bottom'},
+                datalabels: {
+                    color: '#ffffff',
+                    font: { weight: 'bold', size: 14 },
+                    formatter: (value) => value > 0 ? fmt(value) : ''
+                }
+            }
+        }
+    });
+}
+document.addEventListener('DOMContentLoaded',()=>refreshDashboard());
+</script>
+</body>
+</html>

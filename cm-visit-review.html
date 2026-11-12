@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตรวจสอบการเยี่ยม (CM) - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ตรวจสอบการเยี่ยม"></div>
+    <div class="page-content">
+        <div class="mb-3"><a href="cm-dashboard.html" class="btn btn-light shadow-sm border fw-bold" style="border-radius:10px;"><i class="fa-solid fa-arrow-left me-2"></i>ย้อนกลับ</a></div>
+
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-clipboard-check text-primary me-2"></i>ตรวจสอบการเยี่ยมบ้านโดย CM</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="cm-dashboard.html" class="text-decoration-none">CM Dashboard</a></li>
+                    <li class="breadcrumb-item active">ตรวจสอบการเยี่ยม</li>
+                </ol></nav>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-body py-3">
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control form-control-sm" placeholder="ค้นหาชื่อผู้ป่วย หรือ CG...">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select form-select-sm">
+                            <option>สถานะ: รอตรวจสอบ</option>
+                            <option>สถานะ: ตรวจสอบแล้ว</option>
+                            <option>สถานะ: ส่งต่อ รพ.</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Mock Card 1 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-bottom pt-3 pb-2 d-flex justify-content-between align-items-center">
+                        <span class="badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i>รอตรวจสอบ</span>
+                        <small class="text-muted">25 พ.ค. 2026</small>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-2">ยายสมศรี ใจดี</h6>
+                        <p class="text-muted small mb-2"><i class="fa-solid fa-user-nurse me-1"></i>CG: สมหญิง ใจดี</p>
+                        
+                        <div class="p-2 bg-light rounded mb-3 text-sm">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>ความดัน:</span> <strong class="text-danger">160/95</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>ADL:</span> <strong>ติดเตียง (4/20)</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>อาการโดยรวม:</span> <strong class="text-danger">แย่ลง</strong>
+                            </div>
+                        </div>
+                        
+                        <p class="small text-truncate text-muted">ปัญหา: ผู้ป่วยมีแผลกดทับแดงขึ้น...</p>
+                        
+                        <button class="btn btn-primary w-100" onclick="showReviewModal('ยายสมศรี ใจดี', 'แย่ลง')">ตรวจทานรายละเอียด</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mock Card 2 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-bottom pt-3 pb-2 d-flex justify-content-between align-items-center">
+                        <span class="badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i>รอตรวจสอบ</span>
+                        <small class="text-muted">24 พ.ค. 2026</small>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-2">ตาบุญมา รักชาติ</h6>
+                        <p class="text-muted small mb-2"><i class="fa-solid fa-user-nurse me-1"></i>CG: มานะ ขยัน</p>
+                        
+                        <div class="p-2 bg-light rounded mb-3 text-sm">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>ความดัน:</span> <strong>120/80</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>ADL:</span> <strong>ติดบ้าน (8/20)</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>อาการโดยรวม:</span> <strong>เท่าเดิม</strong>
+                            </div>
+                        </div>
+                        
+                        <p class="small text-truncate text-muted">ปัญหา: ขาทรัพย์อ่อนแรง ทานข้าวได้น้อย...</p>
+                        
+                        <button class="btn btn-primary w-100" onclick="showReviewModal('ตาบุญมา รักชาติ', 'เท่าเดิม')">ตรวจทานรายละเอียด</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Review Modal -->
+<div class="modal fade" id="reviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="rName">ตรวจสอบข้อมูล</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info py-2" id="rAlert">สถานะ: รอตรวจสอบ</div>
+                
+                <h6 class="fw-bold mt-3">ข้อมูลที่บันทึกโดย CG</h6>
+                <div class="p-3 bg-light rounded border mb-4 text-sm">
+                    <div class="row">
+                        <div class="col-6"><p class="mb-1"><strong>ปัญหาที่พบ:</strong> มีแผลกดทับที่หลัง</p></div>
+                        <div class="col-6"><p class="mb-1"><strong>การดูแลที่ให้:</strong> ทำแผล พลิกตัว</p></div>
+                        <div class="col-12 mt-2"><p class="mb-1 text-danger"><strong>ข้อเสนอแนะถึง CM:</strong> ขอเบาะลมด่วน</p></div>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold">ความเห็นของ Care Manager</h6>
+                <textarea class="form-control mb-3" rows="3" placeholder="ระบุความเห็น ข้อเสนอแนะ หรือแผนการรักษาต่อ..."></textarea>
+                
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <button class="btn btn-success w-100" onclick="confirmReview('ตรวจสอบแล้ว')"><i class="fa-solid fa-check me-2"></i>ตรวจสอบแล้ว/รับทราบ</button>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-warning w-100" onclick="confirmReview('รอแก้ไข')"><i class="fa-solid fa-rotate-left me-2"></i>ตีกลับให้ CG แก้ไข</button>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-danger w-100" onclick="confirmReview('ส่งต่อ')"><i class="fa-solid fa-truck-medical me-2"></i>ส่งต่อโรงพยาบาล</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/cm.js"></script>
+<script>
+    function showReviewModal(name, status) {
+        document.getElementById('rName').textContent = 'ตรวจสอบการเยี่ยม - ' + name;
+        new bootstrap.Modal(document.getElementById('reviewModal')).show();
+    }
+    
+    function confirmReview(status) {
+        Swal.fire({
+            title: 'ยืนยันการบันทึก',
+            text: `คุณต้องการบันทึกสถานะเป็น "${status}" ใช่หรือไม่?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                bootstrap.Modal.getInstance(document.getElementById('reviewModal')).hide();
+                Swal.fire('บันทึกสำเร็จ!', '', 'success');
+            }
+        });
+    }
+</script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

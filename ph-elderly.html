@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ฐานข้อมูลผู้สูงอายุ - กองสาธารณสุขฯ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ฐานข้อมูลผู้สูงอายุ"></div>
+    <div class="page-content">
+        <div class="mb-3"><a href="healthcare-dashboard.html" class="btn btn-light shadow-sm border fw-bold" style="border-radius:10px;"><i class="fa-solid fa-arrow-left me-2"></i>ย้อนกลับ (หน้าหลักสาธารณสุข)</a></div>
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-person-cane text-warning me-2"></i>ฐานข้อมูลผู้สูงอายุ</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;"><li class="breadcrumb-item"><a href="healthcare-dashboard.html" class="text-decoration-none">กองสาธารณสุขฯ</a></li><li class="breadcrumb-item active">ผู้สูงอายุ</li></ol></nav>
+            </div>
+            <div class="d-flex gap-2">
+                <input type="file" id="importExcel" accept=".xlsx, .xls" style="display:none;" onchange="handleImportExcel(event)">
+                <button class="btn btn-sm btn-outline-success" onclick="document.getElementById('importExcel').click()"><i class="fa-solid fa-file-import me-1"></i>นำเข้า</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="exportExcel()"><i class="fa-solid fa-file-excel me-1"></i>Export</button>
+                <button class="btn btn-sm btn-warning text-white" onclick="showAddElderly()"><i class="fa-solid fa-plus me-1"></i>เพิ่มข้อมูล</button>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="row g-3 mb-3">
+            <div class="col-12"><div class="kpi-card fade-in-up" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;"><div class="d-flex justify-content-between align-items-center"><div><div class="kpi-label text-white-50 mb-1">ยอดรวมเบี้ยยังชีพผู้สูงอายุที่ต้องจ่าย (ต่อเดือน)</div><div class="kpi-value fw-bold text-white fs-3" id="kAllowanceTotal">0 บาท</div></div><div class="kpi-icon bg-white bg-opacity-25 text-white shadow-sm" style="width: 60px; height: 60px; font-size: 1.5rem;"><i class="fa-solid fa-hand-holding-dollar"></i></div></div></div></div>
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ผู้สูงอายุทั้งหมด</div><div class="kpi-value" id="kETotal">—</div></div><div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-person-cane"></i></div></div></div></div>
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ติดสังคม</div><div class="kpi-value text-success" id="kESocial">—</div></div><div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-people-arrows"></i></div></div></div></div>
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ติดบ้าน</div><div class="kpi-value text-info" id="kEHome">—</div></div><div class="kpi-icon bg-info bg-opacity-10 text-info"><i class="fa-solid fa-house-user"></i></div></div></div></div>
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ติดเตียง</div><div class="kpi-value text-danger" id="kEBed">—</div></div><div class="kpi-icon bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-bed"></i></div></div></div></div>
+        </div>
+
+        <!-- Filter -->
+        <div class="card mb-3"><div class="card-body py-2"><div class="row g-2 align-items-center">
+            <div class="col-md-5"><div class="input-group input-group-sm"><span class="input-group-text bg-light"><i class="fa-solid fa-search text-muted"></i></span><input type="text" class="form-control" id="searchEl" placeholder="ค้นหาชื่อ / บัตรประชาชน..." onkeyup="filterElTable()"></div></div>
+            <div class="col-md-5"><select class="form-select form-select-sm" id="filterDep" onchange="filterElTable()"><option value="">ทุกระดับ</option><option value="ติดสังคม">ติดสังคม</option><option value="ติดบ้าน">ติดบ้าน</option><option value="ติดเตียง">ติดเตียง</option></select></div>
+            <div class="col-md-2 text-end"><span class="text-xs text-muted" id="elCount">—</span></div>
+        </div></div></div>
+
+        <!-- Table -->
+        <div class="card"><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0">
+            <thead><tr><th class="ps-4">ชื่อ-สกุล</th><th>อายุ</th><th>เพศ</th><th>บ้านเลขที่</th><th>ระดับ</th><th>สวัสดิการ</th><th>ผู้ดูแล</th><th class="text-center">ข้อมูลครัวเรือน</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
+            <tbody id="elderlyBody"><tr><td colspan="9" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody>
+        </table></div></div></div>
+    </div>
+</div>
+
+<!-- Add Elderly Modal -->
+<div class="modal fade" id="elderlyModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+    <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold" id="modalTitle"><i class="fa-solid fa-person-cane text-warning me-2"></i>เพิ่มข้อมูลผู้สูงอายุ</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body p-4">
+        
+        <!-- Step 1: Search Citizen -->
+        <div id="step1-search">
+            <h6 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-1 me-2"></i>ขั้นตอนที่ 1: ค้นหาจากฐานข้อมูลทะเบียนราษฎร์</h6>
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" id="searchCitizenInput" placeholder="พิมพ์ชื่อ, นามสกุล, หรือบ้านเลขที่...">
+                <button class="btn btn-primary" onclick="handleSearchCitizen()"><i class="fa-solid fa-search me-1"></i>ค้นหา</button>
+            </div>
+            <div id="searchCitizenResults" class="list-group mb-3"></div>
+            
+            <div class="text-center mt-4">
+                <p class="text-muted text-sm mb-2">ไม่พบรายชื่อในระบบ? หรือต้องการเพิ่มใหม่</p>
+                <button class="btn btn-outline-success btn-sm" onclick="skipToForm()"><i class="fa-solid fa-user-plus me-1"></i>เพิ่มชื่อเข้าฐานข้อมูลทะเบียนราษฎร์</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Fill Data -->
+        <div id="step2-form" style="display:none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-primary mb-0"><i class="fa-solid fa-2 me-2"></i>ขั้นตอนที่ 2: ระบุข้อมูลผู้สูงอายุ</h6>
+                <button class="btn btn-sm btn-light" onclick="backToSearch()"><i class="fa-solid fa-arrow-left me-1"></i>กลับไปค้นหา</button>
+            </div>
+            
+            <form id="elderlyForm">
+                <input type="hidden" id="eMemberId">
+                <div class="p-3 bg-light rounded mb-3 border">
+                    <h6 class="fw-bold mb-2">ข้อมูลส่วนบุคคล</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3"><label class="form-label">คำนำหน้า</label><select class="form-select form-select-sm" id="ePrefix"><option>นาย</option><option>นาง</option><option>นางสาว</option></select></div>
+                        <div class="col-md-4"><label class="form-label">ชื่อ <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="eFirstName" required></div>
+                        <div class="col-md-5"><label class="form-label">นามสกุล <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="eLastName" required></div>
+                        
+                        <div class="col-md-3"><label class="form-label">วันเกิด</label><input type="date" class="form-control form-control-sm" id="eBirthDate" onchange="calcAge(this.value)"></div>
+                        <div class="col-md-2"><label class="form-label">อายุ <span class="text-danger">*</span></label><input type="number" class="form-control form-control-sm" id="eAge" min="60" required></div>
+                        <div class="col-md-3"><label class="form-label">เพศ</label><select class="form-select form-select-sm" id="eGender"><option>ชาย</option><option>หญิง</option></select></div>
+                        <div class="col-md-4"><label class="form-label">เลขบัตรประชาชน</label><input type="text" class="form-control form-control-sm" id="eCitizenId" maxlength="13"></div>
+                        
+                        <div class="col-md-4"><label class="form-label">บ้านเลขที่ <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="eHouse" required></div>
+                        <div class="col-md-3"><label class="form-label">หมู่ที่ <span class="text-danger">*</span></label><input type="number" class="form-control form-control-sm" id="eVillage" required></div>
+                        <div class="col-md-5"><label class="form-label">ชื่อหมู่บ้าน</label><input type="text" class="form-control form-control-sm" id="eVillageName"></div>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-warning bg-opacity-10 rounded border border-warning">
+                    <h6 class="fw-bold mb-2 text-warning"><i class="fa-solid fa-heart-pulse me-1"></i>ข้อมูลสวัสดิการผู้สูงอายุ</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4"><label class="form-label">ระดับความสามารถ</label><select class="form-select form-select-sm" id="eLevel"><option>ติดสังคม</option><option>ติดบ้าน</option><option>ติดเตียง</option></select></div>
+                        <div class="col-md-4"><label class="form-label">สวัสดิการ</label><input type="text" class="form-control form-control-sm" id="eWelfare" placeholder="เช่น รับเบี้ยยังชีพ 600 บาท"></div>
+                        <div class="col-md-4"><label class="form-label">ชื่อผู้ดูแล</label><input type="text" class="form-control form-control-sm" id="eCaregiver" placeholder="ระบุชื่อผู้ดูแล"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    </div>
+    </div>
+    <div class="modal-footer border-0 bg-light" id="modalFooter" style="display:none;">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn btn-primary" onclick="saveElderly(event)"><i class="fa-solid fa-save me-1"></i>บันทึกข้อมูล</button>
+    </div>
+</div></div></div>
+
+<!-- Import Preview Modal -->
+<div class="modal fade" id="importPreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-table me-2 text-primary"></i>ตัวอย่างข้อมูลก่อนนำเข้า (ผู้สูงอายุ)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive" style="max-height: 500px;">
+                    <table class="table table-sm table-bordered align-middle">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="text-center" style="width: 50px;">
+                                    <input class="form-check-input" type="checkbox" id="selectAllImport" checked onchange="toggleAllImport(this)">
+                                </th>
+                                <th>ชื่อ - สกุล</th>
+                                <th>เลขบัตร ปชช.</th>
+                                <th>บ้านเลขที่</th>
+                                <th>หมู่ที่</th>
+                                <th>สถานะ (ประชากร)</th>
+                                <th>สถานะ (เป้าหมาย)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="importPreviewBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" onclick="confirmImportExcel()"><i class="fa-solid fa-cloud-arrow-up me-1"></i>ยืนยันการนำเข้า</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js?v=2"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/digital-data-service.js?v=2"></script>
+<script src="assets/js/household-service.js?v=2"></script>
+<script src="assets/js/responsive.js?v=2"></script>
+<script>
+let elderlyData=[];
+document.addEventListener('DOMContentLoaded',async()=>{
+    let data=await HouseholdService.getElderlyList();
+    elderlyData=data; renderElderly(data);
+    let totalAllowance = 0;
+    data.forEach(e => {
+        if (e.welfare_status) {
+            const match = String(e.welfare_status).replace(/,/g, '').match(/\d+/);
+            if (match) totalAllowance += parseInt(match[0], 10);
+        }
+    });
+    document.getElementById('kAllowanceTotal').textContent = totalAllowance.toLocaleString() + ' บาท';
+
+    document.getElementById('kETotal').textContent=data.length;
+    document.getElementById('kESocial').textContent=data.filter(e=>e.dependency_level==='ติดสังคม').length;
+    document.getElementById('kEHome').textContent=data.filter(e=>e.dependency_level==='ติดบ้าน').length;
+    document.getElementById('kEBed').textContent=data.filter(e=>e.dependency_level==='ติดเตียง').length;
+});
+function renderElderly(data){
+    const tbody=document.getElementById('elderlyBody');
+    document.getElementById('elCount').textContent=data.length+' รายการ';
+    if(!data.length){tbody.innerHTML='<tr><td colspan="9" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';return;}
+    const depColors={ติดสังคม:'bg-success',ติดบ้าน:'bg-info',ติดเตียง:'bg-danger'};
+    tbody.innerHTML=data.map(e=>{const m=e.dd_household_members||{};const h=m.dd_households||{};return `<tr>
+        <td class="ps-4 fw-semibold">${m.prefix||''} ${m.first_name||''} ${m.last_name||''}</td>
+        <td>${m.age||'-'} ปี</td><td>${m.gender||'-'}</td>
+        <td>${h.house_number||'-'} ม.${h.village_no||'-'}</td>
+        <td><span class="badge ${depColors[e.dependency_level]||'bg-secondary'}">${e.dependency_level||'-'}</span></td>
+        <td class="text-xs">${e.welfare_status||'-'}</td><td class="text-xs">${e.caregiver||'-'}</td>
+        <td class="text-center"><button class="btn btn-xs btn-outline-info shadow-sm" onclick="viewProfile('${m.household_id || h.id || ''}')" title="ไปยังข้อมูลครัวเรือน"><i class="fa-solid fa-house"></i></button></td>
+        <td class="pe-4 text-center"><button class="btn btn-xs btn-outline-primary" onclick="editElderly('${e.household_member_id}')" title="แก้ไข/ดูข้อมูล"><i class="fa-solid fa-pen"></i></button></td>
+    </tr>`;}).join('');
+}
+function filterElTable(){
+    const q=document.getElementById('searchEl').value.toLowerCase();
+    const dep=document.getElementById('filterDep').value;
+
+    let d=elderlyData;
+    if(q) d=d.filter(e=>{const m=e.dd_household_members||{};return (m.first_name||'').toLowerCase().includes(q)||(m.last_name||'').toLowerCase().includes(q)||(m.citizen_id||'').includes(q);});
+    if(dep) d=d.filter(e=>e.dependency_level===dep);
+    renderElderly(d);
+}
+
+// Add Functionality
+function showAddElderly(){
+    document.getElementById('step1-search').style.display = 'block';
+    document.getElementById('step2-form').style.display = 'none';
+    document.getElementById('modalFooter').style.display = 'none';
+    document.getElementById('searchCitizenInput').value = '';
+    document.getElementById('searchCitizenResults').innerHTML = '';
+    document.getElementById('elderlyForm').reset();
+    document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-person-cane text-warning me-2"></i>เพิ่มข้อมูลผู้สูงอายุ';
+    new bootstrap.Modal(document.getElementById('elderlyModal')).show();
+}
+
+async function handleSearchCitizen() {
+    const q = document.getElementById('searchCitizenInput').value.trim();
+    if(!q) return;
+    const resDiv = document.getElementById('searchCitizenResults');
+    resDiv.innerHTML = '<div class="text-center text-muted py-2"><i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังค้นหา...</div>';
+    
+    try {
+        const results = await DigitalDataService.searchCitizen(q);
+        if(!results.length) {
+            resDiv.innerHTML = '<div class="alert alert-warning py-2 mb-0">ไม่พบรายชื่อในระบบ</div>';
+            return;
+        }
+        resDiv.innerHTML = results.map(r => {
+            const h = r.dd_households || {};
+            return `<button type="button" class="list-group-item list-group-item-action" onclick='selectCitizen(${JSON.stringify(r).replace(/'/g,"&apos;")})'>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${r.prefix||''}${r.first_name||''} ${r.last_name||''}</strong>
+                        <div class="text-xs text-muted">บัตรปชช: ${r.citizen_id||'-'} | บ้านเลขที่: ${h.house_number||'-'} ม.${h.village_no||'-'}</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-muted"></i>
+                </div>
+            </button>`;
+        }).join('');
+    } catch(e) {
+        resDiv.innerHTML = '<div class="alert alert-danger py-2 mb-0">เกิดข้อผิดพลาดในการค้นหา</div>';
+    }
+}
+
+function selectCitizen(r) {
+    const h = r.dd_households || {};
+    document.getElementById('eMemberId').value = r.id;
+    document.getElementById('ePrefix').value = r.prefix || 'นาย';
+    document.getElementById('eFirstName').value = r.first_name || '';
+    document.getElementById('eLastName').value = r.last_name || '';
+    document.getElementById('eBirthDate').value = r.birth_date || '';
+    document.getElementById('eAge').value = r.age || 60;
+    document.getElementById('eGender').value = r.gender || 'ชาย';
+    document.getElementById('eCitizenId').value = r.citizen_id || '';
+    document.getElementById('eHouse').value = h.house_number || '';
+    document.getElementById('eVillage').value = h.village_no || '';
+    document.getElementById('eVillageName').value = h.village_name || '';
+    skipToForm();
+}
+
+function parseBirthDate(dateStr) {
+    if (!dateStr) return null;
+    let parts = dateStr.split('-');
+    if (parts.length !== 3) return null;
+    let y = parseInt(parts[0], 10);
+    if (y > 2400) {
+        y -= 543;
+        parts[0] = y.toString();
+        return parts.join('-');
+    }
+    return dateStr;
+}
+
+function calcAge(dateStr) {
+    const validDate = parseBirthDate(dateStr);
+    if (!validDate) return;
+    const dob = new Date(validDate);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+        age--;
+    }
+    if (age >= 0) document.getElementById('eAge').value = age;
+}
+
+function skipToForm() {
+    document.getElementById('step1-search').style.display = 'none';
+    document.getElementById('step2-form').style.display = 'block';
+    document.getElementById('modalFooter').style.display = 'flex';
+}
+
+function backToSearch() {
+    document.getElementById('step2-form').style.display = 'none';
+    document.getElementById('modalFooter').style.display = 'none';
+    document.getElementById('step1-search').style.display = 'block';
+}
+
+async function saveElderly(event) {
+    let memberId = document.getElementById('eMemberId').value;
+
+    const btn = event ? (event.target || document.querySelector('#modalFooter .btn-primary')) : document.querySelector('#modalFooter .btn-primary');
+    const oldText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังบันทึก...';
+    btn.disabled = true;
+
+    try {
+        if(!memberId) {
+            const fname = document.getElementById('eFirstName').value;
+            const lname = document.getElementById('eLastName').value;
+            if(!fname || !lname) { 
+                Swal.fire('ข้อมูลไม่ครบ','กรุณากรอกชื่อและนามสกุลให้ครบถ้วน','warning'); 
+                btn.innerHTML = oldText; btn.disabled = false;
+                return; 
+            }
+            memberId = await HouseholdService.ensureMemberExists({
+                prefix: document.getElementById('ePrefix').value,
+                first_name: fname,
+                last_name: lname,
+                birth_date: parseBirthDate(document.getElementById('eBirthDate').value),
+                age: document.getElementById('eAge').value || 60,
+                gender: document.getElementById('eGender').value || 'ชาย',
+                citizen_id: document.getElementById('eCitizenId').value || '-',
+                house_number: document.getElementById('eHouse').value || '-',
+                village_no: document.getElementById('eVillage').value || '-'
+            });
+            document.getElementById('eMemberId').value = memberId;
+        }
+
+        const payload = {
+            dependency_level: document.getElementById('eLevel').value,
+            welfare_status: document.getElementById('eWelfare').value || '-',
+            caregiver: document.getElementById('eCaregiver').value || '-',
+            gps_verified: false
+        };
+        
+        await HouseholdService.saveElderly(memberId, payload);
+        
+        let data = await HouseholdService.getElderlyList();
+        elderlyData = data; 
+        renderElderly(data);
+        
+        document.getElementById('kETotal').textContent=elderlyData.length;
+        document.getElementById('kESocial').textContent=elderlyData.filter(e=>e.dependency_level==='ติดสังคม').length;
+        document.getElementById('kEHome').textContent=elderlyData.filter(e=>e.dependency_level==='ติดบ้าน').length;
+        document.getElementById('kEBed').textContent=elderlyData.filter(e=>e.dependency_level==='ติดเตียง').length;
+        
+        bootstrap.Modal.getInstance(document.getElementById('elderlyModal')).hide();
+        Swal.fire({icon:'success',title:'บันทึกข้อมูลสำเร็จ',timer:1500,showConfirmButton:false});
+    } catch(e) {
+        console.error(e);
+        Swal.fire('ข้อผิดพลาด','ไม่สามารถบันทึกข้อมูลได้','error');
+    } finally {
+        btn.innerHTML = oldText;
+        btn.disabled = false;
+    }
+}
+
+function editElderly(memberId) {
+    const e = elderlyData.find(x => String(x.household_member_id) === String(memberId));
+    if(!e) return;
+    const m = e.dd_household_members || {};
+    const h = m.dd_households || {};
+    
+    document.getElementById('eMemberId').value = memberId;
+    document.getElementById('ePrefix').value = m.prefix || 'นาย';
+    document.getElementById('eFirstName').value = m.first_name || '';
+    document.getElementById('eLastName').value = m.last_name || '';
+    document.getElementById('eBirthDate').value = m.birth_date || '';
+    document.getElementById('eAge').value = m.age || 60;
+    document.getElementById('eGender').value = m.gender || 'ชาย';
+    document.getElementById('eCitizenId').value = m.citizen_id || '';
+    document.getElementById('eHouse').value = h.house_number || '';
+    document.getElementById('eVillage').value = h.village_no || '';
+    document.getElementById('eVillageName').value = h.village_name || '';
+    
+    document.getElementById('eLevel').value = e.dependency_level || 'ติดสังคม';
+    document.getElementById('eWelfare').value = e.welfare_status || '';
+    document.getElementById('eCaregiver').value = e.caregiver || '';
+    
+    document.getElementById('step1-search').style.display = 'none';
+    document.getElementById('step2-form').style.display = 'block';
+    document.getElementById('modalFooter').style.display = 'flex';
+    
+    document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen text-primary me-2"></i>แก้ไขข้อมูลผู้สูงอายุ';
+    new bootstrap.Modal(document.getElementById('elderlyModal')).show();
+}
+
+function viewProfile(id) {
+    if(id && id !== 'undefined') {
+        window.location.href = 'digital-data-profile.html?id=' + id;
+    } else {
+        Swal.fire('ไม่พบข้อมูลครัวเรือน', 'บุคคลนี้ไม่ได้เชื่อมโยงกับครัวเรือนใดๆ', 'warning');
+    }
+}
+
+// Export Functionality
+function exportExcel() {
+    let exportData = [];
+    if(!elderlyData.length) { 
+        exportData = [{
+            "ลำดับ": "", "คำนำหน้า": "", "ชื่อ": "", "นามสกุล": "", "อายุ": "", "เพศ": "", "เลขบัตรประชาชน": "", 
+            "บ้านเลขที่": "", "หมู่ที่": "", "ชื่อหมู่บ้าน": "", "ระดับความสามารถ": "", "สวัสดิการ": "", "ผู้ดูแล": "", "ยืนยัน GPS": ""
+        }];
+    } else {
+        exportData = elderlyData.map((e, idx) => {
+            const m = e.dd_household_members || {};
+            const h = m.dd_households || {};
+            return {
+                "ลำดับ": idx + 1,
+                "คำนำหน้า": m.prefix || '',
+                "ชื่อ": m.first_name || '',
+                "นามสกุล": m.last_name || '',
+                "อายุ": m.age || '',
+                "เพศ": m.gender || '',
+                "เลขบัตรประชาชน": m.citizen_id || '',
+                "บ้านเลขที่": h.house_number || '',
+                "หมู่ที่": h.village_no || '',
+                "ชื่อหมู่บ้าน": h.village_name || '',
+                "ระดับความสามารถ": e.dependency_level || '',
+                "สวัสดิการ": e.welfare_status || '',
+                "ผู้ดูแล": e.caregiver || '',
+                "ยืนยัน GPS": e.gps_verified ? 'ใช่' : 'ไม่'
+            };
+        });
+    }
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "ผู้สูงอายุ");
+    XLSX.writeFile(wb, "elderly_data_export.xlsx");
+}
+
+// Import Functionality
+let pendingImportData = [];
+
+function toggleAllImport(source) {
+    const checkboxes = document.querySelectorAll('.import-check');
+    checkboxes.forEach(cb => {
+        cb.checked = source.checked;
+        pendingImportData[cb.dataset.idx].selected = source.checked;
+    });
+}
+
+function updateImportSelection(cb, idx) {
+    pendingImportData[idx].selected = cb.checked;
+    const allChecked = Array.from(document.querySelectorAll('.import-check')).every(c => c.checked);
+    document.getElementById('selectAllImport').checked = allChecked;
+}
+
+function handleImportExcel(event) {
+    const file = event.target.files[0];
+    if(!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+            
+            if(!jsonData || jsonData.length === 0) {
+                Swal.fire('ไฟล์ว่างเปล่า','ไม่พบข้อมูลในไฟล์ Excel','error');
+                return;
+            }
+            
+            Swal.fire({
+                title: 'กำลังตรวจสอบข้อมูล...',
+                html: 'ประมวลผล ' + jsonData.length + ' รายการ',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+            
+            const {data: allHouseholds} = await supabaseClient.from('dd_households').select('id, house_number, village_no');
+            const {data: allMembers} = await supabaseClient.from('dd_household_members').select('id, household_id, first_name, last_name, citizen_id');
+            const {data: allElderly} = await supabaseClient.from('dd_elderly').select('id, household_member_id');
+            
+            pendingImportData = [];
+            let html = '';
+            
+            jsonData.forEach((rawRow, idx) => {
+                const row = {};
+                for (let k in rawRow) row[k.trim()] = rawRow[k];
+                
+                const fName = String(row['ชื่อ'] || '').trim();
+                const lName = String(row['นามสกุล'] || '').trim();
+                const cid = String(row['เลขบัตรประชาชน'] || '').trim();
+                const houseNo = String(row['บ้านเลขที่'] || '').trim();
+                const villageNo = String(row['หมู่ที่'] || '').trim();
+                
+                if(!fName || !lName) return;
+                
+                const searchCid = cid && cid !== '-' ? cid : null;
+                let member = (allMembers||[]).find(m => (m.first_name === fName && m.last_name === lName) || (searchCid && m.citizen_id === searchCid));
+                let household = (allHouseholds||[]).find(h => String(h.house_number) === houseNo && String(h.village_no) === villageNo);
+                let elderly = member ? (allElderly||[]).find(e => e.household_member_id === member.id) : null;
+                
+                let memberStatus = member ? '<span class="badge bg-success">มีประชากร</span>' : '<span class="badge bg-danger">ไม่มีประชากร</span>';
+                let hhStatus = household ? '<span class="badge bg-success">มีบ้าน</span>' : '<span class="badge bg-warning text-dark">ไม่มีบ้าน (สร้างใหม่)</span>';
+                let targetStatus = elderly ? '<span class="badge bg-info">อัปเดต</span>' : '<span class="badge bg-primary">สร้างใหม่</span>';
+                
+                pendingImportData.push({
+                    row, idx, fName, lName, cid, houseNo, villageNo, 
+                    member, household, elderly, selected: true
+                });
+                
+                html += `
+                    <tr>
+                        <td class="text-center"><input class="form-check-input import-check" type="checkbox" checked data-idx="${pendingImportData.length-1}" onchange="updateImportSelection(this, ${pendingImportData.length-1})"></td>
+                        <td>${fName} ${lName}</td>
+                        <td>${cid}</td>
+                        <td>${houseNo}</td>
+                        <td>${villageNo}</td>
+                        <td>${hhStatus} ${memberStatus}</td>
+                        <td>${targetStatus}</td>
+                    </tr>
+                `;
+            });
+            
+            Swal.close();
+            
+            if(pendingImportData.length === 0) {
+                Swal.fire('ไม่มีข้อมูลที่นำเข้าได้','กรุณาตรวจสอบคอลัมน์ ชื่อ, นามสกุล ในไฟล์ Excel','warning');
+                return;
+            }
+            
+            document.getElementById('importPreviewBody').innerHTML = html;
+            document.getElementById('selectAllImport').checked = true;
+            new bootstrap.Modal(document.getElementById('importPreviewModal')).show();
+            
+        } catch(err) {
+            console.error("Import Error: ", err);
+            Swal.fire('เกิดข้อผิดพลาด', err.message || err, 'error');
+        } finally {
+            event.target.value = '';
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+async function confirmImportExcel() {
+    const selectedData = pendingImportData.filter(d => d.selected);
+    if(selectedData.length === 0) {
+        Swal.fire('ไม่ได้เลือกรายการ','กรุณาเลือกรายการที่ต้องการนำเข้า','warning');
+        return;
+    }
+    
+    bootstrap.Modal.getInstance(document.getElementById('importPreviewModal')).hide();
+    
+    Swal.fire({
+        title: 'กำลังบันทึกข้อมูล...',
+        html: 'โปรดรอสักครู่ ระบบกำลังนำเข้าข้อมูล ' + selectedData.length + ' รายการ',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+    
+    let importCount = 0;
+    let updateCount = 0;
+    let skipCount = 0;
+    
+    const {data: resHouseholds} = await supabaseClient.from('dd_households').select('id, house_number, village_no');
+    const {data: resMembers} = await supabaseClient.from('dd_household_members').select('id, household_id, first_name, last_name, citizen_id');
+    const {data: resElderly} = await supabaseClient.from('dd_elderly').select('id, household_member_id');
+    
+    const allHouseholds = resHouseholds || [];
+    const allMembers = resMembers || [];
+    const allElderly = resElderly || [];
+    
+    for(let item of selectedData) {
+        const {row, fName, lName, cid, houseNo, villageNo} = item;
+        const searchCid = cid && cid !== '-' ? cid : null;
+        
+        let householdId = null;
+        let household = allHouseholds.find(h => String(h.house_number) === houseNo && String(h.village_no) === villageNo);
+        if (household) {
+            householdId = household.id;
+        } else {
+            const {data: newHh, error: errH} = await supabaseClient.from('dd_households').insert({
+                house_number: houseNo,
+                village_no: parseInt(villageNo)||null,
+                house_code: '-', owner_name: '-'
+            }).select('id').single();
+            if(newHh) {
+                householdId = newHh.id;
+                allHouseholds.push({id: householdId, house_number: houseNo, village_no: villageNo});
+            } else {
+                skipCount++; continue;
+            }
+        }
+        
+        let memberId = null;
+        let member = allMembers.find(m => (m.first_name === fName && m.last_name === lName) || (searchCid && m.citizen_id === searchCid));
+        if (member) {
+            memberId = member.id;
+        } else {
+            const newMember = {
+                household_id: householdId,
+                prefix: row['คำนำหน้า'] || '',
+                first_name: fName,
+                last_name: lName,
+                citizen_id: searchCid,
+                gender: row['เพศ'] || '',
+                age: parseInt(row['อายุ']) || null
+            };
+            const {data: newMem, error: errM} = await supabaseClient.from('dd_household_members').insert(newMember).select('id').single();
+            if (newMem) {
+                memberId = newMem.id;
+                allMembers.push({id: memberId, household_id: householdId, first_name: fName, last_name: lName, citizen_id: searchCid});
+            } else {
+                skipCount++; continue;
+            }
+        }
+        
+        let elderly = allElderly.find(e => e.household_member_id === memberId);
+        const elderlyDataObj = {
+            dependency_level: row['ระดับความสามารถ'] || 'ติดสังคม',
+            welfare_status: row['สวัสดิการ'] || '-',
+            caregiver: row['ผู้ดูแล'] || '-',
+            gps_verified: row['ยืนยัน GPS'] === 'ใช่'
+        };
+        
+        if (elderly) {
+            await supabaseClient.from('dd_elderly').update(elderlyDataObj).eq('id', elderly.id);
+            updateCount++;
+        } else {
+            elderlyDataObj.household_member_id = memberId;
+            const {data: newEld} = await supabaseClient.from('dd_elderly').insert(elderlyDataObj).select('id').single();
+            if (newEld) {
+                allElderly.push({id: newEld.id, household_member_id: memberId});
+                importCount++;
+            } else {
+                skipCount++;
+            }
+        }
+    }
+    
+    let updatedData = await HouseholdService.getElderlyList();
+    elderlyData = updatedData;
+    renderElderly(updatedData);
+    document.getElementById('kETotal').textContent = updatedData.length;
+    document.getElementById('kESocial').textContent = updatedData.filter(e=>e.dependency_level==='ติดสังคม').length;
+    document.getElementById('kEHome').textContent = updatedData.filter(e=>e.dependency_level==='ติดบ้าน').length;
+    document.getElementById('kEBed').textContent = updatedData.filter(e=>e.dependency_level==='ติดเตียง').length;
+    
+    Swal.fire({
+        title: 'บันทึกสำเร็จ',
+        html: `นำเข้าใหม่: ${importCount} รายการ<br>อัปเดต: ${updateCount} รายการ<br>ข้าม/ผิดพลาด: ${skipCount} รายการ`,
+        icon: 'success'
+    });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดการห้องเรียน - ศูนย์พัฒนาเด็กเล็ก</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="จัดการห้องเรียน"></div>
+    <div class="page-content">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-chalkboard-user text-primary me-2"></i>จัดการห้องเรียน</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item"><a href="childdev-dashboard.html" class="text-decoration-none">ศูนย์พัฒนาเด็กเล็ก</a></li>
+                    <li class="breadcrumb-item active">จัดการห้องเรียน</li>
+                </ol></nav>
+            </div>
+            <button class="btn btn-sm btn-primary" onclick="openAddRoom()"><i class="fa-solid fa-plus me-1"></i>เพิ่มห้องเรียน</button>
+        </div>
+
+        <div class="row g-3" id="roomCards"></div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="roomModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+        <div class="modal-header border-0"><h5 class="modal-title fw-bold" id="roomModalTitle">เพิ่มห้องเรียน</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <input type="hidden" id="roomId">
+            <div class="mb-3"><label class="form-label">ชื่อห้อง</label><input type="text" class="form-control" id="roomName" placeholder="เช่น อนุบาล 1/1"></div>
+            <div class="mb-3"><label class="form-label">ระดับชั้น</label>
+                <select class="form-select" id="roomLevel"><option value="อนุบาล 1">อนุบาล 1</option><option value="อนุบาล 2">อนุบาล 2</option><option value="อนุบาล 3">อนุบาล 3</option></select>
+            </div>
+            <div class="mb-3"><label class="form-label">ครูประจำชั้น</label><input type="text" class="form-control" id="roomTeacher" placeholder="ชื่อครู"></div>
+            <div class="mb-3"><label class="form-label">เบอร์โทรครู</label><input type="text" class="form-control" id="roomTeacherPhone" placeholder="08X-XXX-XXXX"></div>
+            <div class="row g-3">
+                <div class="col-6"><label class="form-label">สีประจำห้อง</label><input type="color" class="form-control form-control-color w-100" id="roomColor" value="#3b82f6"></div>
+                <div class="col-6"><label class="form-label">ความจุ (คน)</label><input type="number" class="form-control" id="roomCapacity" value="25"></div>
+            </div>
+        </div>
+        <div class="modal-footer border-0"><button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button><button class="btn btn-primary" onclick="saveRoom()"><i class="fa-solid fa-check me-1"></i>บันทึก</button></div>
+    </div>
+</div></div>
+
+<!-- Student List Modal -->
+<div class="modal fade" id="studentListModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+        <div class="modal-header border-0"><h5 class="modal-title fw-bold" id="studentListTitle">รายชื่อนักเรียน</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body p-0">
+            <table class="table table-hover mb-0">
+                <thead><tr><th class="ps-4">#</th><th>ชื่อ-สกุล</th><th>ชื่อเล่น</th><th>เพศ</th><th>อายุ</th></tr></thead>
+                <tbody id="studentListBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/childdev.js"></script>
+<script>
+let roomModalInstance;
+document.addEventListener('DOMContentLoaded', function() {
+    roomModalInstance = new bootstrap.Modal(document.getElementById('roomModal'));
+    renderRooms();
+});
+
+function renderRooms() {
+    const rooms = ChilddevDB.getAll('classrooms');
+    const students = ChilddevDB.getAll('students');
+    const container = document.getElementById('roomCards');
+    container.innerHTML = rooms.map(r => {
+        const count = students.filter(s => s.classroomId === r.id).length;
+        return `<div class="col-md-6 col-xl-4 fade-in-up">
+            <div class="card hover-lift h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div style="width:52px;height:52px;border-radius:14px;background:${r.color};display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#fff;box-shadow:0 4px 12px ${r.color}40;">${r.icon||'📚'}</div>
+                            <div>
+                                <h6 class="fw-bold mb-0">${r.name}</h6>
+                                <span class="text-xs text-muted">${r.level}</span>
+                            </div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow" style="border:none;border-radius:10px;">
+                                <li><a class="dropdown-item text-sm" href="#" onclick="editRoom('${r.id}')"><i class="fa-solid fa-pen me-2 text-primary"></i>แก้ไข</a></li>
+                                <li><a class="dropdown-item text-sm text-danger" href="#" onclick="deleteRoom('${r.id}')"><i class="fa-solid fa-trash me-2"></i>ลบ</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 mb-2"><i class="fa-solid fa-user-tie text-muted"></i><span class="text-sm">${r.teacher}</span></div>
+                    <div class="d-flex align-items-center gap-2 mb-3"><i class="fa-solid fa-phone text-muted"></i><span class="text-sm">${r.teacherPhone||'-'}</span></div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div><span class="fw-bold text-lg">${count}</span><span class="text-muted text-sm">/${r.capacity} คน</span></div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewStudents('${r.id}','${r.name}')"><i class="fa-solid fa-users me-1"></i>ดูรายชื่อ</button>
+                    </div>
+                    <div class="progress mt-2" style="height:6px;border-radius:3px;">
+                        <div class="progress-bar" style="width:${(count/r.capacity*100).toFixed(0)}%;background:${r.color};border-radius:3px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function openAddRoom() {
+    document.getElementById('roomModalTitle').textContent = 'เพิ่มห้องเรียน';
+    document.getElementById('roomId').value = '';
+    document.getElementById('roomName').value = '';
+    document.getElementById('roomLevel').value = 'อนุบาล 1';
+    document.getElementById('roomTeacher').value = '';
+    document.getElementById('roomTeacherPhone').value = '';
+    document.getElementById('roomColor').value = '#3b82f6';
+    document.getElementById('roomCapacity').value = '25';
+    roomModalInstance.show();
+}
+
+function editRoom(id) {
+    const r = ChilddevDB.getById('classrooms', id);
+    if (!r) return;
+    document.getElementById('roomModalTitle').textContent = 'แก้ไขห้องเรียน';
+    document.getElementById('roomId').value = r.id;
+    document.getElementById('roomName').value = r.name;
+    document.getElementById('roomLevel').value = r.level;
+    document.getElementById('roomTeacher').value = r.teacher;
+    document.getElementById('roomTeacherPhone').value = r.teacherPhone || '';
+    document.getElementById('roomColor').value = r.color;
+    document.getElementById('roomCapacity').value = r.capacity;
+    roomModalInstance.show();
+}
+
+function saveRoom() {
+    const id = document.getElementById('roomId').value;
+    const data = {
+        name: document.getElementById('roomName').value,
+        level: document.getElementById('roomLevel').value,
+        teacher: document.getElementById('roomTeacher').value,
+        teacherPhone: document.getElementById('roomTeacherPhone').value,
+        color: document.getElementById('roomColor').value,
+        capacity: parseInt(document.getElementById('roomCapacity').value) || 25,
+        icon: ['🌻','🌈','⭐','🎨','🚀','🌟'][Math.floor(Math.random()*6)]
+    };
+    if (!data.name || !data.teacher) { Swal.fire('กรุณากรอกข้อมูลให้ครบ','','warning'); return; }
+    if (id) {
+        ChilddevDB.update('classrooms', id, data);
+        Swal.fire({icon:'success',title:'แก้ไขสำเร็จ',timer:1500,showConfirmButton:false});
+    } else {
+        data.id = childdevGenerateId('C');
+        ChilddevDB.add('classrooms', data);
+        Swal.fire({icon:'success',title:'เพิ่มห้องเรียนสำเร็จ',timer:1500,showConfirmButton:false});
+    }
+    roomModalInstance.hide();
+    renderRooms();
+}
+
+function deleteRoom(id) {
+    Swal.fire({title:'ยืนยันการลบ?',text:'ห้องเรียนนี้จะถูกลบออกจากระบบ',icon:'warning',showCancelButton:true,confirmButtonColor:'#ef4444',confirmButtonText:'ลบ',cancelButtonText:'ยกเลิก'}).then(r => {
+        if (r.isConfirmed) { ChilddevDB.delete('classrooms', id); renderRooms(); Swal.fire({icon:'success',title:'ลบสำเร็จ',timer:1500,showConfirmButton:false}); }
+    });
+}
+
+function viewStudents(roomId, roomName) {
+    document.getElementById('studentListTitle').textContent = `รายชื่อนักเรียน — ${roomName}`;
+    const students = ChilddevDB.getAll('students').filter(s => s.classroomId === roomId);
+    document.getElementById('studentListBody').innerHTML = students.length === 0
+        ? '<tr><td colspan="5" class="text-center py-3 text-muted">ไม่มีนักเรียนในห้องนี้</td></tr>'
+        : students.map((s, i) => `<tr>
+            <td class="ps-4">${i+1}</td>
+            <td class="fw-semibold">${s.prefix}${s.firstName} ${s.lastName}</td>
+            <td>${s.nickname}</td>
+            <td>${s.gender === 'ชาย' ? '<i class="fa-solid fa-mars text-info"></i>' : '<i class="fa-solid fa-venus text-pink"></i>'} ${s.gender}</td>
+            <td>${childdevCalcAge(s.birthday)}</td>
+        </tr>`).join('');
+    new bootstrap.Modal(document.getElementById('studentListModal')).show();
+}
+</script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

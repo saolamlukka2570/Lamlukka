@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เวรปฏิบัติงาน EMS - EMS อัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background-color: #e5e7eb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .calendar-header { background: #f8f9fa; font-weight: bold; text-align: center; padding: 10px; font-size: 0.85rem; color: #4b5563; }
+        .calendar-day { background: #fff; min-height: 120px; padding: 5px; font-size: 0.85rem; }
+        .calendar-day.weekend { background: #fdfbf7; }
+        .date-num { font-weight: bold; color: #9ca3af; margin-bottom: 5px; display: block; text-align: right; padding-right: 5px; }
+        
+        .shift-block {
+            padding: 4px 6px; border-radius: 4px; margin-bottom: 4px; font-size: 0.75rem;
+            cursor: grab; display: flex; align-items: center; justify-content: space-between;
+        }
+        .shift-block:active { cursor: grabbing; }
+        
+        .shift-day { background: #e0f2fe; color: #0369a1; border-left: 3px solid #0284c7; }
+        .shift-night { background: #f3e8ff; color: #6b21a8; border-left: 3px solid #7e22ce; }
+        .shift-standby { background: #dcfce7; color: #166534; border-left: 3px solid #15803d; }
+        
+        .draggable-staff { padding: 8px; background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; cursor: grab; font-size: 0.8rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ตารางเวรปฏิบัติงาน EMS"></div>
+    <div class="page-content p-3 p-md-4">
+        
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 fade-in-up">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-light border text-secondary shadow-sm" onclick="history.back()" title="ย้อนกลับ">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div>
+                    <h4 class="fw-bold mb-1"><i class="fa-solid fa-calendar-day text-info me-2"></i>ระบบจัดตารางเวรปฏิบัติงาน (Shift Scheduling)</h4>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                            <li class="breadcrumb-item"><a href="ph-ems-dashboard.html" class="text-decoration-none">EMS</a></li>
+                            <li class="breadcrumb-item active">เวรปฏิบัติงาน</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-3 mt-md-0">
+                <button class="btn btn-outline-secondary shadow-sm"><i class="fa-solid fa-print me-1"></i> พิมพ์ตาราง</button>
+                <button class="btn btn-primary shadow-sm"><i class="fa-solid fa-save me-1"></i> บันทึกตารางเวร</button>
+            </div>
+        </div>
+
+        <div class="row g-4 fade-in-up">
+            <!-- Left panel: Staff List (Drag source) -->
+            <div class="col-xl-3">
+                <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+                    <div class="card-header bg-white border-0 pt-4 pb-2">
+                        <h6 class="fw-bold mb-0">บุคลากร (ลากเพื่อจัดเวร)</h6>
+                        <input type="text" class="form-control form-control-sm mt-2" placeholder="ค้นหาชื่อ...">
+                    </div>
+                    <div class="card-body bg-light" style="max-height: 600px; overflow-y: auto;">
+                        <h6 class="text-xs fw-bold text-muted mb-2">พยาบาลวิชาชีพ (RN)</h6>
+                        <div class="draggable-staff" draggable="true"><i class="fa-solid fa-user-nurse text-primary me-2"></i>สมชาย ใจดี</div>
+                        <div class="draggable-staff" draggable="true"><i class="fa-solid fa-user-nurse text-primary me-2"></i>สมหญิง รักษา</div>
+                        
+                        <h6 class="text-xs fw-bold text-muted mt-3 mb-2">เวชกิจฉุกเฉิน (AEM/EMT)</h6>
+                        <div class="draggable-staff" draggable="true"><i class="fa-solid fa-user-injured text-info me-2"></i>วิชัย กล้าหาญ</div>
+                        <div class="draggable-staff" draggable="true"><i class="fa-solid fa-user-injured text-info me-2"></i>สุชาติ แข็งแรง</div>
+                        
+                        <h6 class="text-xs fw-bold text-muted mt-3 mb-2">พนักงานขับรถ (Driver)</h6>
+                        <div class="draggable-staff" draggable="true"><i class="fa-solid fa-car text-secondary me-2"></i>มานะ อดทน</div>
+                        <div class="draggable-staff" draggable="true"><i class="fa-solid fa-car text-secondary me-2"></i>ปรีชา ว่องไว</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right panel: Calendar -->
+            <div class="col-xl-9">
+                <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                    <div class="card-header bg-white border-0 pt-4 pb-3 d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-3">
+                            <button class="btn btn-sm btn-light border"><i class="fa-solid fa-chevron-left"></i></button>
+                            <h5 class="fw-bold mb-0">พฤษภาคม 2026</h5>
+                            <button class="btn btn-sm btn-light border"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                        <div class="d-flex gap-3 text-xs fw-semibold">
+                            <span class="d-flex align-items-center"><span class="d-inline-block rounded-circle me-1" style="width:10px;height:10px;background:#0ea5e9;"></span> เวรเช้า (08-16)</span>
+                            <span class="d-flex align-items-center"><span class="d-inline-block rounded-circle me-1" style="width:10px;height:10px;background:#9333ea;"></span> เวรดึก (16-08)</span>
+                            <span class="d-flex align-items-center"><span class="d-inline-block rounded-circle me-1" style="width:10px;height:10px;background:#16a34a;"></span> Standby</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-0 pb-3 px-3">
+                        <div class="calendar-grid">
+                            <div class="calendar-header">อา.</div><div class="calendar-header">จ.</div><div class="calendar-header">อ.</div>
+                            <div class="calendar-header">พ.</div><div class="calendar-header">พฤ.</div><div class="calendar-header">ศ.</div><div class="calendar-header">ส.</div>
+                            
+                            <!-- Mock 1 Week -->
+                            <div class="calendar-day weekend"><span class="date-num">24</span>
+                                <div class="shift-block shift-day"><span>สมชาย, มานะ</span><i class="fa-solid fa-sun opacity-50"></i></div>
+                                <div class="shift-block shift-night"><span>วิชัย, ปรีชา</span><i class="fa-solid fa-moon opacity-50"></i></div>
+                            </div>
+                            <div class="calendar-day"><span class="date-num" style="color:#000;">25 (วันนี้)</span>
+                                <div class="shift-block shift-day"><span>สมหญิง, มานะ</span><i class="fa-solid fa-sun opacity-50"></i></div>
+                                <div class="shift-block shift-night"><span>สมชาย, สุชาติ</span><i class="fa-solid fa-moon opacity-50"></i></div>
+                                <div class="shift-block shift-standby"><span>ปรีชา (สำรอง)</span></div>
+                            </div>
+                            <div class="calendar-day"><span class="date-num">26</span></div>
+                            <div class="calendar-day"><span class="date-num">27</span></div>
+                            <div class="calendar-day"><span class="date-num">28</span></div>
+                            <div class="calendar-day"><span class="date-num">29</span></div>
+                            <div class="calendar-day weekend"><span class="date-num">30</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

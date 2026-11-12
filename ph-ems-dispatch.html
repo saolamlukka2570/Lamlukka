@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ศูนย์สั่งการ EMS - EMS อัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        .dispatch-map { height: 450px; border-radius: 12px; z-index: 1; }
+        .vehicle-card { border-left: 4px solid transparent; cursor: pointer; transition: 0.2s; }
+        .vehicle-card:hover { background-color: #f8f9fa; }
+        .vehicle-card.selected { border-left-color: #0d6efd; background-color: #eff6ff; }
+        
+        .pulse-ring {
+            width: 12px; height: 12px; border-radius: 50%; display: inline-block; position: relative;
+        }
+        .pulse-ring.red { background: #dc3545; }
+        .pulse-ring.red::after {
+            content: ''; position: absolute; left: -4px; top: -4px; width: 20px; height: 20px;
+            border-radius: 50%; border: 2px solid #dc3545; animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+
+        .recommended-badge { position: absolute; top: 10px; right: 10px; font-size: 0.7rem; }
+    </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ศูนย์สั่งการ EMS"></div>
+    <div class="page-content">
+
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 fade-in-up">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-light border text-secondary shadow-sm" onclick="history.back()" title="ย้อนกลับ">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div>
+                    <h4 class="fw-bold mb-1"><i class="fa-solid fa-satellite-dish text-primary me-2"></i>ศูนย์สั่งการ EMS (Smart Dispatch Center)</h4>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                            <li class="breadcrumb-item"><a href="ph-ems-dashboard.html" class="text-decoration-none">EMS</a></li>
+                            <li class="breadcrumb-item active">ศูนย์สั่งการ</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+            <div class="mt-3 mt-md-0 d-flex gap-2 text-sm fw-semibold bg-white px-3 py-2 rounded shadow-sm border">
+                <span class="text-success"><i class="fa-solid fa-truck-medical me-1"></i> พร้อม: 5</span>
+                <span class="text-muted">|</span>
+                <span class="text-danger"><i class="fa-solid fa-truck-fast me-1"></i> ปฏิบัติงาน: 2</span>
+            </div>
+        </div>
+
+        <div class="row g-4 fade-in-up">
+            <!-- Left Panel: Incident Details -->
+            <div class="col-xl-4">
+                <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px; border-top: 4px solid #dc3545 !important;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0 text-danger"><span class="pulse-ring red me-2"></span>เคสรอสั่งการ (Pending)</h6>
+                            <span class="badge bg-danger">IN-690525-001</span>
+                        </div>
+                        <div class="bg-light p-3 rounded mb-3">
+                            <div class="text-xs text-muted mb-1">ประเภทเหตุ: <strong class="text-dark">อุบัติเหตุ (Trauma) - Code Red</strong></div>
+                            <div class="text-xs text-muted mb-1">เวลาแจ้ง: <strong class="text-dark">14:05 น. (ผ่านมา 8 นาที)</strong></div>
+                            <div class="text-xs text-muted mb-1">สถานที่: <strong class="text-dark">แยกไฟแดงหน้าตลาด</strong></div>
+                            <div class="text-xs text-muted mb-0">ผู้แจ้ง: <strong class="text-dark">สมคิด (081-XXX-XXXX)</strong></div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger w-100"><i class="fa-solid fa-phone me-1"></i> โทรกลับผู้แจ้ง</button>
+                    </div>
+                </div>
+
+                <!-- Available Units -->
+                <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                    <div class="card-header bg-white border-0 pt-3 pb-0">
+                        <h6 class="fw-bold mb-0">เลือกรถเพื่อสั่งการ (Available Units)</h6>
+                    </div>
+                    <div class="card-body p-0 mt-2">
+                        <!-- Unit 1 -->
+                        <div class="vehicle-card p-3 border-bottom position-relative selected" onclick="selectVehicle(this)">
+                            <span class="badge bg-success recommended-badge"><i class="fa-solid fa-star me-1"></i>แนะนำ (ใกล้สุด)</span>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0 text-primary">EMS-03 (ALS)</h6>
+                                <span class="text-success fw-bold text-sm">2.4 km</span>
+                            </div>
+                            <div class="text-xs text-muted mb-1"><i class="fa-solid fa-car-side me-1"></i> ทะเบียน: กท-9012</div>
+                            <div class="text-xs text-muted mb-2"><i class="fa-solid fa-user-nurse me-1"></i> ทีม: มานะ (พว.), สมศักดิ์ (FR)</div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-light text-dark border">ETA: 4 นาที</span>
+                                <button class="btn btn-xs btn-primary dispatch-btn" onclick="dispatchUnit('EMS-03')">สั่งการคันนี้</button>
+                            </div>
+                        </div>
+                        <!-- Unit 2 -->
+                        <div class="vehicle-card p-3 border-bottom position-relative" onclick="selectVehicle(this)">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0">EMS-05 (BLS)</h6>
+                                <span class="text-warning fw-bold text-sm">5.1 km</span>
+                            </div>
+                            <div class="text-xs text-muted mb-1"><i class="fa-solid fa-car-side me-1"></i> ทะเบียน: ฮข-1122</div>
+                            <div class="text-xs text-muted mb-2"><i class="fa-solid fa-user-nurse me-1"></i> ทีม: วินัย (AEM)</div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-light text-dark border">ETA: 9 นาที</span>
+                                <button class="btn btn-xs btn-outline-primary dispatch-btn" onclick="dispatchUnit('EMS-05')">สั่งการคันนี้</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Map & Route -->
+            <div class="col-xl-8">
+                <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+                    <div class="card-header bg-white border-0 pt-3 pb-2 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-map text-success me-2"></i>แผนที่เส้นทางสั่งการ (Dispatch Map)</h6>
+                        <span class="badge bg-light text-dark border">อัปเดตแบบ Real-time</span>
+                    </div>
+                    <div class="card-body p-2">
+                        <div id="dispatchMap" class="dispatch-map"></div>
+                    </div>
+                    <div class="card-footer bg-white border-0 pb-3 pt-0">
+                        <div class="d-flex gap-3 text-xs fw-semibold text-muted">
+                            <div><i class="fa-solid fa-location-dot text-danger me-1"></i> จุดเกิดเหตุ</div>
+                            <div><i class="fa-solid fa-truck-medical text-primary me-1"></i> รถพร้อมใช้งาน</div>
+                            <div><i class="fa-solid fa-truck-fast text-secondary opacity-50 me-1"></i> รถติดภารกิจอื่น</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const map = L.map('dispatchMap').setView([13.7380, 100.5230], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // Icons
+    const incidentIcon = L.divIcon({ html: '<i class="fa-solid fa-location-dot text-danger" style="font-size:2rem; text-shadow: 0 2px 5px rgba(0,0,0,0.3);"></i>', iconSize: [32,32], className: '' });
+    const ambSelected = L.divIcon({ html: '<i class="fa-solid fa-truck-medical text-primary" style="font-size:1.8rem; text-shadow: 0 0 8px rgba(13,110,253,0.8);"></i>', iconSize: [28,28], className: '' });
+    const ambOther = L.divIcon({ html: '<i class="fa-solid fa-truck-medical text-secondary" style="font-size:1.5rem; opacity:0.7;"></i>', iconSize: [24,24], className: '' });
+
+    // Markers
+    const incidentLoc = [13.7380, 100.5230];
+    L.marker(incidentLoc, {icon: incidentIcon}).addTo(map).bindPopup("<b>จุดเกิดเหตุ</b><br>IN-690525-001");
+    
+    // EMS-03 (Selected)
+    const ems03Loc = [13.7300, 100.5150];
+    L.marker(ems03Loc, {icon: ambSelected}).addTo(map).bindPopup("<b>EMS-03</b><br>ETA: 4 นาที");
+    
+    // EMS-05 (Other)
+    L.marker([13.7500, 100.5350], {icon: ambOther}).addTo(map);
+
+    // Draw Route (Mock)
+    const routeLine = L.polyline([ems03Loc, [13.7340, 100.5180], incidentLoc], {
+        color: '#0d6efd', weight: 4, dashArray: '8, 8', opacity: 0.8
+    }).addTo(map);
+
+    function selectVehicle(el) {
+        document.querySelectorAll('.vehicle-card').forEach(c => {
+            c.classList.remove('selected');
+            const btn = c.querySelector('.dispatch-btn');
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-outline-primary');
+        });
+        el.classList.add('selected');
+        const btn = el.querySelector('.dispatch-btn');
+        btn.classList.remove('btn-outline-primary');
+        btn.classList.add('btn-primary');
+    }
+
+    function dispatchUnit(unitCode) {
+        event.stopPropagation();
+        if(confirm(`ยืนยันการสั่งการรถ ${unitCode} ไปยังจุดเกิดเหตุ IN-690525-001 ?`)) {
+            showToast(`สั่งการรถ ${unitCode} สำเร็จ ระบบกำลังแจ้งเตือนทีมปฏิบัติการ`, 'success');
+            setTimeout(() => {
+                window.location.href = 'ph-ems-dashboard.html';
+            }, 2000);
+        }
+    }
+</script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

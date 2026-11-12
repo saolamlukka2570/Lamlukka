@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เช็คชื่อด้วยใบหน้า - ศูนย์พัฒนาเด็กเล็ก</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <style>
+        .att-status-card{background:#fff;border-radius:14px;padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;align-items:center;gap:.75rem;animation:fadeInUp .3s ease}
+        .att-status-card .att-avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#fff;flex-shrink:0}
+        .att-status-card .att-photo{width:48px;height:48px;border-radius:50%;object-fit:cover;border:3px solid #10b981;flex-shrink:0;box-shadow:0 2px 8px rgba(16,185,129,0.3)}
+        .att-thumb{width:40px;height:40px;border-radius:8px;object-fit:cover;cursor:pointer;border:2px solid #e5e7eb;transition:transform .2s}
+        .att-thumb:hover{transform:scale(1.5);border-color:#10b981;z-index:10;position:relative}
+        .cam-fullscreen{position:fixed!important;inset:0;z-index:1100;max-width:100%!important;border-radius:0!important;aspect-ratio:auto!important}
+        .cam-fullscreen video,.cam-fullscreen canvas{width:100%!important;height:100%!important}
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="เช็คชื่อด้วยใบหน้า"></div>
+    <div class="page-content">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-camera text-success me-2"></i>เช็คชื่อด้วยใบหน้า</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="childdev-dashboard.html" class="text-decoration-none">ศูนย์พัฒนาเด็กเล็ก</a></li>
+                    <li class="breadcrumb-item active">เช็คชื่อด้วยใบหน้า</li>
+                </ol></nav>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-primary" onclick="switchMode('register')"><i class="fa-solid fa-user-plus me-1"></i>ลงทะเบียนใบหน้า</button>
+                <button class="btn btn-sm btn-success" onclick="switchMode('attendance')"><i class="fa-solid fa-camera me-1"></i>เช็คชื่ออัตโนมัติ</button>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <!-- Camera -->
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0" id="modeTitle"><i class="fa-solid fa-video text-success me-2"></i>โหมดเช็คชื่ออัตโนมัติ</h6>
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-success" id="modelStatus">กำลังโหลดโมเดล...</span>
+                            <button class="btn btn-xs btn-outline-secondary" onclick="toggleFullscreen()" title="เต็มจอ"><i class="fa-solid fa-expand"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="childdev-camera-wrap" id="cameraWrap">
+                            <video id="camVideo" autoplay muted playsinline></video>
+                            <canvas id="camCanvas"></canvas>
+                            <div class="childdev-scan-line" id="scanLine" style="display:none;"></div>
+                        </div>
+                        <div class="d-flex justify-content-center gap-2 mt-3">
+                            <button class="btn btn-success" id="btnStart" onclick="startDetection()"><i class="fa-solid fa-play me-1"></i>เริ่มสแกน</button>
+                            <button class="btn btn-danger" id="btnStop" onclick="stopDetection()" style="display:none;"><i class="fa-solid fa-stop me-1"></i>หยุด</button>
+                        </div>
+                        <!-- Register Mode UI -->
+                        <div id="registerUI" style="display:none;" class="mt-3">
+                            <select class="form-select form-select-sm mx-auto mb-2" id="regStudent" style="max-width:300px;"></select>
+                            <button class="btn btn-primary" onclick="registerFace()"><i class="fa-solid fa-camera me-1"></i>ถ่ายและบันทึกใบหน้า</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Log -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-list-check text-primary me-2"></i>เช็คชื่อแล้ว</h6>
+                        <span class="badge bg-primary" id="checkedCount">0</span>
+                    </div>
+                    <div class="card-body pt-1" style="max-height:500px;overflow-y:auto;" id="checkedList">
+                        <div class="text-center text-muted py-4"><i class="fa-solid fa-camera fa-2x mb-2 d-block opacity-50"></i>รอสแกนใบหน้า...</div>
+                    </div>
+                </div>
+
+                <!-- Today Summary -->
+                <div class="card mt-3">
+                    <div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-chart-pie text-info me-2"></i>สรุปวันนี้</h6></div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2"><span class="text-sm">มาเรียน</span><span class="fw-bold text-success" id="sumPresent">0</span></div>
+                        <div class="d-flex justify-content-between mb-2"><span class="text-sm">มาสาย</span><span class="fw-bold text-warning" id="sumLate">0</span></div>
+                        <div class="d-flex justify-content-between mb-2"><span class="text-sm">ขาดเรียน</span><span class="fw-bold text-danger" id="sumAbsent">0</span></div>
+                        <div class="d-flex justify-content-between"><span class="text-sm">ลาป่วย</span><span class="fw-bold text-secondary" id="sumSick">0</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance History -->
+        <div class="card mt-4 fade-in-up">
+            <div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-clock-rotate-left text-muted me-2"></i>ประวัติเช็คชื่อวันนี้</h6></div>
+            <div class="card-body p-0">
+                <div class="table-container">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th class="ps-4">ภาพ</th><th>ชื่อ-สกุล</th><th>ห้อง</th><th>เวลาเข้า</th><th>วิธี</th><th>สถานะ</th></tr></thead>
+                        <tbody id="historyBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/childdev.js"></script>
+<script src="assets/js/childdev-face.js"></script>
+<script>
+let currentMode = 'attendance';
+
+document.addEventListener('DOMContentLoaded', async function() {
+    const video = document.getElementById('camVideo');
+    const canvas = document.getElementById('camCanvas');
+    await FaceModule.init(video, canvas);
+    document.getElementById('modelStatus').textContent = FaceModule.isModelLoaded ? '✅ โมเดลพร้อม' : '❌ โหลดล้มเหลว';
+    document.getElementById('modelStatus').className = `badge ${FaceModule.isModelLoaded ? 'bg-success' : 'bg-danger'}`;
+    
+    populateRegStudents();
+    loadTodaySummary();
+    loadHistory();
+});
+
+function populateRegStudents() {
+    const students = ChilddevDB.getAll('students');
+    const sel = document.getElementById('regStudent');
+    sel.innerHTML = '<option value="">-- เลือกนักเรียน --</option>' +
+        students.map(s => `<option value="${s.id}">${s.prefix}${s.firstName} ${s.lastName} (${s.classroom})</option>`).join('');
+}
+
+function switchMode(mode) {
+    currentMode = mode;
+    document.getElementById('registerUI').style.display = mode === 'register' ? 'block' : 'none';
+    document.getElementById('modeTitle').innerHTML = mode === 'register'
+        ? '<i class="fa-solid fa-user-plus text-primary me-2"></i>โหมดลงทะเบียนใบหน้า'
+        : '<i class="fa-solid fa-video text-success me-2"></i>โหมดเช็คชื่ออัตโนมัติ';
+    stopDetection();
+}
+
+async function startDetection() {
+    const ok = await FaceModule.startCamera();
+    if (!ok) { Swal.fire('ไม่สามารถเปิดกล้องได้','กรุณาอนุญาตการใช้กล้อง','error'); return; }
+    document.getElementById('btnStart').style.display = 'none';
+    document.getElementById('btnStop').style.display = 'inline-flex';
+    document.getElementById('scanLine').style.display = 'block';
+
+    if (currentMode === 'attendance') {
+        FaceModule.startAttendanceLoop(onFaceMatch);
+    }
+}
+
+function stopDetection() {
+    FaceModule.stopCamera();
+    document.getElementById('btnStart').style.display = 'inline-flex';
+    document.getElementById('btnStop').style.display = 'none';
+    document.getElementById('scanLine').style.display = 'none';
+}
+
+function onFaceMatch(studentId, confidence, snapshot) {
+    const student = ChilddevDB.getById('students', studentId);
+    if (!student) return;
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const isLate = now.getHours() >= 9;
+
+    // Save attendance พร้อมภาพแคปหน้า
+    const today = childdevGetTodayStr();
+    const existing = ChilddevDB.getAll('attendance').find(a => a.studentId === studentId && a.date === today);
+    if (!existing) {
+        ChilddevDB.add('attendance', {
+            id: childdevGenerateId('ATT'),
+            studentId, date: today,
+            status: isLate ? 'มาสาย' : 'มาเรียน',
+            timeIn: timeStr, method: 'face',
+            recorder: 'ระบบสแกนใบหน้า',
+            confidence: (confidence * 100).toFixed(0),
+            snapshot: snapshot || ''  // บันทึกภาพแคปจากกล้อง
+        });
+    }
+
+    // Update UI — แสดงภาพถ่ายจริงแทน emoji
+    const rm = ChilddevDB.getById('classrooms', student.classroomId);
+    const list = document.getElementById('checkedList');
+    if (FaceModule.checkedStudents.size === 1) list.innerHTML = '';
+    const avatarHtml = snapshot
+        ? `<img src="${snapshot}" class="att-photo" alt="${student.nickname}" onclick="viewSnapshot(this.src,'${student.prefix}${student.firstName} ${student.lastName}')">`
+        : `<div class="att-avatar" style="background:${rm?.color || '#3b82f6'};">${student.gender === 'ชาย' ? '👦' : '👧'}</div>`;
+    list.insertAdjacentHTML('afterbegin', `
+        <div class="att-status-card mb-2">
+            ${avatarHtml}
+            <div class="flex-grow-1">
+                <div class="fw-semibold text-sm">${student.prefix}${student.firstName} ${student.lastName}</div>
+                <div class="text-xs text-muted">${student.classroom} • ${timeStr} • ${(confidence*100).toFixed(0)}%</div>
+            </div>
+            <span class="badge ${isLate ? 'bg-warning text-dark' : 'bg-success'}">${isLate ? 'มาสาย' : '✓'}</span>
+        </div>
+    `);
+    document.getElementById('checkedCount').textContent = FaceModule.checkedStudents.size;
+    loadTodaySummary();
+    loadHistory();
+}
+
+async function registerFace() {
+    const studentId = document.getElementById('regStudent').value;
+    if (!studentId) { Swal.fire('กรุณาเลือกนักเรียน','','warning'); return; }
+    const ok = await FaceModule.startCamera();
+    if (!ok) { Swal.fire('ไม่สามารถเปิดกล้องได้','','error'); return; }
+
+    Swal.fire({title:'หันหน้าเข้ากล้อง',text:'กำลังสแกนใบหน้า...',allowOutsideClick:false,didOpen:()=>{Swal.showLoading();}});
+    
+    setTimeout(async () => {
+        const result = await FaceModule.registerFace(studentId);
+        FaceModule.stopCamera();
+        if (result) {
+            const s = ChilddevDB.getById('students', studentId);
+            Swal.fire({icon:'success',title:'ลงทะเบียนสำเร็จ',text:`บันทึกใบหน้า ${s.prefix}${s.firstName} เรียบร้อย`,timer:2000,showConfirmButton:false});
+        } else {
+            Swal.fire({icon:'error',title:'ไม่พบใบหน้า',text:'กรุณาหันหน้าเข้ากล้องแล้วลองใหม่'});
+        }
+    }, 2000);
+}
+
+function loadTodaySummary() {
+    const att = ChilddevDB.getAll('attendance').filter(a => a.date === childdevGetTodayStr());
+    document.getElementById('sumPresent').textContent = att.filter(a => a.status === 'มาเรียน').length;
+    document.getElementById('sumLate').textContent = att.filter(a => a.status === 'มาสาย').length;
+    document.getElementById('sumAbsent').textContent = att.filter(a => a.status === 'ขาดเรียน').length;
+    document.getElementById('sumSick').textContent = att.filter(a => a.status === 'ลาป่วย').length;
+}
+
+function loadHistory() {
+    const att = ChilddevDB.getAll('attendance').filter(a => a.date === childdevGetTodayStr());
+    const students = ChilddevDB.getAll('students');
+    const rooms = ChilddevDB.getAll('classrooms');
+    const body = document.getElementById('historyBody');
+    body.innerHTML = att.length === 0
+        ? '<tr><td colspan="6" class="text-center py-3 text-muted">ยังไม่มีข้อมูลเช็คชื่อวันนี้</td></tr>'
+        : att.sort((a,b) => (b.timeIn||'').localeCompare(a.timeIn||'')).map(a => {
+            const s = students.find(st => st.id === a.studentId);
+            if (!s) return '';
+            const rm = rooms.find(r => r.id === s.classroomId);
+            const statusBadge = {
+                'มาเรียน': 'bg-success', 'มาสาย': 'bg-warning text-dark',
+                'ขาดเรียน': 'bg-danger', 'ลาป่วย': 'bg-secondary'
+            };
+            const photoHtml = a.snapshot
+                ? `<img src="${a.snapshot}" class="att-thumb" alt="photo" onclick="viewSnapshot(this.src,'${s.prefix}${s.firstName} ${s.lastName}')">`
+                : `<div style="width:40px;height:40px;border-radius:8px;background:${rm?.color||'#e5e7eb'};display:flex;align-items:center;justify-content:center;font-size:1.1rem;">${s.gender==='ชาย'?'👦':'👧'}</div>`;
+            return `<tr>
+                <td class="ps-4">${photoHtml}</td>
+                <td class="fw-semibold">${s.prefix}${s.firstName} ${s.lastName}</td>
+                <td><span class="childdev-class-tag"><span class="childdev-class-dot" style="background:${rm?.color||'#6b7280'}"></span>${s.classroom}</span></td>
+                <td>${a.timeIn || '-'}</td>
+                <td>${a.method === 'face' ? '<i class="fa-solid fa-face-smile text-success"></i> สแกนใบหน้า' : '<i class="fa-solid fa-pen"></i> บันทึกมือ'}</td>
+                <td><span class="badge ${statusBadge[a.status]||'bg-secondary'}">${a.status}</span></td>
+            </tr>`;
+        }).join('');
+}
+
+function toggleFullscreen() {
+    document.getElementById('cameraWrap').classList.toggle('cam-fullscreen');
+}
+
+// ดูภาพแคปขนาดเต็ม
+function viewSnapshot(src, name) {
+    Swal.fire({
+        title: name,
+        imageUrl: src,
+        imageWidth: 480,
+        imageAlt: 'ภาพเช็คชื่อ ' + name,
+        showConfirmButton: true,
+        confirmButtonText: 'ปิด',
+        showDenyButton: true,
+        denyButtonText: '<i class="fa-solid fa-download"></i> ดาวน์โหลด',
+        customClass: { image: 'rounded-3' }
+    }).then(result => {
+        if (result.isDenied) {
+            const a = document.createElement('a');
+            a.href = src;
+            a.download = `attendance_${name}_${childdevGetTodayStr()}.jpg`;
+            a.click();
+        }
+    });
+}
+</script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

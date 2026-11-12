@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานและ KPI EMS - EMS อัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        .report-card { border-radius: 12px; border: 1px solid #e5e7eb; transition: 0.2s; cursor: pointer; }
+        .report-card:hover { border-color: #0d6efd; background-color: #f8faff; transform: translateY(-3px); box-shadow: 0 4px 12px rgba(13,110,253,0.1); }
+        .icon-box-lg { width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 1rem; }
+    </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="รายงานและ KPI EMS"></div>
+    <div class="page-content p-3 p-md-4">
+        
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 fade-in-up">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-light border text-secondary shadow-sm" onclick="history.back()" title="ย้อนกลับ">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div>
+                    <h4 class="fw-bold mb-1"><i class="fa-solid fa-chart-column text-primary me-2"></i>รายงานและตัวชี้วัดผลงาน (Reports & KPI)</h4>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                            <li class="breadcrumb-item"><a href="ph-ems-dashboard.html" class="text-decoration-none">EMS</a></li>
+                            <li class="breadcrumb-item active">รายงาน</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-3 mt-md-0">
+                <input type="month" class="form-control" value="2026-05">
+                <button class="btn btn-primary shadow-sm"><i class="fa-solid fa-sync me-1"></i> ประมวลผล</button>
+            </div>
+        </div>
+
+        <!-- KPI Summary -->
+        <div class="row g-3 mb-4 fade-in-up">
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                    <div class="card-body p-3">
+                        <div class="text-xs text-muted mb-1 fw-bold">Response Time เฉลี่ย</div>
+                        <h3 class="fw-bold text-success mb-0">6.2 <span class="text-sm text-muted fw-normal">นาที</span></h3>
+                        <div class="text-xs text-success mt-1"><i class="fa-solid fa-arrow-down"></i> ดีกว่าเกณฑ์ (8 นาที)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                    <div class="card-body p-3">
+                        <div class="text-xs text-muted mb-1 fw-bold">จำนวนเคสทั้งหมด (เดือนนี้)</div>
+                        <h3 class="fw-bold text-primary mb-0">214 <span class="text-sm text-muted fw-normal">เคส</span></h3>
+                        <div class="text-xs text-danger mt-1"><i class="fa-solid fa-arrow-up"></i> เพิ่มขึ้นจากเดือนก่อน 12%</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                    <div class="card-body p-3">
+                        <div class="text-xs text-muted mb-1 fw-bold">ร้อยละการนำส่ง รพ. สำเร็จ</div>
+                        <h3 class="fw-bold text-info mb-0">94 <span class="text-sm text-muted fw-normal">%</span></h3>
+                        <div class="text-xs text-muted mt-1">คงที่เทียบกับเดือนที่แล้ว</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                    <div class="card-body p-3">
+                        <div class="text-xs text-muted mb-1 fw-bold">อัตราการเสียชีวิต (ต่อแสน)</div>
+                        <h3 class="fw-bold text-danger mb-0">1.2</h3>
+                        <div class="text-xs text-success mt-1"><i class="fa-solid fa-arrow-down"></i> ลดลงจากเดือนก่อน</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h6 class="fw-bold mb-3 fade-in-up">พิมพ์รายงานฉบับสมบูรณ์ (Export Reports)</h6>
+        <div class="row g-4 fade-in-up">
+            <!-- Report 1 -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card report-card p-4 h-100" onclick="showToast('กำลังประมวลผลรายงานสถิติการออกเหตุ...','success')">
+                    <div class="icon-box-lg bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-truck-fast"></i></div>
+                    <h6 class="fw-bold mb-1">รายงานสถิติการออกเหตุ</h6>
+                    <p class="text-xs text-muted mb-0">แยกตามประเภทเหตุการณ์, ช่วงเวลา และพื้นที่เกิดเหตุ</p>
+                    <div class="mt-3 d-flex gap-2">
+                        <span class="badge bg-light text-dark border"><i class="fa-solid fa-file-pdf text-danger me-1"></i>PDF</span>
+                        <span class="badge bg-light text-dark border"><i class="fa-solid fa-file-excel text-success me-1"></i>Excel</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Report 2 -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card report-card p-4 h-100" onclick="showToast('กำลังประมวลผลรายงาน Response Time...','success')">
+                    <div class="icon-box-lg bg-info bg-opacity-10 text-info"><i class="fa-solid fa-stopwatch"></i></div>
+                    <h6 class="fw-bold mb-1">รายงานตัวชี้วัด Response Time</h6>
+                    <p class="text-xs text-muted mb-0">ระยะเวลาตั้งแต่รับแจ้งจนถึงจุดเกิดเหตุ แยกตามรายเขต</p>
+                    <div class="mt-3 d-flex gap-2">
+                        <span class="badge bg-light text-dark border"><i class="fa-solid fa-file-pdf text-danger me-1"></i>PDF</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Report 3 -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card report-card p-4 h-100" onclick="showToast('กำลังประมวลผลรายงานข้อมูลรถ EMS...','success')">
+                    <div class="icon-box-lg bg-success bg-opacity-10 text-success"><i class="fa-solid fa-truck-medical"></i></div>
+                    <h6 class="fw-bold mb-1">รายงานข้อมูลรถ/ซ่อมบำรุง</h6>
+                    <p class="text-xs text-muted mb-0">สถานะรถ, การต่อภาษี/พรบ., และค่าใช้จ่ายการซ่อมบำรุง</p>
+                    <div class="mt-3 d-flex gap-2">
+                        <span class="badge bg-light text-dark border"><i class="fa-solid fa-file-excel text-success me-1"></i>Excel</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Report 4 -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card report-card p-4 h-100" onclick="showToast('กำลังประมวลผลรายงานสรุปสำหรับผู้บริหาร...','success')">
+                    <div class="icon-box-lg bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-chart-pie"></i></div>
+                    <h6 class="fw-bold mb-1">Executive Summary (สธ.)</h6>
+                    <p class="text-xs text-muted mb-0">รายงานภาพรวมประจำปี/เดือน สำหรับผู้อำนวยการกองและนายกฯ</p>
+                    <div class="mt-3 d-flex gap-2">
+                        <span class="badge bg-light text-dark border"><i class="fa-solid fa-file-pdf text-danger me-1"></i>PDF</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

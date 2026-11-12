@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIS และแผนที่ EMS - EMS อัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        .gis-map { height: calc(100vh - 160px); width: 100%; border-radius: 12px; z-index: 1; border: 1px solid #e5e7eb; }
+        
+        .gis-panel {
+            position: absolute; top: 20px; right: 20px; z-index: 1000;
+            width: 300px; max-height: calc(100% - 40px); background: white;
+            border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2);
+            overflow-y: auto; padding: 15px;
+        }
+        
+        .layer-group-title { font-size: 0.8rem; font-weight: bold; color: #6b7280; margin-bottom: 10px; margin-top: 15px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
+        .layer-group-title:first-child { margin-top: 0; }
+        
+        .form-switch .form-check-input { width: 2.5em; height: 1.25em; cursor: pointer; }
+        .form-check-label { font-size: 0.85rem; font-weight: 500; padding-top: 2px; cursor: pointer; }
+        
+        /* Marker icons for CSS */
+        .icon-hospital { color: #dc3545; font-size: 1.5rem; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .icon-aed { color: #198754; font-size: 1.5rem; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .icon-accident { color: #ffc107; font-size: 1.5rem; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+    </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="GIS และแผนที่ EMS"></div>
+    <div class="page-content p-3 p-md-4">
+        
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 fade-in-up">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-light border text-secondary shadow-sm" onclick="history.back()" title="ย้อนกลับ">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h5 class="fw-bold mb-0"><i class="fa-solid fa-map-location-dot text-danger me-2"></i>ระบบภูมิสารสนเทศ (EMS GIS & Map)</h5>
+            </div>
+            <div class="mt-2 mt-md-0 d-flex gap-2">
+                <button class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-upload me-1"></i> Import GeoJSON</button>
+                <button class="btn btn-sm btn-outline-success"><i class="fa-solid fa-file-csv me-1"></i> จุดติดตั้ง AED</button>
+            </div>
+        </div>
+
+        <div class="position-relative fade-in-up" style="border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+            <div id="gisMap" class="gis-map"></div>
+            
+            <div class="gis-panel">
+                <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-layer-group me-2"></i>จัดการเลเยอร์ (Layers)</h6>
+                
+                <div class="layer-group-title">โครงสร้างพื้นฐานการแพทย์</div>
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="layerHospital" checked onchange="toggleLayer('hospital')">
+                    <label class="form-check-label d-flex align-items-center gap-2" for="layerHospital">
+                        <i class="fa-solid fa-square-h text-danger"></i> โรงพยาบาล / รพ.สต.
+                    </label>
+                </div>
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="layerEMSBase" checked onchange="toggleLayer('emsBase')">
+                    <label class="form-check-label d-flex align-items-center gap-2" for="layerEMSBase">
+                        <i class="fa-solid fa-building-flag text-primary"></i> ฐานปฏิบัติการ EMS
+                    </label>
+                </div>
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="layerAED" checked onchange="toggleLayer('aed')">
+                    <label class="form-check-label d-flex align-items-center gap-2" for="layerAED">
+                        <i class="fa-solid fa-heart-circle-bolt text-success"></i> จุดติดตั้งเครื่อง AED
+                    </label>
+                </div>
+
+                <div class="layer-group-title">พื้นที่เสี่ยงภัย (Risk Zones)</div>
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="layerAccident" onchange="toggleLayer('accident')">
+                    <label class="form-check-label d-flex align-items-center gap-2" for="layerAccident">
+                        <i class="fa-solid fa-car-burst text-warning"></i> จุดเสี่ยงอุบัติเหตุ (Hotspot)
+                    </label>
+                </div>
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="layerFlood" disabled>
+                    <label class="form-check-label d-flex align-items-center gap-2 text-muted" for="layerFlood">
+                        <i class="fa-solid fa-water text-info"></i> พื้นที่เสี่ยงน้ำท่วม (ไม่มีข้อมูล)
+                    </label>
+                </div>
+
+                <div class="layer-group-title">กลุ่มเปราะบาง (Vulnerable)</div>
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="layerBedridden">
+                    <label class="form-check-label d-flex align-items-center gap-2" for="layerBedridden">
+                        <i class="fa-solid fa-bed-pulse text-secondary"></i> ผู้ป่วยติดเตียง
+                    </label>
+                </div>
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="layerElderly">
+                    <label class="form-check-label d-flex align-items-center gap-2" for="layerElderly">
+                        <i class="fa-solid fa-person-cane text-secondary"></i> ผู้สูงอายุที่อยู่ลำพัง
+                    </label>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const map = L.map('gisMap', { zoomControl: false }).setView([13.7380, 100.5250], 14);
+    L.control.zoom({ position: 'topleft' }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // Layer Groups
+    const layers = {
+        hospital: L.layerGroup().addTo(map),
+        emsBase: L.layerGroup().addTo(map),
+        aed: L.layerGroup().addTo(map),
+        accident: L.layerGroup()
+    };
+
+    // Icons
+    const hospIcon = L.divIcon({ html: '<i class="fa-solid fa-square-h icon-hospital"></i>', iconSize: [24,24], className: '' });
+    const baseIcon = L.divIcon({ html: '<i class="fa-solid fa-building-flag text-primary" style="font-size:1.8rem; text-shadow:0 1px 3px rgba(0,0,0,0.3);"></i>', iconSize: [28,28], className: '' });
+    const aedIcon = L.divIcon({ html: '<i class="fa-solid fa-heart-circle-bolt icon-aed"></i>', iconSize: [24,24], className: '' });
+    const accIcon = L.divIcon({ html: '<i class="fa-solid fa-car-burst icon-accident"></i>', iconSize: [24,24], className: '' });
+
+    // Mock Data Populating Layers
+    L.marker([13.7400, 100.5300], {icon: hospIcon}).addTo(layers.hospital).bindPopup("<b>โรงพยาบาลศูนย์</b><br>รับเคสฉุกเฉินระดับ 1");
+    L.marker([13.7320, 100.5180], {icon: hospIcon}).addTo(layers.hospital).bindPopup("<b>รพ.สต. เฉลิมพระเกียรติ</b>");
+
+    L.marker([13.7380, 100.5200], {icon: baseIcon}).addTo(layers.emsBase).bindPopup("<b>ฐานปฏิบัติการ EMS หลัก</b><br>เทศบาลเมือง");
+
+    L.marker([13.7450, 100.5250], {icon: aedIcon}).addTo(layers.aed).bindPopup("<b>ตู้ AED</b><br>สวนสาธารณะ (ประตู 1)");
+    L.marker([13.7350, 100.5280], {icon: aedIcon}).addTo(layers.aed).bindPopup("<b>ตู้ AED</b><br>ตลาดสด (ป้อมยาม)");
+
+    // Accident Hotspot (Heatmap style circle)
+    L.circle([13.7370, 100.5230], { color: 'red', fillColor: '#f03', fillOpacity: 0.3, radius: 200 }).addTo(layers.accident).bindPopup("<b>สี่แยกอันตราย</b><br>สถิติชนบ่อย");
+    L.marker([13.7370, 100.5230], {icon: accIcon}).addTo(layers.accident);
+
+    function toggleLayer(layerName) {
+        const isChecked = document.getElementById('layer' + layerName.charAt(0).toUpperCase() + layerName.slice(1)).checked;
+        if(isChecked) {
+            map.addLayer(layers[layerName]);
+        } else {
+            map.removeLayer(layers[layerName]);
+        }
+    }
+</script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

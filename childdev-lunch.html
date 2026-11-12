@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>อาหารกลางวัน - ศูนย์พัฒนาเด็กเล็ก</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="อาหารกลางวัน"></div>
+    <div class="page-content">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-utensils text-warning me-2"></i>ระบบอาหารกลางวัน</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="childdev-dashboard.html" class="text-decoration-none">ศูนย์พัฒนาเด็กเล็ก</a></li>
+                    <li class="breadcrumb-item active">อาหารกลางวัน</li>
+                </ol></nav>
+            </div>
+            <button class="btn btn-sm btn-primary" onclick="openAddMenu()"><i class="fa-solid fa-plus me-1"></i>เพิ่มเมนูวันนี้</button>
+        </div>
+
+        <!-- KPIs -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-xl-3"><div class="kpi-card"><div class="d-flex justify-content-between"><div><div class="kpi-label">เด็กทั้งหมด</div><div class="kpi-value" id="kpiTotal">-</div></div><div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-child"></i></div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card"><div class="d-flex justify-content-between"><div><div class="kpi-label">ทานอาหารแล้ว</div><div class="kpi-value text-success" id="kpiAte">-</div></div><div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-bowl-food"></i></div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card"><div class="d-flex justify-content-between"><div><div class="kpi-label">ไม่ทาน</div><div class="kpi-value text-danger" id="kpiNotAte">-</div></div><div class="kpi-icon bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-xmark"></i></div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card"><div class="d-flex justify-content-between"><div><div class="kpi-label">แพ้อาหาร</div><div class="kpi-value text-warning" id="kpiAllergy">-</div></div><div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-triangle-exclamation"></i></div></div></div></div>
+        </div>
+
+        <!-- Today Menu -->
+        <div class="card mb-4 fade-in-up">
+            <div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-calendar-day text-primary me-2"></i>เมนูวันนี้ — <span id="todayDate"></span></h6></div>
+            <div class="card-body" id="todayMenu">
+                <div class="text-center text-muted py-3">กำลังโหลด...</div>
+            </div>
+        </div>
+
+        <!-- Allergy Alert -->
+        <div class="card mb-4 fade-in-up">
+            <div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-triangle-exclamation text-danger me-2"></i>เด็กแพ้อาหาร</h6></div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th class="ps-4">ชื่อ-สกุล</th><th>ห้อง</th><th>แพ้อาหาร</th></tr></thead>
+                    <tbody id="allergyBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Menu History -->
+        <div class="card fade-in-up">
+            <div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-clock-rotate-left text-muted me-2"></i>ประวัติเมนูอาหาร</h6></div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th class="ps-4">วันที่</th><th>เมนู</th><th>คุณค่าโภชนาการ</th><th>ค่าใช้จ่าย/คน</th></tr></thead>
+                    <tbody id="historyBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Menu Modal -->
+<div class="modal fade" id="menuModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered">
+<div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+    <div class="modal-header border-0"><h5 class="modal-title fw-bold">เพิ่มเมนูอาหาร</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+        <div class="mb-3"><label class="form-label">วันที่</label><input type="date" class="form-control" id="menuDate"></div>
+        <div class="mb-3"><label class="form-label">เมนูอาหาร</label><input type="text" class="form-control" id="menuName" placeholder="เช่น ข้าวผัดไข่ + แกงจืด"></div>
+        <div class="mb-3"><label class="form-label">คุณค่าโภชนาการ</label><input type="text" class="form-control" id="menuNutrition" placeholder="โปรตีน, คาร์บ, ไขมัน"></div>
+        <div class="mb-3"><label class="form-label">ค่าใช้จ่าย/คน (บาท)</label><input type="number" class="form-control" id="menuCost" value="25"></div>
+    </div>
+    <div class="modal-footer border-0"><button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button><button class="btn btn-primary" onclick="saveMenu()"><i class="fa-solid fa-check me-1"></i>บันทึก</button></div>
+</div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/childdev.js"></script>
+<script>
+let menuModalInstance;
+document.addEventListener('DOMContentLoaded', function() {
+    menuModalInstance = new bootstrap.Modal(document.getElementById('menuModal'));
+    document.getElementById('todayDate').textContent = childdevFormatDate(new Date().toISOString());
+    document.getElementById('menuDate').value = childdevGetTodayStr();
+    loadPage();
+});
+
+function loadPage() {
+    const students = ChilddevDB.getAll('students');
+    const menus = ChilddevDB.getAll('lunch');
+    const today = childdevGetTodayStr();
+    const todayMenu = menus.find(m => m.date === today);
+    const allergicKids = students.filter(s => s.allergies && s.status === 'กำลังศึกษา');
+
+    // KPIs
+    document.getElementById('kpiTotal').textContent = students.filter(s => s.status === 'กำลังศึกษา').length;
+    document.getElementById('kpiAte').textContent = Math.floor(students.length * 0.92);
+    document.getElementById('kpiNotAte').textContent = Math.ceil(students.length * 0.08);
+    document.getElementById('kpiAllergy').textContent = allergicKids.length;
+
+    // Today menu
+    const menuEl = document.getElementById('todayMenu');
+    if (todayMenu) {
+        menuEl.innerHTML = `
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <div style="width:80px;height:80px;border-radius:14px;background:linear-gradient(135deg,#f59e0b,#fbbf24);display:flex;align-items:center;justify-content:center;font-size:2.5rem;">🍽️</div>
+                <div class="flex-grow-1">
+                    <h5 class="fw-bold mb-1">${todayMenu.menu}</h5>
+                    <div class="text-sm text-muted mb-1"><i class="fa-solid fa-leaf text-success me-1"></i>${todayMenu.nutrition}</div>
+                    <div class="text-sm"><i class="fa-solid fa-coins text-warning me-1"></i>ค่าใช้จ่าย: ${todayMenu.cost} บาท/คน</div>
+                </div>
+            </div>`;
+    } else {
+        menuEl.innerHTML = '<div class="text-center text-muted py-3"><i class="fa-solid fa-utensils fa-2x mb-2 d-block opacity-50"></i>ยังไม่ได้บันทึกเมนูวันนี้</div>';
+    }
+
+    // Allergy table
+    const rooms = ChilddevDB.getAll('classrooms');
+    document.getElementById('allergyBody').innerHTML = allergicKids.length === 0
+        ? '<tr><td colspan="3" class="text-center py-3 text-success">ไม่มีเด็กแพ้อาหาร</td></tr>'
+        : allergicKids.map(s => {
+            const rm = rooms.find(r => r.id === s.classroomId);
+            return `<tr><td class="ps-4 fw-semibold">${s.prefix}${s.firstName} ${s.lastName}</td>
+                <td><span class="childdev-class-tag"><span class="childdev-class-dot" style="background:${rm?.color||'#6b7280'}"></span>${s.classroom}</span></td>
+                <td><span class="badge bg-warning text-dark">${s.allergies}</span></td></tr>`;
+        }).join('');
+
+    // History
+    document.getElementById('historyBody').innerHTML = menus.sort((a,b) => b.date.localeCompare(a.date)).map(m =>
+        `<tr><td class="ps-4">${childdevFormatDate(m.date)}</td><td class="fw-semibold">${m.menu}</td><td class="text-sm text-muted">${m.nutrition}</td><td>${m.cost} บาท</td></tr>`
+    ).join('');
+}
+
+function openAddMenu() { menuModalInstance.show(); }
+
+function saveMenu() {
+    const data = {
+        id: childdevGenerateId('LN'),
+        date: document.getElementById('menuDate').value,
+        menu: document.getElementById('menuName').value,
+        nutrition: document.getElementById('menuNutrition').value,
+        cost: parseInt(document.getElementById('menuCost').value) || 25,
+        photo: ''
+    };
+    if (!data.menu) { Swal.fire('กรุณากรอกเมนูอาหาร','','warning'); return; }
+    ChilddevDB.add('lunch', data);
+    menuModalInstance.hide();
+    loadPage();
+    Swal.fire({icon:'success',title:'บันทึกเมนูสำเร็จ',timer:1500,showConfirmButton:false});
+}
+</script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

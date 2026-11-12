@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>กองการศึกษา (Education) - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ระบบจัดการกองการศึกษา (Education & Youth)"></div>
+    <div class="page-content">
+
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">ระบบจัดการกองการศึกษา</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item active">กองการศึกษา</li>
+                </ol></nav>
+            </div>
+            <div class="d-flex gap-2">
+                <select class="form-select form-select-sm" style="width:auto;">
+                    <option>ศพด. เทศบาล 1</option>
+                    <option>ศพด. เทศบาล 2</option>
+                </select>
+                <button class="btn btn-sm btn-info text-white" onclick="showToast('ส่ง LINE แจ้งผู้ปกครองทุกราย','success')">
+                    <i class="fa-brands fa-line me-1"></i> แจ้งผู้ปกครอง
+                </button>
+            </div>
+        </div>
+
+        <!-- KPI -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-xl-3"><div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div><div class="kpi-label mb-1">นักเรียนทั้งหมด</div><div class="kpi-value">120</div></div>
+                    <div class="kpi-icon bg-info bg-opacity-10 text-info"><i class="fa-solid fa-child"></i></div>
+                </div>
+            </div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div><div class="kpi-label mb-1">มาเรียนวันนี้</div><div class="kpi-value text-success">115</div></div>
+                    <div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-circle-check"></i></div>
+                </div>
+            </div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div><div class="kpi-label mb-1">ขาด/ลาป่วย</div><div class="kpi-value text-danger">5</div></div>
+                    <div class="kpi-icon bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-user-xmark"></i></div>
+                </div>
+            </div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div><div class="kpi-label mb-1">ผู้เรียน E-Learning</div><div class="kpi-value text-primary">247</div></div>
+                    <div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-laptop-file"></i></div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="row g-3">
+            <!-- Attendance & Nutrition -->
+            <div class="col-lg-8">
+                <div class="card mb-3">
+                    <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-clipboard-list text-info me-2"></i>บันทึกการเข้าเรียนและโภชนาการ (วันนี้)</h6>
+                        <span class="text-xs text-muted">28 เมษายน 2569</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0">
+                            <thead><tr>
+                                <th class="ps-4">ชื่อ-สกุล</th><th>การเข้าเรียน</th>
+                                <th>รับประทานอาหาร</th><th>การนอน</th><th class="pe-4">แจ้งผู้ปกครอง</th>
+                            </tr></thead>
+                            <tbody>
+                                <tr>
+                                    <td class="ps-4 fw-semibold">ด.ช. พัฒนา ดีเด่น<br><span class="text-xs text-muted">อ.2</span></td>
+                                    <td><span class="badge bg-success">มาเรียน</span></td>
+                                    <td><i class="fa-solid fa-star text-warning me-1"></i><span class="text-sm">ทานหมด</span></td>
+                                    <td><span class="text-sm">หลับปกติ</span></td>
+                                    <td class="pe-4"><button class="btn btn-xs btn-outline-success" onclick="showToast('ส่ง LINE หาผู้ปกครอง ด.ช.พัฒนา แล้ว','success')"><i class="fa-brands fa-line"></i></button></td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4 fw-semibold">ด.ญ. สดใส ร่าเริง<br><span class="text-xs text-muted">อ.1</span></td>
+                                    <td><span class="badge bg-danger">ลาป่วย</span></td>
+                                    <td><span class="text-muted">-</span></td>
+                                    <td><span class="text-muted">-</span></td>
+                                    <td class="pe-4"><button class="btn btn-xs btn-outline-secondary" disabled>-</button></td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4 fw-semibold">ด.ช. มานะ ขยันเรียน<br><span class="text-xs text-muted">อ.3</span></td>
+                                    <td><span class="badge bg-success">มาเรียน</span></td>
+                                    <td><i class="fa-solid fa-star-half-stroke text-warning me-1"></i><span class="text-sm">ทานครึ่งจาน</span></td>
+                                    <td><span class="text-sm text-warning">กระสับกระส่าย</span></td>
+                                    <td class="pe-4"><button class="btn btn-xs btn-warning text-dark" onclick="showToast('แจ้งผู้ปกครองเรื่องการนอน — ส่ง LINE แล้ว','warning')"><i class="fa-solid fa-triangle-exclamation"></i></button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Child Development Chart -->
+                <div class="card">
+                    <div class="card-header border-0">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-chart-bar text-primary me-2"></i>รายงานพัฒนาการนักเรียน (ภาคเรียนนี้)</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="devChart" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- E-Learning -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header border-0">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-laptop-file text-primary me-2"></i>E-Learning Portal</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center p-3 rounded mb-2 hover-lift" style="background:#f0f5ff; cursor:pointer;">
+                                <div class="kpi-icon bg-primary bg-opacity-10 text-primary me-3" style="width:40px;height:40px;border-radius:8px;"><i class="fa-solid fa-code"></i></div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold text-sm">ทักษะดิจิทัลพื้นฐาน</div>
+                                    <div class="text-xs text-muted">ผู้เรียน 45 คน</div>
+                                </div>
+                                <div class="text-xs text-primary fw-semibold">รับชม &rsaquo;</div>
+                            </div>
+                            <div class="d-flex align-items-center p-3 rounded mb-2 hover-lift" style="background:#f0fdf4; cursor:pointer;">
+                                <div class="kpi-icon bg-success bg-opacity-10 text-success me-3" style="width:40px;height:40px;border-radius:8px;"><i class="fa-solid fa-seedling"></i></div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold text-sm">เกษตรอินทรีย์วิถีใหม่</div>
+                                    <div class="text-xs text-muted">ผู้เรียน 32 คน</div>
+                                </div>
+                                <div class="text-xs text-success fw-semibold">รับชม &rsaquo;</div>
+                            </div>
+                            <div class="d-flex align-items-center p-3 rounded mb-2 hover-lift" style="background:#fef9c3; cursor:pointer;">
+                                <div class="kpi-icon" style="width:40px;height:40px;border-radius:8px;background:#fef3c7;color:#92400e;display:flex;align-items:center;justify-content:center;" class="me-3"><i class="fa-solid fa-hands-bubbles"></i></div>
+                                <div class="flex-grow-1 ms-3">
+                                    <div class="fw-semibold text-sm">นวดแผนไทยเพื่อสุขภาพ</div>
+                                    <div class="text-xs text-muted">ผู้เรียน 28 คน</div>
+                                </div>
+                                <div class="text-xs fw-semibold" style="color:#92400e;">รับชม &rsaquo;</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline-primary w-100 mb-2" onclick="showToast('เปิดหน้าจัดการบทเรียน','info')">
+                            <i class="fa-solid fa-upload me-2"></i>อัปโหลดบทเรียนใหม่
+                        </button>
+                        <button class="btn btn-outline-secondary w-100" onclick="showToast('Export รายงานการเรียนรู้','info')">
+                            <i class="fa-solid fa-file-excel me-2"></i>Export รายงาน
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script>
+    const ctx = document.getElementById('devChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['พัฒนาการด้านร่างกาย','อารมณ์-จิตใจ','สังคม','สติปัญญา'],
+            datasets: [{
+                label: 'คะแนนเฉลี่ย (จาก 100)',
+                data: [88, 75, 82, 91],
+                backgroundColor: ['#60a5fa','#f472b6','#34d399','#fbbf24'],
+                borderRadius: 6, borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { max: 100, grid: { color: '#f3f4f6' }, ticks: { font: { family: 'Prompt', size:11 } } },
+                x: { grid: { display: false }, ticks: { font: { family: 'Prompt', size:11 } } }
+            }
+        }
+    });
+</script>
+    <script src="assets/js/responsive.js"></script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ข่าวสารและประกาศเทศบาล - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/line-auth.js"></script>
+    <script src="assets/js/services/news-service.js"></script>
+    <style>
+        body {
+            background: #f0f3f8;
+            display: block;
+        }
+
+        .citizen-nav {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+
+<body>
+
+    <!-- Citizen Navbar -->
+    <nav class="navbar navbar-expand-lg citizen-nav shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-primary" href="citizen-portal.html">
+                <i class="fa-solid fa-arrow-left"></i> ย้อนกลับ
+            </a>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="container my-5" style="max-width: 800px;">
+        <div class="card border-0 shadow-sm" style="border-radius:16px; overflow:hidden;">
+            <img src="" id="newsImage" class="card-img-top" alt="News Image" style="height:350px; object-fit:cover; display:none;">
+            <div class="card-body p-4 p-md-5">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2" style="font-size:0.85rem;" id="newsCategory">กำลังโหลด...</span>
+                    <span class="text-muted text-sm"><i class="fa-regular fa-clock me-1"></i><span id="newsDate">--/--/----</span></span>
+                </div>
+                
+                <h2 class="fw-bold mb-4" id="newsTitle">กำลังโหลดข้อมูลข่าวสาร...</h2>
+                
+                <div class="alert alert-light border mb-4 text-muted" id="newsSummary" style="border-left: 4px solid var(--bs-primary) !important; display:none;">
+                </div>
+                
+                <div class="news-content" id="newsContent" style="line-height: 1.8; font-size: 1.05rem;">
+                    <!-- Content injected here -->
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-5">
+                
+                <div class="d-flex justify-content-between align-items-center text-muted text-sm">
+                    <div><i class="fa-regular fa-eye me-1"></i> ยอดเข้าชม: <span id="newsViews">0</span> ครั้ง</div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary rounded-pill"><i class="fa-solid fa-share-nodes me-1"></i> แชร์</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const id = urlParams.get('id');
+            
+            if (!id) {
+                document.getElementById('newsTitle').textContent = 'ไม่พบข้อมูลข่าวสาร';
+                document.getElementById('newsContent').innerHTML = '<p class="text-center text-muted">กรุณาเลือกข่าวสารจากหน้าหลัก</p>';
+                return;
+            }
+
+            try {
+                // In production: fetch by ID using Supabase
+                // For now, use mock data from service
+                const allNews = await NewsService.getPublishedNews(null, 10);
+                const news = allNews.find(n => n.id === id);
+                
+                if (!news) throw new Error('News not found');
+                
+                if (news.image_url) {
+                    document.getElementById('newsImage').src = news.image_url;
+                    document.getElementById('newsImage').style.display = 'block';
+                }
+                
+                document.getElementById('newsCategory').textContent = news.category;
+                document.getElementById('newsTitle').textContent = news.title;
+                document.getElementById('newsDate').textContent = new Date(news.published_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+                
+                if (news.summary) {
+                    document.getElementById('newsSummary').textContent = news.summary;
+                    document.getElementById('newsSummary').style.display = 'block';
+                }
+                
+                document.getElementById('newsContent').innerHTML = `<p>${news.content || news.summary || 'ไม่มีเนื้อหาเพิ่มเติม'}</p>`;
+                document.getElementById('newsViews').textContent = news.view_count || 0;
+                
+            } catch (error) {
+                document.getElementById('newsTitle').textContent = 'ไม่พบข้อมูลข่าวสาร';
+                document.getElementById('newsContent').innerHTML = '<p class="text-center text-muted">เกิดข้อผิดพลาดในการดึงข้อมูล หรือข่าวนี้ถูกลบไปแล้ว</p>';
+            }
+        });
+    </script>
+</body>
+</html>

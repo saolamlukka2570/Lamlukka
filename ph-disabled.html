@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ฐานข้อมูลผู้พิการ - กองสาธารณสุขฯ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ฐานข้อมูลผู้พิการ"></div>
+    <div class="page-content">
+        <div class="mb-3"><a href="healthcare-dashboard.html" class="btn btn-light shadow-sm border fw-bold" style="border-radius:10px;"><i class="fa-solid fa-arrow-left me-2"></i>ย้อนกลับ (หน้าหลักสาธารณสุข)</a></div>
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-wheelchair me-2" style="color:#8b5cf6"></i>ฐานข้อมูลผู้พิการ</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;"><li class="breadcrumb-item"><a href="healthcare-dashboard.html" class="text-decoration-none">กองสาธารณสุขฯ</a></li><li class="breadcrumb-item active">ผู้พิการ</li></ol></nav>
+            </div>
+            <div class="d-flex gap-2">
+                <input type="file" id="importExcel" accept=".xlsx, .xls" style="display:none;" onchange="handleImportExcel(event)">
+                <button class="btn btn-sm btn-outline-success" onclick="document.getElementById('importExcel').click()"><i class="fa-solid fa-file-import me-1"></i>นำเข้า</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="exportExcel()"><i class="fa-solid fa-file-excel me-1"></i>Export</button>
+                <button class="btn btn-sm text-white" style="background:#8b5cf6" onclick="showAddDisabled()"><i class="fa-solid fa-plus me-1"></i>เพิ่มข้อมูล</button>
+            </div>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-12"><div class="kpi-card fade-in-up" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;"><div class="d-flex justify-content-between align-items-center"><div><div class="kpi-label text-white-50 mb-1">ยอดรวมเบี้ยยังชีพผู้พิการที่ต้องจ่าย (ต่อเดือน)</div><div class="kpi-value fw-bold text-white fs-3" id="kAllowanceTotal">0 บาท</div></div><div class="kpi-icon bg-white bg-opacity-25 text-white shadow-sm" style="width: 60px; height: 60px; font-size: 1.5rem;"><i class="fa-solid fa-hand-holding-dollar"></i></div></div></div></div>
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1 text-truncate" title="ผู้พิการทั้งหมด">ทั้งหมด</div><div class="kpi-value" id="kTotal">—</div></div><div class="kpi-icon" style="background:rgba(139,92,246,0.1);color:#8b5cf6"><i class="fa-solid fa-users"></i></div></div></div></div>
+            <div class="col-6 col-md-3"><div class="kpi-card fade-in-up" style="animation-delay: 0.1s"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1 text-truncate" title="ทางการเคลื่อนไหว">เคลื่อนไหว</div><div class="kpi-value text-primary" id="kType1">—</div></div><div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-wheelchair"></i></div></div></div></div>
+            <div class="col-6 col-md-3"><div class="kpi-card fade-in-up" style="animation-delay: 0.2s"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1 text-truncate" title="ทางการมองเห็น">มองเห็น</div><div class="kpi-value text-success" id="kType2">—</div></div><div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-eye-slash"></i></div></div></div></div>
+            <div class="col-6 col-md-3"><div class="kpi-card fade-in-up" style="animation-delay: 0.3s"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1 text-truncate" title="ทางการได้ยิน">ได้ยิน</div><div class="kpi-value text-info" id="kType3">—</div></div><div class="kpi-icon bg-info bg-opacity-10 text-info"><i class="fa-solid fa-ear-deaf"></i></div></div></div></div>
+            <div class="col-6 col-md-3"><div class="kpi-card fade-in-up" style="animation-delay: 0.4s"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1 text-truncate" title="ทางจิตใจ/พฤติกรรม">จิตใจ</div><div class="kpi-value text-warning" id="kType4">—</div></div><div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-brain"></i></div></div></div></div>
+            <div class="col-6 col-md-3"><div class="kpi-card fade-in-up" style="animation-delay: 0.5s"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1 text-truncate" title="ทางสติปัญญา">สติปัญญา</div><div class="kpi-value text-danger" id="kType5">—</div></div><div class="kpi-icon bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-head-side-virus"></i></div></div></div></div>
+            <div class="col-6 col-md-3"><div class="kpi-card fade-in-up" style="animation-delay: 0.6s"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1 text-truncate" title="ทางการเรียนรู้">เรียนรู้</div><div class="kpi-value text-secondary" id="kType6">—</div></div><div class="kpi-icon bg-secondary bg-opacity-10 text-secondary"><i class="fa-solid fa-book-open-reader"></i></div></div></div></div>
+            <div class="col-6 col-md-3"><div class="kpi-card fade-in-up" style="animation-delay: 0.7s"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1 text-truncate" title="ออทิสติก">ออทิสติก</div><div class="kpi-value" style="color:#e83e8c" id="kType7">—</div></div><div class="kpi-icon" style="background:rgba(232,62,140,0.1);color:#e83e8c"><i class="fa-solid fa-puzzle-piece"></i></div></div></div></div>
+        </div>
+        <div class="card mb-3"><div class="card-body py-2"><div class="row g-2 align-items-center">
+            <div class="col-md-5"><div class="input-group input-group-sm"><span class="input-group-text bg-light"><i class="fa-solid fa-search text-muted"></i></span><input type="text" class="form-control" id="sInput" placeholder="ค้นหาชื่อ..." onkeyup="filterTbl()"></div></div>
+            <div class="col-md-3"><select class="form-select form-select-sm" id="fType" onchange="filterTbl()"><option value="">ทุกประเภท</option><option value="เห็น">ทางการเห็น</option><option value="ได้ยิน">ทางการได้ยินหรือสื่อความหมาย</option><option value="เคลื่อนไหว">ทางการเคลื่อนไหวหรือร่างกาย</option><option value="จิตใจ">ทางจิตใจหรือพฤติกรรม</option><option value="สติปัญญา">ทางสติปัญญา</option><option value="เรียนรู้">ทางการเรียนรู้</option><option value="ออทิสติก">ทางออทิสติก</option></select></div>
+            <div class="col-md-2"><select class="form-select form-select-sm" id="fSev" onchange="filterTbl()"><option value="">ทุกระดับ</option><option>เล็กน้อย</option><option>ปานกลาง</option><option>รุนแรง</option></select></div>
+            <div class="col-md-2 text-end"><span class="text-xs text-muted" id="rCount">—</span></div>
+        </div></div></div>
+        <div class="card"><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0">
+            <thead><tr><th class="ps-4">ชื่อ-สกุล</th><th>อายุ</th><th>ประเภทความพิการ</th><th>ระดับ</th><th>สิทธิ์ / เบี้ยยังชีพ</th><th>บ้านเลขที่</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
+            <tbody id="tBody"><tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody>
+        </table></div></div></div>
+    </div>
+</div>
+
+<!-- Add Disabled Modal -->
+<div class="modal fade" id="disabledModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+    <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold" style="color:#8b5cf6"><i class="fa-solid fa-wheelchair me-2"></i>เพิ่มข้อมูลผู้พิการ</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body p-4">
+        
+        <!-- Step 1: Search Citizen -->
+        <div id="step1-search">
+            <h6 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-1 me-2"></i>ขั้นตอนที่ 1: ค้นหาจากฐานข้อมูลทะเบียนราษฎร์</h6>
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" id="searchCitizenInput" placeholder="พิมพ์ชื่อ, นามสกุล, หรือบ้านเลขที่...">
+                <button class="btn btn-primary" onclick="handleSearchCitizen()"><i class="fa-solid fa-search me-1"></i>ค้นหา</button>
+            </div>
+            <div id="searchCitizenResults" class="list-group mb-3"></div>
+            
+            <div class="text-center mt-4">
+                <p class="text-muted text-sm mb-2">ไม่พบรายชื่อในระบบ? หรือต้องการเพิ่มใหม่</p>
+                <button class="btn btn-outline-success btn-sm" onclick="skipToForm()"><i class="fa-solid fa-user-plus me-1"></i>เพิ่มชื่อเข้าฐานข้อมูลทะเบียนราษฎร์</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Fill Data -->
+        <div id="step2-form" style="display:none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-primary mb-0"><i class="fa-solid fa-2 me-2"></i>ขั้นตอนที่ 2: ระบุข้อมูลผู้พิการ</h6>
+                <button class="btn btn-sm btn-light" onclick="backToSearch()"><i class="fa-solid fa-arrow-left me-1"></i>กลับไปค้นหา</button>
+            </div>
+            
+            <form id="disabledForm">
+                <div class="p-3 bg-light rounded mb-3 border">
+                    <h6 class="fw-bold mb-2">ข้อมูลส่วนบุคคล</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3"><label class="form-label">คำนำหน้า</label><select class="form-select form-select-sm" id="ePrefix"><option>นาย</option><option>นาง</option><option>นางสาว</option><option>เด็กชาย</option><option>เด็กหญิง</option></select></div>
+                        <div class="col-md-4"><label class="form-label">ชื่อ <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="eFirstName" required></div>
+                        <div class="col-md-5"><label class="form-label">นามสกุล <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="eLastName" required></div>
+                        
+                        <div class="col-md-3"><label class="form-label">อายุ <span class="text-danger">*</span></label><input type="number" class="form-control form-control-sm" id="eAge" min="0" required></div>
+                        <div class="col-md-3"><label class="form-label">เพศ</label><select class="form-select form-select-sm" id="eGender"><option>ชาย</option><option>หญิง</option></select></div>
+                        <div class="col-md-6"><label class="form-label">เลขบัตรประชาชน</label><input type="text" class="form-control form-control-sm" id="eCitizenId" maxlength="13"></div>
+                        
+                        <div class="col-md-4"><label class="form-label">บ้านเลขที่ <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="eHouse" required></div>
+                        <div class="col-md-3"><label class="form-label">หมู่ที่ <span class="text-danger">*</span></label><input type="number" class="form-control form-control-sm" id="eVillage" required></div>
+                        <div class="col-md-5"><label class="form-label">ชื่อหมู่บ้าน</label><input type="text" class="form-control form-control-sm" id="eVillageName"></div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded border" style="background:rgba(139,92,246,0.1); border-color:#c4b5fd;">
+                    <h6 class="fw-bold mb-2" style="color:#8b5cf6"><i class="fa-solid fa-notes-medical me-1"></i>ข้อมูลความพิการ</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3"><label class="form-label">ประเภทความพิการ</label>
+                            <select class="form-select form-select-sm" id="dType"><option>ทางการเห็น</option><option>ทางการได้ยินหรือสื่อความหมาย</option><option>ทางการเคลื่อนไหวหรือร่างกาย</option><option>ทางจิตใจหรือพฤติกรรม</option><option>ทางสติปัญญา</option><option>ทางการเรียนรู้</option><option>ทางออทิสติก</option></select>
+                        </div>
+                        <div class="col-md-3"><label class="form-label">ระดับความรุนแรง</label>
+                            <select class="form-select form-select-sm" id="dSeverity"><option>เล็กน้อย</option><option>ปานกลาง</option><option>รุนแรง</option></select>
+                        </div>
+                        <div class="col-md-3"><label class="form-label">สิทธิ์การรักษา</label><input type="text" class="form-control form-control-sm" id="dRights" placeholder="เช่น บัตรผู้พิการ"></div>
+                        <div class="col-md-3"><label class="form-label">เบี้ยยังชีพผู้พิการ</label><input type="text" class="form-control form-control-sm" id="dAllowance" placeholder="เช่น รับเบี้ย 800 บาท"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    </div>
+    </div>
+    <div class="modal-footer border-0 bg-light" id="modalFooter" style="display:none;">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn text-white" style="background:#8b5cf6" onclick="saveDisabled()"><i class="fa-solid fa-save me-1"></i>บันทึกข้อมูล</button>
+    </div>
+</div></div></div>
+
+<!-- Import Preview Modal -->
+<div class="modal fade" id="importPreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-table me-2" style="color:#8b5cf6;"></i>ตัวอย่างข้อมูลก่อนนำเข้า (ผู้พิการ)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive" style="max-height: 500px;">
+                    <table class="table table-sm table-bordered align-middle">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="text-center" style="width: 50px;">
+                                    <input class="form-check-input" type="checkbox" id="selectAllImport" checked onchange="toggleAllImport(this)">
+                                </th>
+                                <th>ชื่อ - สกุล</th>
+                                <th>เลขบัตร ปชช.</th>
+                                <th>บ้านเลขที่</th>
+                                <th>หมู่ที่</th>
+                                <th>สถานะ (ประชากร)</th>
+                                <th>สถานะ (เป้าหมาย)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="importPreviewBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn text-white" style="background:#8b5cf6;" onclick="confirmImportExcel()"><i class="fa-solid fa-cloud-arrow-up me-1"></i>ยืนยันการนำเข้า</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js?v=2"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/digital-data-service.js?v=2"></script>
+<script src="assets/js/household-service.js?v=2"></script>
+<script src="assets/js/responsive.js?v=2"></script>
+<script>
+let allData=[];
+document.addEventListener('DOMContentLoaded',async()=>{
+    await loadData();
+});
+
+async function loadData() {
+    let data=await HouseholdService.getDisabledList();
+    allData=data; 
+    render(data);
+    updateKPIs(data);
+}
+
+function updateKPIs(data) {
+    let totalAllowance = 0;
+    data.forEach(d => {
+        if (d.allowance_status) {
+            const match = String(d.allowance_status).replace(/,/g, '').match(/\d+/);
+            if (match) totalAllowance += parseInt(match[0], 10);
+        }
+    });
+    document.getElementById('kAllowanceTotal').textContent = totalAllowance.toLocaleString() + ' บาท';
+    
+    document.getElementById('kTotal').textContent=data.length;
+    document.getElementById('kType1').textContent=data.filter(d=>(d.disability_type||'').includes('เคลื่อนไหว')).length;
+    document.getElementById('kType2').textContent=data.filter(d=>(d.disability_type||'').includes('เห็น')).length;
+    document.getElementById('kType3').textContent=data.filter(d=>(d.disability_type||'').includes('ได้ยิน')).length;
+    document.getElementById('kType4').textContent=data.filter(d=>(d.disability_type||'').includes('จิตใจ')).length;
+    document.getElementById('kType5').textContent=data.filter(d=>(d.disability_type||'').includes('สติปัญญา')).length;
+    document.getElementById('kType6').textContent=data.filter(d=>(d.disability_type||'').includes('เรียนรู้')).length;
+    document.getElementById('kType7').textContent=data.filter(d=>(d.disability_type||'').includes('ออทิสติก')).length;
+}
+
+function render(data){
+    const tb=document.getElementById('tBody'); document.getElementById('rCount').textContent=data.length+' ราย';
+    if(!data.length){tb.innerHTML='<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';return;}
+    const sc={เล็กน้อย:'bg-success',ปานกลาง:'bg-warning',รุนแรง:'bg-danger'};
+    tb.innerHTML=data.map(d=>{const m=d.dd_household_members||{};const h=m.dd_households||{};return `<tr>
+        <td class="ps-4 fw-semibold">${m.prefix||''} ${m.first_name||''} ${m.last_name||''}</td><td>${m.age||'-'} ปี</td>
+        <td>${d.disability_type||'-'}</td><td><span class="badge ${sc[d.severity]||'bg-secondary'}">${d.severity||'-'}</span></td>
+        <td class="text-xs">${d.rights_status||'-'}<br><span class="text-muted">${d.allowance_status||'-'}</span></td><td>${h.house_number||'-'} ม.${h.village_no||'-'}</td>
+        <td class="pe-4 text-center">
+            <button class="btn btn-xs btn-outline-info shadow-sm me-1" onclick="viewProfile('${m.household_id || h.id || ''}')" title="ไปยังข้อมูลครัวเรือน"><i class="fa-solid fa-house"></i></button>
+            <button class="btn btn-xs btn-outline-warning shadow-sm" onclick="editDisabled('${d.id}')" title="แก้ไขข้อมูล"><i class="fa-solid fa-edit"></i></button>
+        </td>
+    </tr>`;}).join('');
+}
+function filterTbl(){
+    const q=document.getElementById('sInput').value.toLowerCase();const t=document.getElementById('fType').value;const s=document.getElementById('fSev').value;
+    let d=allData; if(q) d=d.filter(x=>{const m=x.dd_household_members||{};return (m.first_name||'').toLowerCase().includes(q)||(m.last_name||'').toLowerCase().includes(q);});
+    if(t) d=d.filter(x=>(x.disability_type||'').includes(t)); if(s) d=d.filter(x=>x.severity===s); render(d);
+}
+
+function viewProfile(id) {
+    if(id && id !== 'undefined') {
+        window.location.href = 'digital-data-profile.html?id=' + id;
+    } else {
+        Swal.fire('ไม่พบข้อมูลครัวเรือน', 'บุคคลนี้ไม่ได้เชื่อมโยงกับครัวเรือนใดๆ', 'warning');
+    }
+}
+
+// 2-Step Modal Logic
+function showAddDisabled(){
+    document.getElementById('step1-search').style.display = 'block';
+    document.getElementById('step2-form').style.display = 'none';
+    document.getElementById('modalFooter').style.display = 'none';
+    document.getElementById('searchCitizenInput').value = '';
+    document.getElementById('searchCitizenResults').innerHTML = '';
+    document.getElementById('disabledForm').reset();
+    document.getElementById('dType').value = 'ทางการเคลื่อนไหวหรือร่างกาย';
+    document.getElementById('dSeverity').value = 'เล็กน้อย';
+    selectedMemberId = null;
+    new bootstrap.Modal(document.getElementById('disabledModal')).show();
+}
+
+function editDisabled(id) {
+    const d = allData.find(x => String(x.id) === String(id));
+    if(!d) return;
+    const m = d.dd_household_members || {};
+    const h = m.dd_households || {};
+    selectedMemberId = d.household_member_id;
+
+    document.getElementById('ePrefix').value = m.prefix || 'นาย';
+    document.getElementById('eFirstName').value = m.first_name || '';
+    document.getElementById('eLastName').value = m.last_name || '';
+    document.getElementById('eAge').value = m.age || 0;
+    document.getElementById('eGender').value = m.gender || 'ชาย';
+    document.getElementById('eCitizenId').value = m.citizen_id || '';
+    document.getElementById('eHouse').value = h.house_number || '';
+    document.getElementById('eVillage').value = h.village_no || '';
+    document.getElementById('eVillageName').value = h.village_name || '';
+    
+    document.getElementById('dType').value = d.disability_type || 'ทางการเคลื่อนไหวหรือร่างกาย';
+    document.getElementById('dSeverity').value = d.severity || 'เล็กน้อย';
+    document.getElementById('dRights').value = d.rights_status || '';
+    document.getElementById('dAllowance').value = d.allowance_status || '';
+    
+    document.getElementById('step1-search').style.display = 'none';
+    document.getElementById('step2-form').style.display = 'block';
+    document.getElementById('modalFooter').style.display = 'flex';
+    new bootstrap.Modal(document.getElementById('disabledModal')).show();
+}
+
+async function handleSearchCitizen() {
+    const q = document.getElementById('searchCitizenInput').value.trim();
+    if(!q) return;
+    const resDiv = document.getElementById('searchCitizenResults');
+    resDiv.innerHTML = '<div class="text-center text-muted py-2"><i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังค้นหา...</div>';
+    
+    try {
+        const results = await DigitalDataService.searchCitizen(q);
+        if(!results.length) {
+            resDiv.innerHTML = '<div class="alert alert-warning py-2 mb-0">ไม่พบรายชื่อในระบบ</div>';
+            return;
+        }
+        resDiv.innerHTML = results.map(r => {
+            const h = r.dd_households || {};
+            return `<button type="button" class="list-group-item list-group-item-action" onclick='selectCitizen(${JSON.stringify(r).replace(/'/g,"&apos;")})'>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${r.prefix||''}${r.first_name||''} ${r.last_name||''}</strong>
+                        <div class="text-xs text-muted">บัตรปชช: ${r.citizen_id||'-'} | บ้านเลขที่: ${h.house_number||'-'} ม.${h.village_no||'-'}</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-muted"></i>
+                </div>
+            </button>`;
+        }).join('');
+    } catch(e) {
+        resDiv.innerHTML = '<div class="alert alert-danger py-2 mb-0">เกิดข้อผิดพลาดในการค้นหา</div>';
+    }
+}
+
+let selectedMemberId = null;
+
+function selectCitizen(r) {
+    selectedMemberId = r.id;
+    const h = r.dd_households || {};
+    document.getElementById('ePrefix').value = r.prefix || 'นาย';
+    document.getElementById('eFirstName').value = r.first_name || '';
+    document.getElementById('eLastName').value = r.last_name || '';
+    document.getElementById('eAge').value = r.age || 60;
+    document.getElementById('eGender').value = r.gender || 'ชาย';
+    document.getElementById('eCitizenId').value = r.citizen_id || '';
+    document.getElementById('eHouse').value = h.house_number || '';
+    document.getElementById('eVillage').value = h.village_no || '';
+    document.getElementById('eVillageName').value = h.village_name || '';
+    skipToForm();
+}
+
+function skipToForm() {
+    if(!selectedMemberId) {
+        // If they click skip, we will create a new member later or warn them.
+        // For simplicity, let's just allow filling form but it might fail if they don't have household.
+    }
+    document.getElementById('step1-search').style.display = 'none';
+    document.getElementById('step2-form').style.display = 'block';
+    document.getElementById('modalFooter').style.display = 'flex';
+}
+
+function backToSearch() {
+    selectedMemberId = null;
+    document.getElementById('step2-form').style.display = 'none';
+    document.getElementById('modalFooter').style.display = 'none';
+    document.getElementById('step1-search').style.display = 'block';
+}
+
+async function saveDisabled() {
+    const fname = document.getElementById('eFirstName').value;
+    const lname = document.getElementById('eLastName').value;
+    if(!fname || !lname) { Swal.fire('ข้อมูลไม่ครบ','กรุณากรอกชื่อและนามสกุล','warning'); return; }
+    if(!selectedMemberId) { Swal.fire('ไม่สามารถบันทึกได้','กรุณาเลือกประชากรจากฐานข้อมูลเพื่อความสมบูรณ์ของการอ้างอิงข้อมูล','warning'); return; }
+    
+    const disabledDataObj = {
+        household_member_id: selectedMemberId,
+        disability_type: document.getElementById('dType').value,
+        severity: document.getElementById('dSeverity').value,
+        rights_status: document.getElementById('dRights').value || '-',
+        allowance_status: document.getElementById('dAllowance').value || ''
+    };
+    
+    try {
+        await HouseholdService.saveDisabled(selectedMemberId, disabledDataObj);
+        
+        await loadData();
+        
+        bootstrap.Modal.getInstance(document.getElementById('disabledModal')).hide();
+        Swal.fire({icon:'success',title:'บันทึกข้อมูลสำเร็จ',timer:1500,showConfirmButton:false});
+    } catch(err) {
+        Swal.fire('เกิดข้อผิดพลาด','ไม่สามารถบันทึกข้อมูลได้: ' + err.message,'error');
+    }
+}
+
+// Export Functionality
+function exportExcel() {
+    let exportData = [];
+    if(!allData.length) { 
+        exportData = [{
+            "ลำดับ": "", "คำนำหน้า": "", "ชื่อ": "", "นามสกุล": "", "อายุ": "", "เพศ": "", "เลขบัตรประชาชน": "", 
+            "บ้านเลขที่": "", "หมู่ที่": "", "ชื่อหมู่บ้าน": "", "ประเภทความพิการ": "", "ระดับความรุนแรง": "", "สิทธิ์การรักษา": ""
+        }];
+    } else {
+        exportData = allData.map((d, idx) => {
+            const m = d.dd_household_members || {};
+            const h = m.dd_households || {};
+            return {
+                "ลำดับ": idx + 1,
+                "คำนำหน้า": m.prefix || '',
+                "ชื่อ": m.first_name || '',
+                "นามสกุล": m.last_name || '',
+                "อายุ": m.age || '',
+                "เพศ": m.gender || '',
+                "เลขบัตรประชาชน": m.citizen_id || '',
+                "บ้านเลขที่": h.house_number || '',
+                "หมู่ที่": h.village_no || '',
+                "ชื่อหมู่บ้าน": h.village_name || '',
+                "ประเภทความพิการ": d.disability_type || '',
+                "ระดับความรุนแรง": d.severity || '',
+                "สิทธิ์การรักษา": d.rights_status || '',
+                "เบี้ยยังชีพผู้พิการ": d.allowance_status || ''
+            };
+        });
+    }
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "ผู้พิการ");
+    XLSX.writeFile(wb, "disabled_data_export.xlsx");
+}
+
+// Import Functionality
+let pendingImportData = [];
+
+function toggleAllImport(source) {
+    const checkboxes = document.querySelectorAll('.import-check');
+    checkboxes.forEach(cb => {
+        cb.checked = source.checked;
+        pendingImportData[cb.dataset.idx].selected = source.checked;
+    });
+}
+
+function updateImportSelection(cb, idx) {
+    pendingImportData[idx].selected = cb.checked;
+    const allChecked = Array.from(document.querySelectorAll('.import-check')).every(c => c.checked);
+    document.getElementById('selectAllImport').checked = allChecked;
+}
+
+function handleImportExcel(event) {
+    const file = event.target.files[0];
+    if(!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+            
+            if(!jsonData || jsonData.length === 0) {
+                Swal.fire('ไฟล์ว่างเปล่า','ไม่พบข้อมูลในไฟล์ Excel','error');
+                return;
+            }
+            
+            Swal.fire({
+                title: 'กำลังตรวจสอบข้อมูล...',
+                html: 'ประมวลผล ' + jsonData.length + ' รายการ',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+            
+            const {data: allHouseholds} = await supabaseClient.from('dd_households').select('id, house_number, village_no');
+            const {data: allMembers} = await supabaseClient.from('dd_household_members').select('id, household_id, first_name, last_name, citizen_id');
+            const {data: allDisabled} = await supabaseClient.from('dd_disabled_persons').select('id, household_member_id');
+            
+            pendingImportData = [];
+            let html = '';
+            
+            jsonData.forEach((rawRow, idx) => {
+                const row = {};
+                for (let k in rawRow) row[k.trim()] = rawRow[k];
+                
+                const fName = String(row['ชื่อ'] || '').trim();
+                const lName = String(row['นามสกุล'] || '').trim();
+                const cid = String(row['เลขบัตรประชาชน'] || '').trim();
+                const houseNo = String(row['บ้านเลขที่'] || '').trim();
+                const villageNo = String(row['หมู่ที่'] || '').trim();
+                
+                if(!fName || !lName) return;
+                
+                const searchCid = cid && cid !== '-' ? cid : null;
+                let member = (allMembers||[]).find(m => (m.first_name === fName && m.last_name === lName) || (searchCid && m.citizen_id === searchCid));
+                let household = (allHouseholds||[]).find(h => String(h.house_number) === houseNo && String(h.village_no) === villageNo);
+                let disabled = member ? (allDisabled||[]).find(e => e.household_member_id === member.id) : null;
+                
+                let memberStatus = member ? '<span class="badge bg-success">มีประชากร</span>' : '<span class="badge bg-danger">ไม่มีประชากร</span>';
+                let hhStatus = household ? '<span class="badge bg-success">มีบ้าน</span>' : '<span class="badge bg-warning text-dark">ไม่มีบ้าน (สร้างใหม่)</span>';
+                let targetStatus = disabled ? '<span class="badge bg-info">อัปเดต</span>' : '<span class="badge bg-primary">สร้างใหม่</span>';
+                
+                pendingImportData.push({
+                    row, idx, fName, lName, cid, houseNo, villageNo, 
+                    member, household, disabled, selected: true
+                });
+                
+                html += `
+                    <tr>
+                        <td class="text-center"><input class="form-check-input import-check" type="checkbox" checked data-idx="${pendingImportData.length-1}" onchange="updateImportSelection(this, ${pendingImportData.length-1})"></td>
+                        <td>${fName} ${lName}</td>
+                        <td>${cid}</td>
+                        <td>${houseNo}</td>
+                        <td>${villageNo}</td>
+                        <td>${hhStatus} ${memberStatus}</td>
+                        <td>${targetStatus}</td>
+                    </tr>
+                `;
+            });
+            
+            Swal.close();
+            
+            if(pendingImportData.length === 0) {
+                Swal.fire('ไม่มีข้อมูลที่นำเข้าได้','กรุณาตรวจสอบคอลัมน์ ชื่อ, นามสกุล ในไฟล์ Excel','warning');
+                return;
+            }
+            
+            document.getElementById('importPreviewBody').innerHTML = html;
+            document.getElementById('selectAllImport').checked = true;
+            new bootstrap.Modal(document.getElementById('importPreviewModal')).show();
+            
+        } catch(err) {
+            console.error("Import Error: ", err);
+            Swal.fire('เกิดข้อผิดพลาด', err.message || err, 'error');
+        } finally {
+            event.target.value = '';
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+async function confirmImportExcel() {
+    const selectedData = pendingImportData.filter(d => d.selected);
+    if(selectedData.length === 0) {
+        Swal.fire('ไม่ได้เลือกรายการ','กรุณาเลือกรายการที่ต้องการนำเข้า','warning');
+        return;
+    }
+    
+    bootstrap.Modal.getInstance(document.getElementById('importPreviewModal')).hide();
+    
+    Swal.fire({
+        title: 'กำลังบันทึกข้อมูล...',
+        html: 'โปรดรอสักครู่ ระบบกำลังนำเข้าข้อมูล ' + selectedData.length + ' รายการ',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+    
+    let importCount = 0;
+    let updateCount = 0;
+    let skipCount = 0;
+    
+    const {data: resHouseholds} = await supabaseClient.from('dd_households').select('id, house_number, village_no');
+    const {data: resMembers} = await supabaseClient.from('dd_household_members').select('id, household_id, first_name, last_name, citizen_id');
+    const {data: resDisabled} = await supabaseClient.from('dd_disabled_persons').select('id, household_member_id');
+    
+    const allHouseholds = resHouseholds || [];
+    const allMembers = resMembers || [];
+    const allDisabled = resDisabled || [];
+    
+    for(let item of selectedData) {
+        const {row, fName, lName, cid, houseNo, villageNo} = item;
+        const searchCid = cid && cid !== '-' ? cid : null;
+        
+        let householdId = null;
+        let household = allHouseholds.find(h => String(h.house_number) === houseNo && String(h.village_no) === villageNo);
+        if (household) {
+            householdId = household.id;
+        } else {
+            const {data: newHh} = await supabaseClient.from('dd_households').insert({
+                house_number: houseNo,
+                village_no: parseInt(villageNo)||null,
+                house_code: '-', owner_name: '-'
+            }).select('id').single();
+            if(newHh) {
+                householdId = newHh.id;
+                allHouseholds.push({id: householdId, house_number: houseNo, village_no: villageNo});
+            } else {
+                skipCount++; continue;
+            }
+        }
+        
+        let memberId = null;
+        let member = allMembers.find(m => (m.first_name === fName && m.last_name === lName) || (searchCid && m.citizen_id === searchCid));
+        if (member) {
+            memberId = member.id;
+        } else {
+            const newMember = {
+                household_id: householdId,
+                prefix: row['คำนำหน้า'] || '',
+                first_name: fName,
+                last_name: lName,
+                citizen_id: searchCid,
+                gender: row['เพศ'] || '',
+                age: parseInt(row['อายุ']) || null
+            };
+            const {data: newMem} = await supabaseClient.from('dd_household_members').insert(newMember).select('id').single();
+            if (newMem) {
+                memberId = newMem.id;
+                allMembers.push({id: memberId, household_id: householdId, first_name: fName, last_name: lName, citizen_id: searchCid});
+            } else {
+                skipCount++; continue;
+            }
+        }
+        
+        let disabled = allDisabled.find(e => e.household_member_id === memberId);
+        const disabledDataObj = {
+            disability_type: row['ประเภทความพิการ'] || '-',
+            severity: row['ระดับความรุนแรง'] || 'เล็กน้อย',
+            rights_status: row['สิทธิ์การรักษา'] || '-',
+            allowance_status: row['เบี้ยยังชีพผู้พิการ'] || ''
+        };
+        
+        if (disabled) {
+            const {error} = await supabaseClient.from('dd_disabled_persons').update(disabledDataObj).eq('id', disabled.id);
+            if(error) { skipCount++; console.error(error); continue; }
+            updateCount++;
+        } else {
+            disabledDataObj.household_member_id = memberId;
+            const {data: newDis, error} = await supabaseClient.from('dd_disabled_persons').insert(disabledDataObj).select('id').single();
+            if (error) { skipCount++; console.error(error); continue; }
+            if (newDis) {
+                allDisabled.push({id: newDis.id, household_member_id: memberId});
+                importCount++;
+            } else {
+                skipCount++;
+            }
+        }
+    }
+    
+    await loadData();
+    
+    Swal.fire({
+        title: 'บันทึกสำเร็จ',
+        html: `นำเข้าใหม่: ${importCount} รายการ<br>อัปเดต: ${updateCount} รายการ<br>ข้าม/ผิดพลาด: ${skipCount} รายการ`,
+        icon: 'success'
+    });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>ฐานข้อมูลบ้านเลขที่ (DIIS) - กองช่าง</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Leaflet Map CSS Leaflet Library -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; }
+        .table-gov thead th {
+            background-color: #1e293b;
+            color: white;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ฐานข้อมูลบ้านเลขที่และสิ่งปลูกสร้าง"></div>
+    <div class="page-content p-4">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+                <h1 class="text-xl font-bold text-slate-800 mb-0 d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-house-chimney text-indigo-600"></i> ฐานข้อมูลบ้านเลขที่และสิ่งปลูกสร้าง
+                </h1>
+                <p class="text-xs text-slate-500 mb-0">ข้อมูลเชื่อมโยงจาก Google Sheets ฐานข้อมูลผู้นำชุมชน (สิ่งปลูกสร้าง)</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="https://docs.google.com/spreadsheets/d/14nG66q5NgSg3bBVnN2WfHgf0cVeMsKVz87B3QBhxVyo/edit?gid=492044978#gid=492044978" target="_blank" class="btn btn-sm btn-outline-success">
+                    <i class="fa-solid fa-file-excel me-1"></i> เปิด Google Sheet
+                </a>
+                <button class="btn btn-sm btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 fw-semibold" onclick="loadHouseData()">
+                    <i class="fa-solid fa-sync me-1"></i> รีเฟรชข้อมูล
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <!-- Data Table Column -->
+            <div class="col-span-1 lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <!-- Filter / Search -->
+                <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+                    <div class="flex items-center gap-2 w-full md:w-auto flex-grow max-w-md bg-slate-50 rounded px-2 py-1 border border-slate-200">
+                        <i class="fa-solid fa-search text-slate-400"></i>
+                        <input type="text" class="form-control form-control-sm border-0 bg-transparent" id="searchInput" placeholder="ค้นหาบ้านเลขที่, ชื่อเจ้าบ้าน..." onkeyup="filterTable()">
+                    </div>
+                    <div class="d-flex gap-2">
+                        <select class="form-select form-select-sm" id="mooFilter" onchange="filterTable()">
+                            <option value="">ทุกหมู่บ้าน</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="overflow-hidden text-xs font-medium text-slate-700">
+                    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                        <table class="table table-gov table-hover mb-0 align-middle">
+                            <thead class="sticky-top">
+                                <tr>
+                                    <th class="ps-4 text-nowrap">รหัสบ้าน</th>
+                                    <th class="text-nowrap">บ้านเลขที่</th>
+                                    <th class="text-nowrap text-center">หมู่</th>
+                                    <th class="text-nowrap">ชื่อ-สกุล (เจ้าบ้าน)</th>
+                                    <th class="text-nowrap">พิกัด GPS</th>
+                                    <th class="text-nowrap text-center">สิ่งปลูกสร้าง</th>
+                                    <th class="text-nowrap text-center">ถังขยะ</th>
+                                    <th class="text-nowrap text-center">มิเตอร์น้ำ</th>
+                                    <th class="text-nowrap text-center">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="houseTableBody">
+                                <tr><td colspan="8" class="text-center py-5 text-muted">กำลังโหลดข้อมูลจาก Google Sheets...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Preview -->
+            <div class="col-span-1 lg:col-span-5 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <h5 class="font-bold text-sm text-slate-700 mb-3">แผนที่จุดพิกัดบ้านเลขที่</h5>
+                <div id="houseMap" style="height: 500px; width: 100%; border-radius: 10px; z-index: 1;"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editHouseModal" tabindex="-1" aria-labelledby="editHouseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title font-bold text-slate-800" id="editHouseModalLabel"><i class="fa-solid fa-pen-to-square text-indigo-600 me-2"></i>แก้ไขข้อมูลบ้าน</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editHouseForm">
+                    <input type="hidden" id="editHouseCode">
+                    <div class="mb-3">
+                        <label class="form-label font-medium text-slate-700">บ้านเลขที่</label>
+                        <input type="text" class="form-control" id="editHouseNo" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label font-medium text-slate-700">หมู่</label>
+                        <input type="text" class="form-control" id="editMoo">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label font-medium text-slate-700">ชื่อ-สกุล (เจ้าบ้าน)</label>
+                        <input type="text" class="form-control" id="editName">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label font-medium text-slate-700">พิกัด (ละติจูด, ลองจิจูด)</label>
+                        <input type="text" class="form-control" id="editCoords" placeholder="14.489154, 99.854318">
+                        <div class="form-text">สามารถคัดลอกพิกัดจาก Google Maps มาวางได้เลย</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-indigo text-white bg-indigo-600 hover:bg-indigo-700" onclick="saveHouseData()">บันทึกการเปลี่ยนแปลง</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script>
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/14nG66q5NgSg3bBVnN2WfHgf0cVeMsKVz87B3QBhxVyo/gviz/tq?tqx=out:csv&sheet=สิ่งปลูกสร้าง';
+    const GAS_UPDATE_URL = 'https://script.google.com/macros/s/AKfycbygQpeT5TYqi0YqOWl1CuCefZH5ozPnUNM3Tvuj8sCrt8obTEOFVtBr0vVcBJ2fzQOK/exec';
+    let allData = [];
+    let map;
+    let markersLayer = L.layerGroup();
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initMap();
+        loadHouseData();
+    });
+
+    function initMap() {
+        map = L.map('houseMap', { preferCanvas: true, zoomSnap: 0, zoomDelta: 0.25, wheelPxPerZoomLevel: 100, zoomAnimation: true }).setView([14.49059, 99.85419], 13);
+        L.tileLayer('https://mt1.google.com/vt/lyrs=y&hl=th&x={x}&y={y}&z={z}', { maxZoom: 20 }).addTo(map);
+        markersLayer.addTo(map);
+    }
+
+    function loadHouseData() {
+        const tbody = document.getElementById('houseTableBody');
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5 text-muted"><i class="fa-solid fa-circle-notch fa-spin me-2"></i> กำลังซิงค์ข้อมูลจาก Google Sheets...</td></tr>';
+        
+        const cacheBusterUrl = SHEET_URL + '&_=' + new Date().getTime();
+        Papa.parse(cacheBusterUrl, {
+            download: true,
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                if (results.data && results.data.length > 0) {
+                    allData = results.data;
+                    populateMooFilter(allData);
+                    renderTable(allData);
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5 text-danger">ไม่พบข้อมูลในชีต สิ่งปลูกสร้าง</td></tr>';
+                }
+            },
+            error: function(error) {
+                console.error("Error fetching Google Sheet CSV:", error);
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5 text-danger"><i class="fa-solid fa-circle-exclamation me-2"></i> เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + error.message + '</td></tr>';
+            }
+        });
+    }
+
+    // Utility to find the actual column key efficiently (runs once)
+    function findKey(keys, possibleMatches) {
+        for (let k of possibleMatches) {
+            const match = keys.find(key => key.trim() === k || key.includes(k));
+            if (match) return match;
+        }
+        return null;
+    }
+
+    // Cache the keys so we don't recalculate per row
+    let columnKeys = null;
+    function detectColumnKeys(row) {
+        if (!row || columnKeys) return;
+        const keys = Object.keys(row);
+        columnKeys = {
+            houseCode: findKey(keys, ['รหัสบ้าน', 'รหัส']),
+            houseNo: findKey(keys, ['บ้านเลขที่']),
+            moo: findKey(keys, ['หมู่']),
+            name: findKey(keys, ['ชื่อ-สกุล(เจ้าบ้าน)', 'ชื่อ-สกุล']),
+            coords: findKey(keys, ['พิกัด']),
+            imgBuilding: findKey(keys, ['image1', 'ภาพถ่ายสิ่งปลูกสร้าง']),
+            imgTrash: findKey(keys, ['ภาพถ่ายถังขยะ']),
+            imgWater: findKey(keys, ['ภาพถ่ายมิเตอร์น้ำประปา', 'ภาพถ่ายมิเตอร์น้ำ'])
+        };
+    }
+
+    function populateMooFilter(data) {
+        const mooFilter = document.getElementById('mooFilter');
+        const currentVal = mooFilter.value;
+        
+        if (data.length > 0) detectColumnKeys(data[0]);
+        const mooKey = columnKeys ? columnKeys.moo : null;
+
+        const moos = new Set();
+        if (mooKey) {
+            data.forEach(row => {
+                const moo = row[mooKey] ? row[mooKey].trim() : '';
+                if (moo && moo !== '-') {
+                    const mooMatch = moo.match(/\d+/);
+                    if (mooMatch) moos.add(mooMatch[0]);
+                }
+            });
+        }
+
+        const sortedMoos = Array.from(moos).sort((a, b) => parseInt(a) - parseInt(b));
+        
+        let html = '<option value="">ทุกหมู่บ้าน</option>';
+        sortedMoos.forEach(m => {
+            html += `<option value="${m}">หมู่ ${m}</option>`;
+        });
+        
+        mooFilter.innerHTML = html;
+        if (sortedMoos.includes(currentVal)) {
+            mooFilter.value = currentVal;
+        }
+    }
+
+    function panToMarker(lat, lng, houseCode, houseNo, moo, name, imgBuilding) {
+        if (lat && lng && map) {
+            map.setView([lat, lng], 18);
+            
+            let imgHtml = '';
+            if (imgBuilding && imgBuilding !== '-' && imgBuilding !== 'undefined' && imgBuilding.length > 5) {
+                let viewUrl = imgBuilding.startsWith('http') ? imgBuilding : (GAS_UPDATE_URL ? `${GAS_UPDATE_URL}?action=getImage&path=${encodeURIComponent(imgBuilding)}` : '');
+                let embedUrl = viewUrl;
+                if (viewUrl.includes('drive.google.com')) {
+                    let fileId = '';
+                    if (viewUrl.includes('id=')) fileId = new URL(viewUrl).searchParams.get('id');
+                    else {
+                        const match = viewUrl.match(/\/file\/d\/([^\/]+)/);
+                        if (match) fileId = match[1];
+                    }
+                    if (fileId) embedUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+                }
+                if (viewUrl) {
+                    imgHtml = `<div class="mt-2 text-center"><a href="${viewUrl}" target="_blank"><img src="${embedUrl}" alt="รูปภาพ" style="max-width:100%; height:auto; max-height:120px; border-radius:4px; border:1px solid #e2e8f0; object-fit:cover; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"></a></div>`;
+                }
+            }
+
+            const popupContent = `
+                <div style="font-family:'Prompt',sans-serif;font-size:12px; min-width: 150px;">
+                    <h6 class="font-bold text-indigo-600 border-b pb-1 mb-1">รหัสบ้าน: ${houseCode || '-'}</h6>
+                    <div><b>บ้านเลขที่:</b> ${houseNo || '-'} หมู่ ${moo || '-'}</div>
+                    <div><b>เจ้าบ้าน:</b> ${name || '-'}</div>
+                    ${imgHtml}
+                </div>
+            `;
+            
+            L.popup({ autoClose: true, closeOnClick: true, offset: [0, -5] })
+             .setLatLng([lat, lng])
+             .setContent(popupContent)
+             .openOn(map);
+
+            if (window.innerWidth < 1024) {
+                document.getElementById('houseMap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('houseTableBody');
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">ไม่พบข้อมูลที่ตรงกับเงื่อนไขการค้นหา</td></tr>';
+            if(markersLayer) markersLayer.clearLayers();
+            return;
+        }
+
+        if(markersLayer) markersLayer.clearLayers();
+        const bounds = L.latLngBounds();
+        let hasPoints = false;
+        
+        if (!columnKeys && data.length > 0) detectColumnKeys(data[0]);
+
+        let html = '';
+        data.forEach(row => {
+            const getVal = (keyStr) => {
+                const actualKey = columnKeys[keyStr];
+                return actualKey && row[actualKey] ? row[actualKey].trim() : '-';
+            };
+
+            const houseCode = getVal('houseCode');
+            const houseNo = getVal('houseNo');
+            const moo = getVal('moo');
+            const name = getVal('name');
+            const coords = getVal('coords');
+            const imgBuilding = getVal('imgBuilding');
+            const imgTrash = getVal('imgTrash');
+            const imgWater = getVal('imgWater');
+
+            // Formatting Maps links
+            let coordsHtml = '-';
+            let parsedLat = null;
+            let parsedLng = null;
+            
+            if (coords !== '-' && coords !== '') {
+                const parts = coords.split(',').map(s => s.trim());
+                if (parts.length === 2 && !isNaN(parseFloat(parts[0])) && !isNaN(parseFloat(parts[1]))) {
+                    parsedLat = parseFloat(parts[0]);
+                    parsedLng = parseFloat(parts[1]);
+                    
+                    coordsHtml = `<a href="https://www.google.com/maps?q=${parsedLat},${parsedLng}" target="_blank" class="text-indigo-600 hover:text-indigo-800 text-decoration-none" onclick="event.stopPropagation();">
+                        <i class="fa-solid fa-location-dot me-1 text-danger"></i> ${parsedLat.toFixed(6)}, ${parsedLng.toFixed(6)}
+                    </a>`;
+                    
+                    const marker = L.circleMarker([parsedLat, parsedLng], {
+                        radius: 7, color: '#ffffff', fillColor: '#4f46e5', fillOpacity: 0.9, weight: 2
+                    });
+                    let imgHtml = '';
+                    if (imgBuilding && imgBuilding !== '-' && imgBuilding.length > 5) {
+                        let viewUrl = imgBuilding.startsWith('http') ? imgBuilding : (GAS_UPDATE_URL ? `${GAS_UPDATE_URL}?action=getImage&path=${encodeURIComponent(imgBuilding)}` : '');
+                        let embedUrl = viewUrl;
+                        if (viewUrl.includes('drive.google.com')) {
+                            let fileId = '';
+                            if (viewUrl.includes('id=')) fileId = new URL(viewUrl).searchParams.get('id');
+                            else {
+                                const match = viewUrl.match(/\/file\/d\/([^\/]+)/);
+                                if (match) fileId = match[1];
+                            }
+                            if (fileId) embedUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+                        }
+                        if (viewUrl) {
+                            imgHtml = `<div class="mt-2 text-center"><a href="${viewUrl}" target="_blank"><img src="${embedUrl}" alt="รูปภาพ" style="max-width:100%; height:auto; max-height:120px; border-radius:4px; border:1px solid #e2e8f0; object-fit:cover; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"></a></div>`;
+                        }
+                    }
+
+                    const popup = `
+                        <div style="font-family:'Prompt',sans-serif;font-size:12px; min-width: 150px;">
+                            <h6 class="font-bold text-indigo-600 border-b pb-1 mb-1">รหัสบ้าน: ${houseCode}</h6>
+                            <div><b>บ้านเลขที่:</b> ${houseNo} หมู่ ${moo}</div>
+                            <div><b>เจ้าบ้าน:</b> ${name}</div>
+                            ${imgHtml}
+                        </div>
+                    `;
+                    marker.bindPopup(popup);
+                    markersLayer.addLayer(marker);
+                    bounds.extend([parsedLat, parsedLng]);
+                    hasPoints = true;
+                } else {
+                    coordsHtml = coords;
+                }
+            }
+
+            // Formatting Image Check (Supports both Direct Link and Apps Script proxy)
+            const renderImgIcon = (val) => {
+                if (val && val !== '-' && val.length > 5) {
+                    let viewUrl;
+                    let clickAction = '';
+                    if (val.startsWith('http')) {
+                        viewUrl = val;
+                        clickAction = `target="_blank"`;
+                    } else {
+                        viewUrl = GAS_UPDATE_URL ? `${GAS_UPDATE_URL}?action=getImage&path=${encodeURIComponent(val)}` : '#';
+                        clickAction = GAS_UPDATE_URL ? `target="_blank"` : `onclick="alert('กรุณาตั้งค่า GAS_UPDATE_URL ก่อน'); return false;"`;
+                    }
+                    return `<a href="${viewUrl}" ${clickAction} class="badge bg-success/20 text-success border border-success/30 px-2 py-1 text-decoration-none hover:bg-success/30" onclick="event.stopPropagation();">
+                        <i class="fa-solid fa-image me-1"></i>ดูรูปภาพ
+                    </a>`;
+                }
+                return `<span class="badge bg-slate-100 text-slate-400 border border-slate-200 px-2 py-1">-</span>`;
+            };
+
+            const safeHouseCode = String(houseCode).replace(/'/g, "\\'");
+            const safeHouseNo = String(houseNo).replace(/'/g, "\\'");
+            const safeMoo = String(moo).replace(/'/g, "\\'");
+            const safeName = String(name).replace(/'/g, "\\'");
+            const safeCoords = String(coords).replace(/'/g, "\\'");
+            const safeImgBuilding = imgBuilding ? String(imgBuilding).replace(/'/g, "\\'") : '';
+            
+            const trClick = (parsedLat && parsedLng) ? `onclick="panToMarker(${parsedLat}, ${parsedLng}, '${safeHouseCode}', '${safeHouseNo}', '${safeMoo}', '${safeName}', '${safeImgBuilding}')" style="cursor: pointer;" title="คลิกเพื่อดูตำแหน่งบนแผนที่"` : '';
+
+            html += `
+                <tr ${trClick} class="${parsedLat ? 'hover:bg-slate-50' : ''}">
+                    <td class="ps-4 fw-bold text-slate-700">${houseCode}</td>
+                    <td>${houseNo}</td>
+                    <td class="text-center">หมู่ ${moo}</td>
+                    <td>${name}</td>
+                    <td>${coordsHtml}</td>
+                    <td class="text-center">${renderImgIcon(imgBuilding)}</td>
+                    <td class="text-center">${renderImgIcon(imgTrash)}</td>
+                    <td class="text-center">${renderImgIcon(imgWater)}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); openEditModal('${safeHouseCode}', '${safeHouseNo}', '${safeMoo}', '${safeName}', '${safeCoords}')">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+        
+        if (hasPoints && map) {
+            map.fitBounds(bounds, { padding: [30, 30] });
+        }
+    }
+
+    function filterTable() {
+        const searchTxt = document.getElementById('searchInput').value.toLowerCase();
+        const mooFilter = document.getElementById('mooFilter').value;
+        
+        if (!columnKeys && allData.length > 0) detectColumnKeys(allData[0]);
+
+        const filtered = allData.filter(row => {
+            const getVal = (keyStr) => {
+                const actualKey = columnKeys && columnKeys[keyStr];
+                return actualKey && row[actualKey] ? row[actualKey].trim().toLowerCase() : '';
+            };
+
+            const houseNo = getVal('houseNo');
+            const name = getVal('name');
+            const moo = getVal('moo');
+
+            let matchSearch = true;
+            if (searchTxt) {
+                matchSearch = houseNo.includes(searchTxt) || name.includes(searchTxt);
+            }
+
+            let matchMoo = true;
+            if (mooFilter) {
+                const mooMatch = moo.match(/\d+/);
+                matchMoo = mooMatch && mooMatch[0] === mooFilter;
+            }
+
+            return matchSearch && matchMoo;
+        });
+
+        renderTable(filtered);
+    }
+
+    function openEditModal(houseCode, houseNo, moo, name, coords) {
+        document.getElementById('editHouseCode').value = houseCode;
+        document.getElementById('editHouseNo').value = houseNo;
+        document.getElementById('editMoo').value = moo;
+        document.getElementById('editName').value = name;
+        document.getElementById('editCoords').value = (coords && coords !== '-') ? coords : '';
+        
+        const modal = new bootstrap.Modal(document.getElementById('editHouseModal'));
+        modal.show();
+    }
+
+    async function saveHouseData() {
+        if (!GAS_UPDATE_URL) {
+            Swal.fire('ข้อผิดพลาด', 'ยังไม่ได้ตั้งค่า GAS_UPDATE_URL ในโค้ด กรุณาใส่ URL ของ Google Apps Script ที่ Deploy ไว้', 'error');
+            return;
+        }
+
+        const houseCode = document.getElementById('editHouseCode').value;
+        const houseNo = document.getElementById('editHouseNo').value;
+        const moo = document.getElementById('editMoo').value;
+        const name = document.getElementById('editName').value;
+        const coords = document.getElementById('editCoords').value;
+
+        if (!houseCode) {
+            Swal.fire('ข้อผิดพลาด', 'ไม่พบรหัสบ้าน ไม่สามารถอัปเดตได้', 'error');
+            return;
+        }
+
+        const btn = document.querySelector('#editHouseModal .btn-indigo');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังบันทึก...';
+        btn.disabled = true;
+
+        Swal.fire({
+            title: 'กำลังบันทึกข้อมูล...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const params = new URLSearchParams();
+            params.append('action', 'updateHouse');
+            params.append('houseCode', houseCode);
+            params.append('houseNo', houseNo);
+            params.append('moo', moo);
+            params.append('name', name);
+            params.append('coords', coords);
+
+            const response = await fetch(GAS_UPDATE_URL, {
+                method: 'POST',
+                body: params
+            });
+
+            const result = await response.json();
+            if (result.status === 'success') {
+                Swal.fire('สำเร็จ', 'บันทึกข้อมูลเรียบร้อยแล้ว', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('editHouseModal')).hide();
+                loadHouseData(); // รีโหลดข้อมูลใหม่
+            } else {
+                Swal.fire('ข้อผิดพลาดจากเซิร์ฟเวอร์', result.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error saving data:', error);
+            Swal.fire('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการเชื่อมต่อเพื่อบันทึกข้อมูล', 'error');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+</script>
+</body>
+</html>

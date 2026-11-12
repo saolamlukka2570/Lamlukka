@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แดชบอร์ด Care Giver (CG) - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <style>
+        .patient-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+            border-left: 4px solid #10b981;
+        }
+        .patient-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+        }
+        .patient-card.status-danger { border-left-color: #ef4444; }
+        .patient-card.status-warning { border-left-color: #f59e0b; }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="Care Giver (CG)"></div>
+    <div class="page-content">
+        <div class="mb-3"><a href="healthcare-dashboard.html" class="btn btn-light shadow-sm border fw-bold" style="border-radius:10px;"><i class="fa-solid fa-arrow-left me-2"></i>ย้อนกลับ</a></div>
+
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-user-nurse text-success me-2"></i>แดชบอร์ด Care Giver</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="healthcare-dashboard.html" class="text-decoration-none">กองสาธารณสุขฯ</a></li>
+                    <li class="breadcrumb-item active">CG Dashboard</li>
+                </ol></nav>
+            </div>
+            <div>
+                <a href="cg-visits.html" class="btn btn-primary shadow-sm"><i class="fa-solid fa-notes-medical me-2"></i>เริ่มบันทึกการเยี่ยม</a>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small fw-bold">ผู้ป่วยในความดูแล (ราย)</div>
+                            <div class="fs-3 fw-bold">24</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                            <i class="fa-solid fa-clipboard-check"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small fw-bold">เยี่ยมแล้วเดือนนี้ (ครั้ง)</div>
+                            <div class="fs-3 fw-bold">18</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                            <i class="fa-solid fa-calendar-xmark"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small fw-bold">รอการเยี่ยม (สัปดาห์นี้)</div>
+                            <div class="fs-3 fw-bold">6</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Menu -->
+        <h6 class="fw-bold mb-3"><i class="fa-solid fa-bolt text-warning me-2"></i>เมนูด่วน (Quick Access)</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4">
+                <a href="cg-visits.html" class="btn btn-light border w-100 py-3 rounded-4 shadow-sm text-center text-decoration-none text-dark">
+                    <i class="fa-solid fa-notes-medical fs-4 text-primary mb-2 d-block"></i>
+                    <span class="small fw-semibold">บันทึกการเยี่ยม<br>(CG Visits)</span>
+                </a>
+            </div>
+            <div class="col-6 col-md-4">
+                <a href="cg-staff.html" class="btn btn-light border w-100 py-3 rounded-4 shadow-sm text-center text-decoration-none text-dark">
+                    <i class="fa-solid fa-users fs-4 text-secondary mb-2 d-block"></i>
+                    <span class="small fw-semibold">ข้อมูล<br>เจ้าหน้าที่ CG</span>
+                </a>
+            </div>
+        </div>
+
+        <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-list-check me-2"></i>รายชื่อผู้ป่วยที่ต้องเยี่ยม (สัปดาห์นี้)</h6>
+        <div class="row g-3">
+            <!-- Mock Data for display -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card patient-card status-danger p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="fw-bold mb-0">ยายสมศรี ใจดี</h6>
+                        <span class="badge bg-danger">ติดเตียง</span>
+                    </div>
+                    <p class="text-muted small mb-2"><i class="fa-solid fa-location-dot me-1"></i>123 ม.4 บ้านหนองไข่น้ำ</p>
+                    <p class="text-danger small mb-3"><i class="fa-solid fa-circle-exclamation me-1"></i>ความดันโลหิตสูง, เบาหวาน</p>
+                    <a href="cg-visits.html?patient=123" class="btn btn-sm btn-outline-primary w-100">บันทึกเยี่ยม</a>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card patient-card status-warning p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="fw-bold mb-0">ตาบุญมา รักชาติ</h6>
+                        <span class="badge bg-warning text-dark">ติดบ้าน</span>
+                    </div>
+                    <p class="text-muted small mb-2"><i class="fa-solid fa-location-dot me-1"></i>45/2 ม.1 บ้านคลองทราย</p>
+                    <p class="text-warning small mb-3"><i class="fa-solid fa-circle-exclamation me-1"></i>อัมพฤกษ์ครึ่งซีก</p>
+                    <a href="cg-visits.html?patient=45" class="btn btn-sm btn-outline-primary w-100">บันทึกเยี่ยม</a>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card patient-card p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="fw-bold mb-0">นางสมปอง แสงทอง</h6>
+                        <span class="badge bg-success">ติดสังคม</span>
+                    </div>
+                    <p class="text-muted small mb-2"><i class="fa-solid fa-location-dot me-1"></i>89 ม.2 บ้านท่าทราย</p>
+                    <p class="text-muted small mb-3"><i class="fa-solid fa-notes-medical me-1"></i>ติดตามหลังผ่าตัดต้อกระจก</p>
+                    <a href="cg-visits.html?patient=89" class="btn btn-sm btn-outline-primary w-100">บันทึกเยี่ยม</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/cg.js"></script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบงานรถฉุกเฉิน EMS อัจฉริยะ - แดชบอร์ดผู้บริหาร</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        .ems-card { border-radius: 12px; border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); transition: all 0.2s ease; }
+        .ems-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .icon-box { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        
+        .status-badge { border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; font-weight: 600; }
+        .bg-available { background-color: #dcfce7; color: #166534; }
+        .bg-mission { background-color: #fee2e2; color: #991b1b; }
+        .bg-standby { background-color: #dbeafe; color: #1e40af; }
+        .bg-maintenance { background-color: #ffedd5; color: #9a3412; }
+
+        .timeline { border-left: 2px solid #e5e7eb; padding-left: 20px; position: relative; }
+        .timeline-item { position: relative; margin-bottom: 1.5rem; }
+        .timeline-item::before {
+            content: ''; position: absolute; left: -26px; top: 0; width: 12px; height: 12px;
+            border-radius: 50%; background: #ef4444; border: 2px solid #fff;
+        }
+        .timeline-item.warning::before { background: #f59e0b; }
+        .timeline-item.success::before { background: #10b981; }
+        
+        #miniGisMap { height: 350px; border-radius: 12px; z-index: 1; }
+    </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ระบบงานรถฉุกเฉิน EMS อัจฉริยะ"></div>
+    <div class="page-content">
+
+        <!-- Header & Quick Actions -->
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 fade-in-up">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-light border text-secondary shadow-sm" onclick="history.back()" title="ย้อนกลับ">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div>
+                    <h4 class="fw-bold mb-1"><i class="fa-solid fa-heart-pulse text-danger me-2"></i>ภาพรวมระบบ EMS (Dashboard)</h4>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                            <li class="breadcrumb-item"><a href="ph-ems-dashboard.html" class="text-decoration-none">EMS</a></li>
+                            <li class="breadcrumb-item active">แดชบอร์ด</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-3 mt-md-0">
+                <a href="ph-ems-incident.html" class="btn btn-danger shadow-sm"><i class="fa-solid fa-phone-volume me-1"></i> รับแจ้งเหตุใหม่ (1669)</a>
+                <a href="ph-ems-dispatch.html" class="btn btn-primary shadow-sm"><i class="fa-solid fa-satellite-dish me-1"></i> ศูนย์สั่งการ</a>
+                <a href="ph-ems-gps.html" class="btn btn-success shadow-sm"><i class="fa-solid fa-location-crosshairs me-1"></i> ดูแผนที่สด</a>
+            </div>
+        </div>
+
+        <!-- KPIs 1st Row -->
+        <div class="row g-3 mb-3 fade-in-up">
+            <div class="col-6 col-md-3">
+                <div class="card ems-card p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-muted text-sm mb-1 fw-semibold">จำนวนเหตุวันนี้</div>
+                            <h3 class="fw-bold mb-0">24</h3>
+                        </div>
+                        <div class="icon-box bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-truck-fast"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card ems-card p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-muted text-sm mb-1 fw-semibold">รถพร้อมใช้งาน</div>
+                            <h3 class="fw-bold mb-0 text-success">5<span class="text-muted text-sm fw-normal"> / 8 คัน</span></h3>
+                        </div>
+                        <div class="icon-box bg-success bg-opacity-10 text-success"><i class="fa-solid fa-check-circle"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card ems-card p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-muted text-sm mb-1 fw-semibold">รถปฏิบัติภารกิจ</div>
+                            <h3 class="fw-bold mb-0 text-danger">2<span class="text-muted text-sm fw-normal"> คัน</span></h3>
+                        </div>
+                        <div class="icon-box bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-truck-medical"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card ems-card p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-muted text-sm mb-1 fw-semibold">ซ่อมบำรุง</div>
+                            <h3 class="fw-bold mb-0 text-warning">1<span class="text-muted text-sm fw-normal"> คัน</span></h3>
+                        </div>
+                        <div class="icon-box bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-wrench"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPIs 2nd Row -->
+        <div class="row g-3 mb-4 fade-in-up">
+            <div class="col-6 col-md-3">
+                <div class="card ems-card p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-muted text-sm mb-1 fw-semibold">เจ้าหน้าที่เข้าเวร</div>
+                            <h4 class="fw-bold mb-0 text-primary">12<span class="text-muted text-sm fw-normal"> คน</span></h4>
+                        </div>
+                        <div class="icon-box bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-user-nurse"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card ems-card p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-muted text-sm mb-1 fw-semibold">Response Time (Avg)</div>
+                            <h4 class="fw-bold mb-0">6<span class="text-muted text-sm fw-normal"> นาที 12 วิ</span></h4>
+                        </div>
+                        <div class="icon-box bg-info bg-opacity-10 text-info"><i class="fa-solid fa-stopwatch"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card ems-card p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-muted text-sm mb-1 fw-semibold">เคสกำลังดำเนินการ (Pending)</div>
+                            <h4 class="fw-bold mb-0 text-danger">3<span class="text-muted text-sm fw-normal"> เคส</span></h4>
+                        </div>
+                        <div class="icon-box bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-spinner"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card ems-card p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-muted text-sm mb-1 fw-semibold">เคสเสร็จสิ้น (Completed)</div>
+                            <h4 class="fw-bold mb-0 text-success">21<span class="text-muted text-sm fw-normal"> เคส</span></h4>
+                        </div>
+                        <div class="icon-box bg-success bg-opacity-10 text-success"><i class="fa-solid fa-clipboard-check"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4 fade-in-up">
+            <!-- Active Mission Board -->
+            <div class="col-xl-8">
+                <div class="card ems-card h-100">
+                    <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-4 pb-0">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-satellite-dish text-primary me-2"></i>สถานะรถและภารกิจปัจจุบัน (Live Board)</h6>
+                        <a href="ph-ems-vehicles.html" class="btn btn-sm btn-outline-secondary">ดูทั้งหมด</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>รหัสรถ</th>
+                                        <th>ทะเบียน</th>
+                                        <th>สถานะ</th>
+                                        <th>ทีมปฏิบัติการ</th>
+                                        <th>ภารกิจปัจจุบัน / สถานที่</th>
+                                        <th>จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><span class="fw-bold">EMS-01</span> (ALS)</td>
+                                        <td>กท-1234</td>
+                                        <td><span class="status-badge bg-mission"><i class="fa-solid fa-truck-fast me-1"></i>ออกเหตุ</span></td>
+                                        <td><div class="d-flex align-items-center gap-2"><img src="https://ui-avatars.com/api/?name=Somchai&background=e2e8f0" class="rounded-circle" width="24"><span class="text-sm">สมชาย (พว.)</span></div></td>
+                                        <td><span class="text-danger fw-semibold">อุบัติเหตุจราจร</span><br><span class="text-xs text-muted">ถนนสุขุมวิท ซอย 10</span></td>
+                                        <td><button class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye"></i></button></td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="fw-bold">EMS-02</span> (BLS)</td>
+                                        <td>กท-5678</td>
+                                        <td><span class="status-badge bg-mission"><i class="fa-solid fa-hospital me-1"></i>ส่ง รพ.</span></td>
+                                        <td><div class="d-flex align-items-center gap-2"><img src="https://ui-avatars.com/api/?name=Wichai&background=e2e8f0" class="rounded-circle" width="24"><span class="text-sm">วิชัย (AEM)</span></div></td>
+                                        <td><span class="text-warning fw-semibold">ผู้ป่วยหมดสติ</span><br><span class="text-xs text-muted">รพ.ศูนย์ (กำลังส่ง)</span></td>
+                                        <td><button class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye"></i></button></td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="fw-bold">EMS-03</span> (BLS)</td>
+                                        <td>กท-9012</td>
+                                        <td><span class="status-badge bg-available"><i class="fa-solid fa-check me-1"></i>พร้อมใช้งาน</span></td>
+                                        <td><div class="d-flex align-items-center gap-2"><img src="https://ui-avatars.com/api/?name=Mana&background=e2e8f0" class="rounded-circle" width="24"><span class="text-sm">มานะ (FR)</span></div></td>
+                                        <td>-</td>
+                                        <td><button class="btn btn-sm btn-success"><i class="fa-solid fa-share"></i> สั่งการ</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="fw-bold">EMS-04</span> (FR)</td>
+                                        <td>ฮข-3321</td>
+                                        <td><span class="status-badge bg-maintenance"><i class="fa-solid fa-wrench me-1"></i>ซ่อมบำรุง</span></td>
+                                        <td>-</td>
+                                        <td><span class="text-muted text-sm">อู่ช่างพรหม (เปลี่ยนยาง)</span></td>
+                                        <td><button class="btn btn-sm btn-outline-secondary" disabled>สั่งการ</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mini GIS Map -->
+            <div class="col-xl-4">
+                <div class="card ems-card h-100">
+                    <div class="card-header bg-white border-0 pt-4 pb-2">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-map-location-dot text-success me-2"></i>พิกัดรถฉุกเฉิน (Live GPS)</h6>
+                    </div>
+                    <div class="card-body p-2">
+                        <div id="miniGisMap"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4 fade-in-up">
+            <!-- Recent Emergency Timeline -->
+            <div class="col-lg-6">
+                <div class="card ems-card h-100">
+                    <div class="card-header bg-white border-0 pt-4 pb-0">
+                        <h6 class="fw-bold mb-0">ประวัติการรับแจ้งเหตุล่าสุด (Recent Incidents)</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="timeline mt-2">
+                            <div class="timeline-item">
+                                <div class="text-xs text-muted mb-1">วันนี้ 13:45 น.</div>
+                                <h6 class="fw-bold text-danger mb-1">อุบัติเหตุรถจักรยานยนต์ชนท้ายรถยนต์</h6>
+                                <p class="text-sm mb-1">หน้าโลตัส สาขาใหญ่ มีผู้บาดเจ็บ 1 ราย (ชาย)</p>
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Code Red</span>
+                                <span class="badge bg-light text-dark border">จ่ายงาน EMS-01</span>
+                            </div>
+                            <div class="timeline-item warning">
+                                <div class="text-xs text-muted mb-1">วันนี้ 11:20 น.</div>
+                                <h6 class="fw-bold text-warning mb-1">ผู้ป่วยมีอาการหน้ามืด ใจสั่น</h6>
+                                <p class="text-sm mb-1">หมู่บ้านสุขสันต์ ซอย 4 บ้านเลขที่ 12/3</p>
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">Code Yellow</span>
+                                <span class="badge bg-light text-dark border">จ่ายงาน EMS-02</span>
+                            </div>
+                            <div class="timeline-item success">
+                                <div class="text-xs text-muted mb-1">วันนี้ 09:10 น. (เสร็จสิ้น)</div>
+                                <h6 class="fw-bold text-success mb-1">อุบัติเหตุเล็กน้อย ลื่นล้ม</h6>
+                                <p class="text-sm mb-1">ตลาดสดเทศบาล ทำแผลเบื้องต้น ไม่ประสงค์ไป รพ.</p>
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success">Code Green</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts & Analytics -->
+            <div class="col-lg-6">
+                <div class="card ems-card h-100">
+                    <div class="card-header bg-white border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0">สถิติประเภทเหตุ (เดือนนี้)</h6>
+                        <select class="form-select form-select-sm" style="width: auto;"><option>พฤษภาคม 2026</option></select>
+                    </div>
+                    <div class="card-body d-flex flex-column justify-content-center">
+                        <!-- Mocking a chart with progress bars -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between text-sm mb-1">
+                                <span>อุบัติเหตุจราจร</span><span class="fw-bold">45% (112 เคส)</span>
+                            </div>
+                            <div class="progress" style="height: 8px;"><div class="progress-bar bg-danger" style="width: 45%"></div></div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between text-sm mb-1">
+                                <span>ผู้ป่วยฉุกเฉิน (โรคประจำตัว)</span><span class="fw-bold">30% (75 เคส)</span>
+                            </div>
+                            <div class="progress" style="height: 8px;"><div class="progress-bar bg-warning" style="width: 30%"></div></div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between text-sm mb-1">
+                                <span>คลอดฉุกเฉิน</span><span class="fw-bold">10% (25 เคส)</span>
+                            </div>
+                            <div class="progress" style="height: 8px;"><div class="progress-bar bg-info" style="width: 10%"></div></div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between text-sm mb-1">
+                                <span>อื่นๆ / ปฐมพยาบาลทั่วไป</span><span class="fw-bold">15% (37 เคส)</span>
+                            </div>
+                            <div class="progress" style="height: 8px;"><div class="progress-bar bg-success" style="width: 15%"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Initialize Map
+    const map = L.map('miniGisMap').setView([13.7367, 100.5231], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // Custom Ambulance Icons
+    const ambIconActive = L.divIcon({ html: '<i class="fa-solid fa-truck-medical text-danger" style="font-size:1.5rem; text-shadow: 0 0 5px rgba(255,255,255,1);"></i>', iconSize: [24,24], className: '' });
+    const ambIconStandby = L.divIcon({ html: '<i class="fa-solid fa-truck-medical text-success" style="font-size:1.5rem; text-shadow: 0 0 5px rgba(255,255,255,1);"></i>', iconSize: [24,24], className: '' });
+
+    // Mock Markers
+    L.marker([13.7380, 100.5230], {icon: ambIconActive}).addTo(map).bindPopup("<b>EMS-01 (กท-1234)</b><br>กำลังออกเหตุ");
+    L.marker([13.7420, 100.5190], {icon: ambIconStandby}).addTo(map).bindPopup("<b>EMS-03 (กท-9012)</b><br>Standby ฐาน");
+</script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

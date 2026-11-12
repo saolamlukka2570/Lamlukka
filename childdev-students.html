@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ข้อมูลนักเรียน - ศูนย์พัฒนาเด็กเล็ก</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ข้อมูลนักเรียน"></div>
+    <div class="page-content">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-id-card text-primary me-2"></i>ทะเบียนนักเรียน</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="childdev-dashboard.html" class="text-decoration-none">ศูนย์พัฒนาเด็กเล็ก</a></li>
+                    <li class="breadcrumb-item active">ข้อมูลนักเรียน</li>
+                </ol></nav>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <select class="form-select form-select-sm" id="filterLevel" style="width:auto;" onchange="filterTable()">
+                    <option value="">ทุกระดับชั้น</option>
+                    <option value="อนุบาล 1">อนุบาล 1</option><option value="อนุบาล 2">อนุบาล 2</option><option value="อนุบาล 3">อนุบาล 3</option>
+                </select>
+                <select class="form-select form-select-sm" id="filterRoom" style="width:auto;" onchange="filterTable()"><option value="">ทุกห้อง</option></select>
+                <button class="btn btn-sm btn-success" onclick="exportExcel()"><i class="fa-solid fa-file-excel me-1"></i>Export</button>
+                <button class="btn btn-sm btn-primary" onclick="openAddStudent()"><i class="fa-solid fa-user-plus me-1"></i>เพิ่มนักเรียน</button>
+            </div>
+        </div>
+
+        <div class="card fade-in-up">
+            <div class="card-body p-0">
+                <div class="table-container">
+                    <table class="table table-hover mb-0" id="studentTable">
+                        <thead><tr>
+                            <th class="ps-4">รหัส</th><th>ชื่อ-สกุล</th><th>ชื่อเล่น</th><th>เพศ</th><th>อายุ</th>
+                            <th>ห้องเรียน</th><th>สถานะ</th><th class="pe-4 text-center">จัดการ</th>
+                        </tr></thead>
+                        <tbody id="studentBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="studentModal" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+<div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+    <div class="modal-header border-0 pb-0"><h5 class="modal-title fw-bold" id="studentModalTitle">เพิ่มนักเรียน</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+        <input type="hidden" id="editStudentId">
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabPersonal">ข้อมูลส่วนตัว</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabAddress">ที่อยู่</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabGuardian">ผู้ปกครอง</button></li>
+        </ul>
+        <div class="tab-content">
+            <!-- Personal -->
+            <div class="tab-pane fade show active" id="tabPersonal">
+                <div class="row g-3">
+                    <div class="col-md-3"><label class="form-label">เลขประจำตัวประชาชน</label><input type="text" class="form-control" id="sIdCard" maxlength="13"></div>
+                    <div class="col-md-2"><label class="form-label">คำนำหน้า</label><select class="form-select" id="sPrefix"><option>ด.ช.</option><option>ด.ญ.</option></select></div>
+                    <div class="col-md-3"><label class="form-label">ชื่อ</label><input type="text" class="form-control" id="sFirstName"></div>
+                    <div class="col-md-2"><label class="form-label">นามสกุล</label><input type="text" class="form-control" id="sLastName"></div>
+                    <div class="col-md-2"><label class="form-label">ชื่อเล่น</label><input type="text" class="form-control" id="sNickname"></div>
+                    <div class="col-md-3"><label class="form-label">วันเกิด</label><input type="date" class="form-control" id="sBirthday"></div>
+                    <div class="col-md-2"><label class="form-label">เพศ</label><select class="form-select" id="sGender"><option>ชาย</option><option>หญิง</option></select></div>
+                    <div class="col-md-2"><label class="form-label">กรุ๊ปเลือด</label><select class="form-select" id="sBlood"><option>A</option><option>B</option><option>O</option><option>AB</option></select></div>
+                    <div class="col-md-2"><label class="form-label">น้ำหนัก (kg)</label><input type="number" class="form-control" id="sWeight" step="0.1"></div>
+                    <div class="col-md-2"><label class="form-label">ส่วนสูง (cm)</label><input type="number" class="form-control" id="sHeight" step="0.1"></div>
+                    <div class="col-md-3"><label class="form-label">ห้องเรียน</label><select class="form-select" id="sClassroom"></select></div>
+                    <div class="col-md-3"><label class="form-label">แพ้อาหาร</label><input type="text" class="form-control" id="sAllergies" placeholder="ระบุ (ถ้ามี)"></div>
+                    <div class="col-md-3"><label class="form-label">สถานะ</label><select class="form-select" id="sStatus"><option>กำลังศึกษา</option><option>พักการเรียน</option><option>จบการศึกษา</option><option>ลาออก</option></select></div>
+                </div>
+            </div>
+            <!-- Address -->
+            <div class="tab-pane fade" id="tabAddress">
+                <div class="row g-3">
+                    <div class="col-md-2"><label class="form-label">บ้านเลขที่</label><input type="text" class="form-control" id="aHouseNo"></div>
+                    <div class="col-md-2"><label class="form-label">หมู่</label><input type="text" class="form-control" id="aMoo"></div>
+                    <div class="col-md-3"><label class="form-label">ถนน</label><input type="text" class="form-control" id="aRoad"></div>
+                    <div class="col-md-3"><label class="form-label">ตำบล</label><input type="text" class="form-control" id="aTambon"></div>
+                    <div class="col-md-3"><label class="form-label">อำเภอ</label><input type="text" class="form-control" id="aAmphoe"></div>
+                    <div class="col-md-3"><label class="form-label">จังหวัด</label><input type="text" class="form-control" id="aProvince"></div>
+                    <div class="col-md-3"><label class="form-label">Latitude</label><input type="number" class="form-control" id="aLat" step="0.0001"></div>
+                    <div class="col-md-3"><label class="form-label">Longitude</label><input type="number" class="form-control" id="aLng" step="0.0001"></div>
+                </div>
+            </div>
+            <!-- Guardian -->
+            <div class="tab-pane fade" id="tabGuardian">
+                <div class="row g-3">
+                    <div class="col-md-4"><label class="form-label">ชื่อผู้ปกครอง</label><input type="text" class="form-control" id="gName"></div>
+                    <div class="col-md-3"><label class="form-label">ความสัมพันธ์</label><select class="form-select" id="gRelation"><option>บิดา</option><option>มารดา</option><option>ปู่</option><option>ย่า</option><option>ตา</option><option>ยาย</option><option>ลุง</option><option>ป้า</option><option>อื่นๆ</option></select></div>
+                    <div class="col-md-3"><label class="form-label">เบอร์โทร</label><input type="text" class="form-control" id="gPhone"></div>
+                    <div class="col-md-2"><label class="form-label">LINE ID</label><input type="text" class="form-control" id="gLine"></div>
+                    <div class="col-md-4"><label class="form-label">อาชีพ</label><input type="text" class="form-control" id="gOccupation"></div>
+                    <div class="col-md-3"><label class="form-label">รายได้ครอบครัว (บาท/เดือน)</label><input type="number" class="form-control" id="gIncome"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer border-0">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="saveStudent()"><i class="fa-solid fa-check me-1"></i>บันทึก</button>
+    </div>
+</div></div></div>
+
+<!-- View Modal -->
+<div class="modal fade" id="viewModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+<div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+    <div class="modal-header border-0"><h5 class="modal-title fw-bold">ข้อมูลนักเรียน</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body" id="viewBody"></div>
+</div></div></div>
+
+<button class="childdev-fab d-lg-none" onclick="openAddStudent()" title="เพิ่มนักเรียน"><i class="fa-solid fa-plus"></i></button>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/childdev.js"></script>
+<script>
+let dt, studentModal, viewModalInstance;
+
+document.addEventListener('DOMContentLoaded', function() {
+    studentModal = new bootstrap.Modal(document.getElementById('studentModal'));
+    viewModalInstance = new bootstrap.Modal(document.getElementById('viewModal'));
+    populateFilters();
+    renderTable();
+    if (new URLSearchParams(window.location.search).get('action') === 'add') openAddStudent();
+});
+
+function populateFilters() {
+    const rooms = ChilddevDB.getAll('classrooms');
+    const sel = document.getElementById('filterRoom');
+    const sSel = document.getElementById('sClassroom');
+    rooms.forEach(r => {
+        sel.innerHTML += `<option value="${r.id}">${r.name}</option>`;
+        sSel.innerHTML += `<option value="${r.id}">${r.name}</option>`;
+    });
+}
+
+function renderTable() {
+    if (dt) dt.destroy();
+    const students = ChilddevDB.getAll('students');
+    const rooms = ChilddevDB.getAll('classrooms');
+    document.getElementById('studentBody').innerHTML = students.map(s => {
+        const rm = rooms.find(r => r.id === s.classroomId);
+        return `<tr>
+            <td class="ps-4 text-xs text-muted">${s.id}</td>
+            <td class="fw-semibold">${s.prefix}${s.firstName} ${s.lastName}</td>
+            <td>${s.nickname}</td>
+            <td>${s.gender==='ชาย'?'<i class="fa-solid fa-mars text-info"></i>':'<i class="fa-solid fa-venus" style="color:#ec4899;"></i>'} ${s.gender}</td>
+            <td class="text-sm">${childdevCalcAge(s.birthday)}</td>
+            <td><span class="childdev-class-tag"><span class="childdev-class-dot" style="background:${rm?.color||'#6b7280'}"></span>${s.classroom}</span></td>
+            <td><span class="badge ${s.status==='กำลังศึกษา'?'bg-success':'bg-secondary'}">${s.status}</span></td>
+            <td class="pe-4 text-center">
+                <button class="btn btn-xs btn-outline-info me-1" onclick="viewStudent('${s.id}')" title="ดู"><i class="fa-solid fa-eye"></i></button>
+                <button class="btn btn-xs btn-outline-primary me-1" onclick="editStudent('${s.id}')" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn btn-xs btn-outline-danger" onclick="deleteStudent('${s.id}')" title="ลบ"><i class="fa-solid fa-trash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+    dt = $('#studentTable').DataTable({
+        language: { search: 'ค้นหา:', lengthMenu: 'แสดง _MENU_ รายการ', info: 'แสดง _START_-_END_ จาก _TOTAL_', paginate: { previous: '‹', next: '›' }, zeroRecords: 'ไม่พบข้อมูล' },
+        pageLength: 15, order: [[0, 'asc']], responsive: true
+    });
+}
+
+function filterTable() {
+    const level = document.getElementById('filterLevel').value;
+    const room = document.getElementById('filterRoom').value;
+    if (!dt) return;
+    dt.columns(5).search(room ? ChilddevDB.getById('classrooms', room)?.name || '' : '').draw();
+}
+
+function openAddStudent() {
+    document.getElementById('studentModalTitle').textContent = 'เพิ่มนักเรียนใหม่';
+    document.getElementById('editStudentId').value = '';
+    document.getElementById('studentModal').querySelectorAll('input:not([type=hidden])').forEach(i => i.value = '');
+    studentModal.show();
+}
+
+function editStudent(id) {
+    const s = ChilddevDB.getById('students', id);
+    const g = ChilddevDB.getAll('guardians').find(g => g.studentId === id);
+    if (!s) return;
+    document.getElementById('studentModalTitle').textContent = 'แก้ไขข้อมูลนักเรียน';
+    document.getElementById('editStudentId').value = s.id;
+    document.getElementById('sIdCard').value = s.idCard || '';
+    document.getElementById('sPrefix').value = s.prefix;
+    document.getElementById('sFirstName').value = s.firstName;
+    document.getElementById('sLastName').value = s.lastName;
+    document.getElementById('sNickname').value = s.nickname;
+    document.getElementById('sBirthday').value = s.birthday;
+    document.getElementById('sGender').value = s.gender;
+    document.getElementById('sBlood').value = s.bloodGroup;
+    document.getElementById('sWeight').value = s.weight;
+    document.getElementById('sHeight').value = s.height;
+    document.getElementById('sClassroom').value = s.classroomId;
+    document.getElementById('sAllergies').value = s.allergies || '';
+    document.getElementById('sStatus').value = s.status;
+    if (s.address) {
+        document.getElementById('aHouseNo').value = s.address.houseNo || '';
+        document.getElementById('aMoo').value = s.address.moo || '';
+        document.getElementById('aRoad').value = s.address.road || '';
+        document.getElementById('aTambon').value = s.address.tambon || '';
+        document.getElementById('aAmphoe').value = s.address.amphoe || '';
+        document.getElementById('aProvince').value = s.address.province || '';
+        document.getElementById('aLat').value = s.address.lat || '';
+        document.getElementById('aLng').value = s.address.lng || '';
+    }
+    if (g) {
+        document.getElementById('gName').value = g.name || '';
+        document.getElementById('gRelation').value = g.relation || '';
+        document.getElementById('gPhone').value = g.phone || '';
+        document.getElementById('gLine').value = g.lineId || '';
+        document.getElementById('gOccupation').value = g.occupation || '';
+        document.getElementById('gIncome').value = g.income || '';
+    }
+    studentModal.show();
+}
+
+function saveStudent() {
+    const id = document.getElementById('editStudentId').value;
+    const classroomId = document.getElementById('sClassroom').value;
+    const rm = ChilddevDB.getById('classrooms', classroomId);
+    const data = {
+        idCard: document.getElementById('sIdCard').value,
+        prefix: document.getElementById('sPrefix').value,
+        firstName: document.getElementById('sFirstName').value,
+        lastName: document.getElementById('sLastName').value,
+        nickname: document.getElementById('sNickname').value,
+        birthday: document.getElementById('sBirthday').value,
+        gender: document.getElementById('sGender').value,
+        bloodGroup: document.getElementById('sBlood').value,
+        weight: parseFloat(document.getElementById('sWeight').value) || 0,
+        height: parseFloat(document.getElementById('sHeight').value) || 0,
+        classroomId, classroom: rm?.name || '', level: rm?.level || '',
+        allergies: document.getElementById('sAllergies').value,
+        status: document.getElementById('sStatus').value,
+        address: { houseNo: document.getElementById('aHouseNo').value, moo: document.getElementById('aMoo').value, road: document.getElementById('aRoad').value, tambon: document.getElementById('aTambon').value, amphoe: document.getElementById('aAmphoe').value, province: document.getElementById('aProvince').value, lat: parseFloat(document.getElementById('aLat').value)||0, lng: parseFloat(document.getElementById('aLng').value)||0 },
+        photo: '', facePhoto: ''
+    };
+    if (!data.firstName || !data.lastName) { Swal.fire('กรุณากรอกชื่อ-นามสกุล','','warning'); return; }
+    // Guardian
+    const gData = { name: document.getElementById('gName').value, relation: document.getElementById('gRelation').value, phone: document.getElementById('gPhone').value, lineId: document.getElementById('gLine').value, occupation: document.getElementById('gOccupation').value, income: parseInt(document.getElementById('gIncome').value)||0 };
+
+    if (id) {
+        ChilddevDB.update('students', id, data);
+        const existingG = ChilddevDB.getAll('guardians').find(g => g.studentId === id);
+        if (existingG) ChilddevDB.update('guardians', existingG.id, gData);
+        Swal.fire({icon:'success',title:'แก้ไขสำเร็จ',timer:1500,showConfirmButton:false});
+    } else {
+        data.id = childdevGenerateId('STD');
+        data.createdAt = new Date().toISOString();
+        data.age = childdevCalcAge(data.birthday);
+        ChilddevDB.add('students', data);
+        gData.id = childdevGenerateId('GRD');
+        gData.studentId = data.id;
+        ChilddevDB.add('guardians', gData);
+        Swal.fire({icon:'success',title:'เพิ่มนักเรียนสำเร็จ',timer:1500,showConfirmButton:false});
+    }
+    studentModal.hide();
+    renderTable();
+}
+
+function deleteStudent(id) {
+    Swal.fire({title:'ยืนยันการลบ?',text:'ข้อมูลนักเรียนจะถูกลบทั้งหมด',icon:'warning',showCancelButton:true,confirmButtonColor:'#ef4444',confirmButtonText:'ลบ',cancelButtonText:'ยกเลิก'}).then(r => {
+        if (r.isConfirmed) { ChilddevDB.delete('students', id); renderTable(); Swal.fire({icon:'success',title:'ลบสำเร็จ',timer:1500,showConfirmButton:false}); }
+    });
+}
+
+function viewStudent(id) {
+    const s = ChilddevDB.getById('students', id);
+    const g = ChilddevDB.getAll('guardians').find(g => g.studentId === id);
+    const rm = ChilddevDB.getById('classrooms', s.classroomId);
+    const bmi = childdevCalcBMI(s.weight, s.height);
+    document.getElementById('viewBody').innerHTML = `
+        <div class="text-center mb-3">
+            <div style="width:80px;height:80px;border-radius:50%;background:${rm?.color||'#3b82f6'};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:2rem;margin-bottom:0.5rem;">${s.prefix === 'ด.ช.' ? '👦' : '👧'}</div>
+            <h5 class="fw-bold mb-0">${s.prefix}${s.firstName} ${s.lastName}</h5>
+            <span class="text-muted text-sm">"${s.nickname}" | ${s.id}</span>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-6"><div class="card"><div class="card-body">
+                <h6 class="fw-bold mb-3"><i class="fa-solid fa-user text-primary me-2"></i>ข้อมูลส่วนตัว</h6>
+                <div class="text-sm mb-1"><b>วันเกิด:</b> ${childdevFormatDate(s.birthday)} (${childdevCalcAge(s.birthday)})</div>
+                <div class="text-sm mb-1"><b>เพศ:</b> ${s.gender} | <b>กรุ๊ปเลือด:</b> ${s.bloodGroup}</div>
+                <div class="text-sm mb-1"><b>น้ำหนัก:</b> ${s.weight} kg | <b>ส่วนสูง:</b> ${s.height} cm</div>
+                <div class="text-sm mb-1"><b>BMI:</b> <span style="color:${bmi.color};font-weight:600;">${bmi.bmi} (${bmi.status})</span></div>
+                <div class="text-sm mb-1"><b>ห้องเรียน:</b> <span class="childdev-class-tag"><span class="childdev-class-dot" style="background:${rm?.color||'#6b7280'}"></span>${s.classroom}</span></div>
+                ${s.allergies ? `<div class="text-sm text-danger"><b>แพ้อาหาร:</b> ${s.allergies}</div>` : ''}
+            </div></div></div>
+            <div class="col-md-6"><div class="card"><div class="card-body">
+                <h6 class="fw-bold mb-3"><i class="fa-solid fa-house text-success me-2"></i>ที่อยู่ & ผู้ปกครอง</h6>
+                <div class="text-sm mb-1"><b>ที่อยู่:</b> ${s.address?.houseNo||'-'} ม.${s.address?.moo||'-'} ต.${s.address?.tambon||'-'} อ.${s.address?.amphoe||'-'} จ.${s.address?.province||'-'}</div>
+                ${g ? `<hr class="my-2"><div class="text-sm mb-1"><b>ผู้ปกครอง:</b> ${g.name} (${g.relation})</div>
+                <div class="text-sm mb-1"><b>โทร:</b> ${g.phone}</div>
+                <div class="text-sm mb-1"><b>LINE:</b> ${g.lineId||'-'}</div>
+                <div class="text-sm mb-1"><b>อาชีพ:</b> ${g.occupation||'-'} | <b>รายได้:</b> ${g.income?.toLocaleString()||'-'} บาท/เดือน</div>` : ''}
+                ${s.address?.lat ? `<a href="https://www.google.com/maps?q=${s.address.lat},${s.address.lng}" target="_blank" class="btn btn-sm btn-outline-primary mt-2"><i class="fa-solid fa-map-location-dot me-1"></i>เปิดแผนที่</a>` : ''}
+            </div></div></div>
+        </div>`;
+    viewModalInstance.show();
+}
+
+function exportExcel() { Swal.fire({icon:'info',title:'Export Excel',text:'ฟีเจอร์ Export จะเชื่อมกับ SheetJS ในอนาคต',timer:2000,showConfirmButton:false}); }
+</script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

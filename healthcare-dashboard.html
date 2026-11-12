@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แดชบอร์ดผู้บริหาร (กองสาธารณสุขฯ) - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <style>
+        .hc-card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            background: #fff;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .hc-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        }
+        .hc-icon-wrapper {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        .hc-value {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1.2;
+            color: #1f2937;
+        }
+        .hc-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
+        .gradient-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+        .gradient-success { background: linear-gradient(135deg, #10b981, #059669); }
+        .gradient-warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .gradient-danger { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+        
+        /* Dark Mode Support */
+        body.dark-mode .hc-card {
+            background: #1f2937;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        body.dark-mode .hc-value { color: #f9fafb; }
+        body.dark-mode .hc-label { color: #9ca3af; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="แดชบอร์ดผู้บริหาร (กองสาธารณสุขฯ)"></div>
+    <div class="page-content">
+
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-heart-pulse text-danger me-2"></i>ระบบดูแลกลุ่มเปราะบางและผู้ที่มีภาวะพึ่งพิง</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">หน้าหลัก</a></li>
+                    <li class="breadcrumb-item"><a href="health.html" class="text-decoration-none">กองสาธารณสุขฯ</a></li>
+                    <li class="breadcrumb-item active">แดชบอร์ดผู้บริหาร</li>
+                </ol></nav>
+            </div>
+        </div>
+
+        <!-- KPI Section 1: Demographics -->
+        <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-users me-2"></i>ข้อมูลกลุ่มเปราะบาง</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+                <div class="hc-card d-flex align-items-center gap-3 fade-in-up">
+                    <div class="hc-icon-wrapper bg-primary bg-opacity-10 text-primary">
+                        <i class="fa-solid fa-person-cane"></i>
+                    </div>
+                    <div>
+                        <div class="hc-value" id="kElderly">...</div>
+                        <div class="hc-label">ผู้สูงอายุทั้งหมด (ราย)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="hc-card d-flex align-items-center gap-3 fade-in-up">
+                    <div class="hc-icon-wrapper bg-warning bg-opacity-10 text-warning">
+                        <i class="fa-solid fa-wheelchair"></i>
+                    </div>
+                    <div>
+                        <div class="hc-value" id="kDisabled">...</div>
+                        <div class="hc-label">ผู้พิการ (ราย)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="hc-card d-flex align-items-center gap-3 fade-in-up">
+                    <div class="hc-icon-wrapper bg-danger bg-opacity-10 text-danger">
+                        <i class="fa-solid fa-bed-pulse"></i>
+                    </div>
+                    <div>
+                        <div class="hc-value" id="kBedridden">...</div>
+                        <div class="hc-label">ผู้ป่วยติดเตียง (ราย)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="hc-card d-flex align-items-center gap-3 fade-in-up">
+                    <div class="hc-icon-wrapper bg-info bg-opacity-10 text-info">
+                        <i class="fa-solid fa-house-medical-circle-exclamation"></i>
+                    </div>
+                    <div>
+                        <div class="hc-value" id="kDependent">...</div>
+                        <div class="hc-label">ผู้ที่มีภาวะพึ่งพิง (ราย)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI Section 2: Operations -->
+        <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-briefcase-medical me-2"></i>ข้อมูลบุคลากรและการปฏิบัติงาน (Long Term Care)</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="hc-card text-center fade-in-up p-3">
+                    <div class="hc-label mb-2">Care Giver (CG)</div>
+                    <div class="hc-value text-success" id="kCg">...</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="hc-card text-center fade-in-up p-3">
+                    <div class="hc-label mb-2">Care Manager (CM)</div>
+                    <div class="hc-value text-primary" id="kCm">...</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="hc-card text-center fade-in-up p-3">
+                    <div class="hc-label mb-2">จำนวนเคสเยี่ยมเดือนนี้</div>
+                    <div class="hc-value text-warning" id="kVisits">...</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="hc-card text-center fade-in-up p-3 border border-success">
+                    <div class="hc-label mb-2">อุปกรณ์การแพทย์ (ชิ้น)</div>
+                    <div class="hc-value text-success" id="kEquipTotal">...</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="hc-card text-center fade-in-up p-3 border border-warning">
+                    <div class="hc-label mb-2">ถูกยืมใช้งาน</div>
+                    <div class="hc-value text-warning" id="kEquipBorrowed">...</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="hc-card text-center fade-in-up p-3 border border-info">
+                    <div class="hc-label mb-2">อุปกรณ์คงเหลือ</div>
+                    <div class="hc-value text-info" id="kEquipRemaining">...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="row g-3 mb-4">
+            <div class="col-lg-6">
+                <div class="card h-100 border-0 shadow-sm" style="border-radius:16px;">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-4">ระดับความสามารถในการดำเนินชีวิต (ADL Distribution)</h6>
+                        <div style="height: 250px;"><canvas id="adlChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card h-100 border-0 shadow-sm" style="border-radius:16px;">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-4">สถานะอุปกรณ์ทางการแพทย์คงคลัง</h6>
+                        <div style="height: 250px;"><canvas id="equipChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/healthcare.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Load Data
+    const stats = await HealthcareService.getExecutiveDashboardStats();
+    if(stats) {
+        document.getElementById('kElderly').textContent = stats.elderly.toLocaleString();
+        document.getElementById('kDisabled').textContent = stats.disabled.toLocaleString();
+        document.getElementById('kBedridden').textContent = stats.bedridden.toLocaleString();
+        document.getElementById('kDependent').textContent = stats.dependent.toLocaleString();
+        document.getElementById('kCg').textContent = stats.cg.toLocaleString();
+        document.getElementById('kCm').textContent = stats.cm.toLocaleString();
+        document.getElementById('kVisits').textContent = stats.visitsThisMonth.toLocaleString();
+        
+        document.getElementById('kEquipTotal').textContent = stats.equipment.total.toLocaleString();
+        document.getElementById('kEquipBorrowed').textContent = stats.equipment.borrowed.toLocaleString();
+        document.getElementById('kEquipRemaining').textContent = stats.equipment.remaining.toLocaleString();
+        
+        renderCharts(stats.adlStats, stats.equipment);
+    }
+});
+
+function renderCharts(adlStats, equipment) {
+    // ADL Chart
+    const ctxAdl = document.getElementById('adlChart').getContext('2d');
+    new Chart(ctxAdl, {
+        type: 'doughnut',
+        data: {
+            labels: ['ติดสังคม', 'ติดบ้าน', 'ติดเตียง'],
+            datasets: [{
+                data: [adlStats.social || 350, adlStats.home || 120, adlStats.bed || 45], // Mock fallback
+                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                borderWidth: 0
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+    });
+
+    // Equipment Chart
+    const ctxEq = document.getElementById('equipChart').getContext('2d');
+    new Chart(ctxEq, {
+        type: 'bar',
+        data: {
+            labels: ['Wheelchair', 'Bed', 'Oxygen', 'Suction'],
+            datasets: [{
+                label: 'ถูกยืมใช้งาน',
+                data: [15, 8, 3, 5],
+                backgroundColor: '#f59e0b'
+            }, {
+                label: 'คงเหลือ',
+                data: [10, 2, 5, 5],
+                backgroundColor: '#10b981'
+            }]
+        },
+        options: { 
+            responsive: true, maintainAspectRatio: false, 
+            scales: { x: { stacked: true }, y: { stacked: true } } 
+        }
+    });
+}
+</script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

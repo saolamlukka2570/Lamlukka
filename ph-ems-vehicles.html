@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ข้อมูลรถ EMS - EMS อัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ข้อมูลรถ EMS"></div>
+    <div class="page-content p-3 p-md-4">
+        
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 fade-in-up">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-light border text-secondary shadow-sm" onclick="history.back()" title="ย้อนกลับ">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div>
+                    <h4 class="fw-bold mb-1"><i class="fa-solid fa-truck-medical text-primary me-2"></i>ทะเบียนรถฉุกเฉิน (Vehicle Registry)</h4>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                            <li class="breadcrumb-item"><a href="ph-ems-dashboard.html" class="text-decoration-none">EMS</a></li>
+                            <li class="breadcrumb-item active">ข้อมูลรถ</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-3 mt-md-0">
+                <button class="btn btn-outline-primary bg-white shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#trackerModal">
+                    <i class="fa-solid fa-satellite-dish me-1 text-primary"></i> ระบบส่งตำแหน่งอัตโนมัติ
+                </button>
+                <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addVehicleModal">
+                    <i class="fa-solid fa-plus me-1"></i> ขึ้นทะเบียนรถใหม่
+                </button>
+            </div>
+        </div>
+
+        <!-- Alert Cards -->
+        <div class="row g-3 mb-4 fade-in-up">
+            <div class="col-md-6 col-lg-3">
+                <div class="card border-0 shadow-sm border-start border-danger border-4">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between">
+                            <div><p class="text-xs text-muted mb-1">พ.ร.บ./ประกัน หมดอายุ</p><h5 class="fw-bold text-danger mb-0">1 คัน</h5></div>
+                            <div class="bg-danger bg-opacity-10 text-danger rounded p-2"><i class="fa-solid fa-file-contract"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card border-0 shadow-sm border-start border-warning border-4">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between">
+                            <div><p class="text-xs text-muted mb-1">ถึงกำหนดต่อภาษี</p><h5 class="fw-bold text-warning mb-0">2 คัน</h5></div>
+                            <div class="bg-warning bg-opacity-10 text-warning rounded p-2"><i class="fa-solid fa-money-bill"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm fade-in-up" style="border-radius: 12px;">
+            <div class="card-header bg-white border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0">รายการรถพยาบาลทั้งหมด</h6>
+                <div class="input-group input-group-sm w-auto">
+                    <span class="input-group-text bg-light"><i class="fa-solid fa-search"></i></span>
+                    <input type="text" class="form-control" placeholder="ค้นหา ทะเบียน, รหัสรถ...">
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>รหัสรถ</th>
+                                <th>ทะเบียน</th>
+                                <th>ประเภท/ยี่ห้อ</th>
+                                <th>สถานะ GPS</th>
+                                <th>สถานะปัจจุบัน</th>
+                                <th>พ.ร.บ./ประกัน</th>
+                                <th>ภาษีรถยนต์</th>
+                                <th>เอกสาร/จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="fw-bold text-primary">EMS-01</td>
+                                <td>กท-1234</td>
+                                <td>ALS (Advance Life Support)<br><span class="text-xs text-muted">Toyota Commuter 2022</span></td>
+                                <td><span class="badge bg-secondary bg-opacity-10 text-secondary border" id="gps-badge-EMS-01"><i class="fa-solid fa-satellite-dish me-1"></i>Offline</span></td>
+                                <td><span class="badge bg-success bg-opacity-10 text-success border border-success">พร้อมใช้งาน</span></td>
+                                <td><span class="text-success text-sm fw-semibold"><i class="fa-solid fa-check-circle me-1"></i>30/12/2026</span></td>
+                                <td><span class="text-success text-sm fw-semibold"><i class="fa-solid fa-check-circle me-1"></i>30/12/2026</span></td>
+                                <td><button class="btn btn-sm btn-light border"><i class="fa-solid fa-file-pdf text-danger me-1"></i> เล่มรถ</button></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-primary">EMS-02</td>
+                                <td>กท-5678</td>
+                                <td>BLS (Basic Life Support)<br><span class="text-xs text-muted">Toyota Commuter 2020</span></td>
+                                <td><span class="badge bg-secondary bg-opacity-10 text-secondary border" id="gps-badge-EMS-02"><i class="fa-solid fa-satellite-dish me-1"></i>Offline</span></td>
+                                <td><span class="badge bg-success bg-opacity-10 text-success border border-success">พร้อมใช้งาน</span></td>
+                                <td><span class="text-danger text-sm fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i>หมดอายุแล้ว</span></td>
+                                <td><span class="text-success text-sm fw-semibold"><i class="fa-solid fa-check-circle me-1"></i>15/08/2026</span></td>
+                                <td><button class="btn btn-sm btn-light border"><i class="fa-solid fa-file-pdf text-danger me-1"></i> เล่มรถ</button></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-primary">EMS-03</td>
+                                <td>กท-9012</td>
+                                <td>BLS (Basic Life Support)<br><span class="text-xs text-muted">Nissan Urvan 2018</span></td>
+                                <td><span class="badge bg-secondary bg-opacity-10 text-secondary border" id="gps-badge-EMS-03"><i class="fa-solid fa-satellite-dish me-1"></i>Offline</span></td>
+                                <td><span class="badge bg-success bg-opacity-10 text-success border border-success">พร้อมใช้งาน</span></td>
+                                <td><span class="text-success text-sm fw-semibold"><i class="fa-solid fa-check-circle me-1"></i>01/05/2027</span></td>
+                                <td><span class="text-warning text-dark text-sm fw-bold"><i class="fa-solid fa-clock me-1"></i>เหลือ 15 วัน</span></td>
+                                <td><button class="btn btn-sm btn-light border"><i class="fa-solid fa-file-pdf text-danger me-1"></i> เล่มรถ</button></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-primary">EMS-04</td>
+                                <td>ฮข-3321</td>
+                                <td>FR (First Responder)<br><span class="text-xs text-muted">Toyota Revo 2023</span></td>
+                                <td><span class="badge bg-secondary bg-opacity-10 text-secondary border" id="gps-badge-EMS-04"><i class="fa-solid fa-satellite-dish me-1"></i>Offline</span></td>
+                                <td><span class="badge bg-warning bg-opacity-10 text-warning border border-warning">กำลังซ่อมบำรุง</span></td>
+                                <td><span class="text-success text-sm fw-semibold"><i class="fa-solid fa-check-circle me-1"></i>22/10/2026</span></td>
+                                <td><span class="text-warning text-dark text-sm fw-bold"><i class="fa-solid fa-clock me-1"></i>เหลือ 5 วัน</span></td>
+                                <td><button class="btn btn-sm btn-light border"><i class="fa-solid fa-file-pdf text-danger me-1"></i> เล่มรถ</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Add Vehicle Modal -->
+<div class="modal fade" id="addVehicleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0" style="border-radius: 12px;">
+            <div class="modal-header bg-primary text-white border-0" style="border-radius: 12px 12px 0 0;">
+                <h5 class="modal-title fw-bold">ขึ้นทะเบียนรถใหม่</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-sm fw-semibold">รหัสรถ</label>
+                        <input type="text" class="form-control" placeholder="เช่น EMS-06">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-sm fw-semibold">ทะเบียนรถ</label>
+                        <input type="text" class="form-control" placeholder="เช่น กข-1234 กทม">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-sm fw-semibold">ประเภทรถ (ระดับความครอบคลุม)</label>
+                        <select class="form-select">
+                            <option>ALS (Advance Life Support)</option>
+                            <option>BLS (Basic Life Support)</option>
+                            <option>FR (First Responder)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-sm fw-semibold">ยี่ห้อ / รุ่น / ปี</label>
+                        <input type="text" class="form-control" placeholder="เช่น Toyota Commuter 2024">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label text-sm fw-semibold">หมายเลขตัวถัง (VIN)</label>
+                        <input type="text" class="form-control" placeholder="เลขตัวถังรถยนต์">
+                    </div>
+
+                    <div class="col-12 mt-4"><h6 class="fw-bold border-bottom pb-2">เอกสารและวันหมดอายุ</h6></div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label text-sm fw-semibold">วันหมดอายุ พ.ร.บ./ประกันภัย</label>
+                        <input type="date" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-sm fw-semibold">แนบไฟล์กรมธรรม์ (PDF/JPG)</label>
+                        <input type="file" class="form-control form-control-sm">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label text-sm fw-semibold">วันหมดอายุ ภาษีรถยนต์</label>
+                        <input type="date" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-sm fw-semibold">แนบไฟล์สำเนาทะเบียนรถ (PDF/JPG)</label>
+                        <input type="file" class="form-control form-control-sm">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-primary px-4" onclick="showToast('บันทึกข้อมูลรถใหม่สำเร็จ','success'); bootstrap.Modal.getInstance(document.getElementById('addVehicleModal')).hide();">
+                    <i class="fa-solid fa-save me-1"></i> บันทึกข้อมูล
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Broadcaster Modal (Mobile UI) -->
+<div class="modal fade" id="trackerModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header bg-dark text-white border-0" style="border-radius: 16px 16px 0 0;">
+                <h6 class="modal-title fw-bold mx-auto"><i class="fa-solid fa-satellite-dish me-2 text-info"></i>ระบบส่งตำแหน่งอัตโนมัติ</h6>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                
+                <!-- Step 1: Select Vehicle -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-sm text-dark"><i class="fa-solid fa-1 text-primary me-1"></i> เลือกรถที่ท่านประจำการ</label>
+                    <select class="form-select form-select-lg fw-bold text-primary shadow-sm" id="vehicleSelect" onchange="checkVehicleSelection()">
+                        <option value="" selected disabled>-- กรุณาเลือกรถ --</option>
+                        <option value="EMS-01">EMS-01 (กท-1234)</option>
+                        <option value="EMS-02">EMS-02 (กท-5678)</option>
+                        <option value="EMS-03">EMS-03 (กท-9012)</option>
+                        <option value="EMS-04">EMS-04 (ฮข-3321)</option>
+                    </select>
+                </div>
+
+                <!-- Step 2: Broadcaster -->
+                <div id="broadcasterSection" style="opacity: 0.5; pointer-events: none; transition: 0.3s;">
+                    <hr class="mb-4">
+                    <label class="form-label fw-bold text-sm text-dark d-block text-center"><i class="fa-solid fa-2 text-primary me-1"></i> เปิดระบบส่งตำแหน่ง</label>
+                    
+                    <div class="d-flex justify-content-center align-items-center mb-4">
+                        <div id="trackerPulse" style="width:80px;height:80px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;transition:0.3s;">
+                            <i class="fa-solid fa-location-arrow fa-2x text-secondary" id="trackerIcon"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-check form-switch d-flex justify-content-center align-items-center mb-3">
+                        <input class="form-check-input mt-0 me-2" type="checkbox" id="trackerToggle" style="transform: scale(1.5);" onchange="toggleTracker()">
+                        <label class="form-check-label fw-bold text-sm ms-2" for="trackerToggle" id="trackerStatusText">ปิดการส่งตำแหน่ง</label>
+                    </div>
+
+                    <div class="bg-white p-2 rounded border text-start text-xs shadow-sm">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Latitude:</span>
+                            <span class="fw-bold font-monospace" id="locLat">-</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Longitude:</span>
+                            <span class="fw-bold font-monospace" id="locLng">-</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">อัปเดตล่าสุด:</span>
+                            <span class="fw-bold text-primary" id="locTime">-</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer border-0 bg-light justify-content-center pb-4 pt-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm w-100 fw-bold" onclick="closeTrackerModal()">
+                    <i class="fa-solid fa-xmark me-1"></i> ย่อหน้าต่าง (ทำงานเบื้องหลัง)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script>
+    let trackerInterval;
+    let isTracking = false;
+    const trackerModal = new bootstrap.Modal(document.getElementById('trackerModal'));
+
+    function checkVehicleSelection() {
+        const val = document.getElementById('vehicleSelect').value;
+        const section = document.getElementById('broadcasterSection');
+        if (val) {
+            section.style.opacity = '1';
+            section.style.pointerEvents = 'auto';
+        } else {
+            section.style.opacity = '0.5';
+            section.style.pointerEvents = 'none';
+        }
+    }
+
+    function closeTrackerModal() {
+        trackerModal.hide();
+        if (isTracking) {
+            showToast('ระบบส่งตำแหน่งกำลังทำงานอยู่เบื้องหลัง', 'info');
+        }
+    }
+
+    function toggleTracker() {
+        isTracking = document.getElementById('trackerToggle').checked;
+        const pulse = document.getElementById('trackerPulse');
+        const icon = document.getElementById('trackerIcon');
+        const statusText = document.getElementById('trackerStatusText');
+        const vehicleSelect = document.getElementById('vehicleSelect');
+
+        if (isTracking) {
+            vehicleSelect.disabled = true; // Lock vehicle selection while broadcasting
+            pulse.style.background = '#dcfce7'; // green-100
+            pulse.style.boxShadow = '0 0 0 10px rgba(34, 197, 94, 0.2)'; // pulse effect
+            icon.classList.remove('text-secondary');
+            icon.classList.add('text-success', 'fa-beat');
+            statusText.innerText = 'กำลังออนไลน์...';
+            statusText.classList.replace('text-dark', 'text-success');
+            
+            // Start sending location every 1 second
+            updateLocationMock();
+            trackerInterval = setInterval(updateLocationMock, 1000);
+            
+            // Update Table Badge
+            const badge = document.getElementById('gps-badge-' + vehicleSelect.value);
+            if(badge) {
+                badge.className = 'badge bg-success bg-opacity-10 text-success border border-success';
+                badge.innerHTML = '<i class="fa-solid fa-satellite-dish me-1 fa-beat"></i>Online';
+            }
+
+            showToast('เริ่มส่งตำแหน่งอัตโนมัติ', 'success');
+        } else {
+            vehicleSelect.disabled = false; // Unlock selection
+            pulse.style.background = '#e5e7eb';
+            pulse.style.boxShadow = 'none';
+            icon.classList.remove('text-success', 'fa-beat');
+            icon.classList.add('text-secondary');
+            statusText.innerText = 'ปิดการส่งตำแหน่ง';
+            statusText.classList.replace('text-success', 'text-dark');
+            
+            // Stop sending
+            clearInterval(trackerInterval);
+            
+            // Update Table Badge
+            const badge = document.getElementById('gps-badge-' + vehicleSelect.value);
+            if(badge) {
+                badge.className = 'badge bg-secondary bg-opacity-10 text-secondary border';
+                badge.innerHTML = '<i class="fa-solid fa-satellite-dish me-1"></i>Offline';
+            }
+            
+            // Clear text
+            document.getElementById('locLat').innerText = '-';
+            document.getElementById('locLng').innerText = '-';
+            document.getElementById('locTime').innerText = '-';
+            showToast('หยุดส่งตำแหน่งแล้ว', 'warning');
+        }
+    }
+
+    // Mock geolocation update function
+    function updateLocationMock() {
+        // Base coordinate (somewhere in town)
+        const baseLat = 13.7380;
+        const baseLng = 100.5230;
+        
+        // Add tiny random movement
+        const jitterLat = (Math.random() - 0.5) * 0.0002;
+        const jitterLng = (Math.random() - 0.5) * 0.0002;
+        
+        const currentLat = (baseLat + jitterLat).toFixed(6);
+        const currentLng = (baseLng + jitterLng).toFixed(6);
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('th-TH') + ' (' + now.getMilliseconds() + 'ms)';
+
+        document.getElementById('locLat').innerText = currentLat;
+        document.getElementById('locLng').innerText = currentLng;
+        document.getElementById('locTime').innerText = timeStr;
+    }
+</script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

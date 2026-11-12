@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>กิจกรรมในชั้นเรียน - ศูนย์พัฒนาเด็กเล็ก</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="กิจกรรมในชั้นเรียน"></div>
+    <div class="page-content">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-palette text-info me-2"></i>กิจกรรมในชั้นเรียน</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="childdev-dashboard.html" class="text-decoration-none">ศูนย์พัฒนาเด็กเล็ก</a></li>
+                    <li class="breadcrumb-item active">กิจกรรม</li>
+                </ol></nav>
+            </div>
+            <div class="d-flex gap-2">
+                <select class="form-select form-select-sm" id="filterRoom" style="width:auto;" onchange="renderActivities()">
+                    <option value="">ทุกห้อง</option>
+                </select>
+                <button class="btn btn-sm btn-primary" onclick="openAddActivity()"><i class="fa-solid fa-plus me-1"></i>เพิ่มกิจกรรม</button>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="childdev-timeline" id="timelineContainer">
+            <div class="text-center text-muted py-4">กำลังโหลด...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="actModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered">
+<div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+    <div class="modal-header border-0"><h5 class="modal-title fw-bold" id="actModalTitle">เพิ่มกิจกรรม</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+        <input type="hidden" id="actId">
+        <div class="row g-3">
+            <div class="col-md-8"><label class="form-label">ชื่อกิจกรรม</label><input type="text" class="form-control" id="actName"></div>
+            <div class="col-md-4"><label class="form-label">วันที่</label><input type="date" class="form-control" id="actDate"></div>
+            <div class="col-md-6"><label class="form-label">ห้องเรียน</label><select class="form-select" id="actRoom"><option value="ALL">ทุกห้อง</option></select></div>
+            <div class="col-md-6"><label class="form-label">ครูผู้สอน</label><input type="text" class="form-control" id="actTeacher"></div>
+            <div class="col-12"><label class="form-label">รายละเอียด</label><textarea class="form-control" id="actDesc" rows="3"></textarea></div>
+        </div>
+    </div>
+    <div class="modal-footer border-0"><button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button><button class="btn btn-primary" onclick="saveActivity()"><i class="fa-solid fa-check me-1"></i>บันทึก</button></div>
+</div></div></div>
+
+<button class="childdev-fab d-lg-none" onclick="openAddActivity()" title="เพิ่มกิจกรรม"><i class="fa-solid fa-plus"></i></button>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/childdev.js"></script>
+<script>
+let actModalInstance;
+const actColors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#0694a2','#d97706'];
+
+document.addEventListener('DOMContentLoaded', function() {
+    actModalInstance = new bootstrap.Modal(document.getElementById('actModal'));
+    document.getElementById('actDate').value = childdevGetTodayStr();
+    const rooms = ChilddevDB.getAll('classrooms');
+    const filterSel = document.getElementById('filterRoom');
+    const actSel = document.getElementById('actRoom');
+    rooms.forEach(r => {
+        filterSel.innerHTML += `<option value="${r.id}">${r.name}</option>`;
+        actSel.innerHTML += `<option value="${r.id}">${r.name}</option>`;
+    });
+    renderActivities();
+});
+
+function renderActivities() {
+    const roomFilter = document.getElementById('filterRoom').value;
+    let activities = ChilddevDB.getAll('activities');
+    if (roomFilter) activities = activities.filter(a => a.classroomId === roomFilter || a.classroomId === 'ALL');
+    activities.sort((a, b) => b.date.localeCompare(a.date));
+    const rooms = ChilddevDB.getAll('classrooms');
+    const container = document.getElementById('timelineContainer');
+
+    if (activities.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted py-4"><i class="fa-solid fa-palette fa-2x mb-2 d-block opacity-50"></i>ยังไม่มีกิจกรรม</div>';
+        return;
+    }
+
+    container.innerHTML = activities.map((a, i) => {
+        const rm = a.classroomId === 'ALL' ? null : rooms.find(r => r.id === a.classroomId);
+        const color = actColors[i % actColors.length];
+        return `<div class="childdev-timeline-item" style="border-left:3px solid ${color};">
+            <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
+                <div>
+                    <h6 class="fw-bold mb-0">${a.name}</h6>
+                    <div class="text-xs text-muted"><i class="fa-regular fa-calendar me-1"></i>${a.date} • <i class="fa-solid fa-user me-1"></i>${a.teacher}</div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge" style="background:${rm?.color || '#6b7280'};">${rm?.name || 'ทุกห้อง'}</span>
+                    <div class="dropdown">
+                        <button class="btn btn-xs btn-light" data-bs-toggle="dropdown"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow" style="border:none;border-radius:10px;">
+                            <li><a class="dropdown-item text-sm" href="#" onclick="editActivity('${a.id}')"><i class="fa-solid fa-pen me-2 text-primary"></i>แก้ไข</a></li>
+                            <li><a class="dropdown-item text-sm text-danger" href="#" onclick="deleteActivity('${a.id}')"><i class="fa-solid fa-trash me-2"></i>ลบ</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <p class="text-sm text-muted mb-0">${a.description}</p>
+        </div>`;
+    }).join('');
+}
+
+function openAddActivity() {
+    document.getElementById('actModalTitle').textContent = 'เพิ่มกิจกรรม';
+    document.getElementById('actId').value = '';
+    document.getElementById('actName').value = '';
+    document.getElementById('actDate').value = childdevGetTodayStr();
+    document.getElementById('actRoom').value = 'ALL';
+    document.getElementById('actTeacher').value = '';
+    document.getElementById('actDesc').value = '';
+    actModalInstance.show();
+}
+
+function editActivity(id) {
+    const a = ChilddevDB.getById('activities', id);
+    if (!a) return;
+    document.getElementById('actModalTitle').textContent = 'แก้ไขกิจกรรม';
+    document.getElementById('actId').value = a.id;
+    document.getElementById('actName').value = a.name;
+    document.getElementById('actDate').value = a.date;
+    document.getElementById('actRoom').value = a.classroomId;
+    document.getElementById('actTeacher').value = a.teacher;
+    document.getElementById('actDesc').value = a.description;
+    actModalInstance.show();
+}
+
+function saveActivity() {
+    const id = document.getElementById('actId').value;
+    const data = {
+        name: document.getElementById('actName').value,
+        date: document.getElementById('actDate').value,
+        classroomId: document.getElementById('actRoom').value,
+        teacher: document.getElementById('actTeacher').value,
+        description: document.getElementById('actDesc').value,
+        photos: [], video: ''
+    };
+    if (!data.name) { Swal.fire('กรุณากรอกชื่อกิจกรรม','','warning'); return; }
+    if (id) {
+        ChilddevDB.update('activities', id, data);
+        Swal.fire({icon:'success',title:'แก้ไขสำเร็จ',timer:1500,showConfirmButton:false});
+    } else {
+        data.id = childdevGenerateId('ACT');
+        ChilddevDB.add('activities', data);
+        Swal.fire({icon:'success',title:'เพิ่มกิจกรรมสำเร็จ',timer:1500,showConfirmButton:false});
+    }
+    actModalInstance.hide();
+    renderActivities();
+}
+
+function deleteActivity(id) {
+    Swal.fire({title:'ยืนยันการลบ?',icon:'warning',showCancelButton:true,confirmButtonColor:'#ef4444',confirmButtonText:'ลบ',cancelButtonText:'ยกเลิก'}).then(r => {
+        if (r.isConfirmed) { ChilddevDB.delete('activities', id); renderActivities(); Swal.fire({icon:'success',title:'ลบสำเร็จ',timer:1500,showConfirmButton:false}); }
+    });
+}
+</script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

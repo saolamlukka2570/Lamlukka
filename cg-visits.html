@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บันทึกการเยี่ยมบ้าน (CG) - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .form-section {
+            background: #fff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid #e5e7eb;
+        }
+        .form-section-title {
+            color: #10b981;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #ecfdf5;
+            padding-bottom: 0.5rem;
+        }
+        .camera-btn {
+            border: 2px dashed #10b981;
+            background: #ecfdf5;
+            color: #10b981;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .camera-btn:hover {
+            background: #d1fae5;
+        }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="บันทึกการเยี่ยมบ้าน"></div>
+    <div class="page-content">
+
+        <div class="mb-3"><a href="cg-dashboard.html" class="btn btn-light shadow-sm border fw-bold" style="border-radius:10px;"><i class="fa-solid fa-arrow-left me-2"></i>ย้อนกลับ</a></div>
+
+        <h4 class="fw-bold mb-4"><i class="fa-solid fa-notes-medical text-success me-2"></i>บันทึกการเยี่ยมบ้าน (Care Giver)</h4>
+
+        <form id="visitForm" onsubmit="handleSaveVisit(event)">
+            
+            <!-- Section 1: Patient & Vitals -->
+            <div class="form-section">
+                <h5 class="form-section-title"><i class="fa-solid fa-user me-2"></i>ข้อมูลผู้ป่วยและสัญญาณชีพ</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">ค้นหาผู้ป่วย <span class="text-danger">*</span></label>
+                        <select class="form-select" id="patientId" required>
+                            <option value="">-- เลือกผู้ป่วย --</option>
+                            <!-- Mock Data -->
+                            <option value="123">ยายสมศรี ใจดี (ติดเตียง)</option>
+                            <option value="45">ตาบุญมา รักชาติ (ติดบ้าน)</option>
+                            <option value="89">นางสมปอง แสงทอง (ติดสังคม)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">วันที่เยี่ยม <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="visitDate" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">เวลาที่เยี่ยม <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="time" class="form-control" id="startTime" required>
+                            <span class="input-group-text">-</span>
+                            <input type="time" class="form-control" id="endTime" required>
+                        </div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">น้ำหนัก (กก.)</label>
+                        <input type="number" step="0.1" class="form-control" id="weight" onchange="calcBmi()">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">ส่วนสูง (ซม.)</label>
+                        <input type="number" class="form-control" id="height" onchange="calcBmi()">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">BMI</label>
+                        <input type="text" class="form-control bg-light" id="bmi" readonly>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">ความดันโลหิต (mmHg)</label>
+                        <input type="text" class="form-control" id="bp" placeholder="เช่น 120/80">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">ชีพจร (ครั้ง/นาที)</label>
+                        <input type="number" class="form-control" id="pulse">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Assessments -->
+            <div class="form-section">
+                <h5 class="form-section-title"><i class="fa-solid fa-clipboard-list me-2"></i>การประเมิน (ADL & 2Q)</h5>
+                
+                <h6 class="fw-bold mb-3 text-primary">ประเมิน ADL (แบบย่อ)</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label">การรับประทานอาหาร</label>
+                        <select class="form-select form-select-sm adl-select" id="adl1">
+                            <option value="0">ทำไม่ได้เลย (0)</option>
+                            <option value="1">ทำได้บ้าง (1)</option>
+                            <option value="2" selected>ทำได้ปกติ (2)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">การเคลื่อนที่ (ลุกนั่ง/เดิน)</label>
+                        <select class="form-select form-select-sm adl-select" id="adl2">
+                            <option value="0">ทำไม่ได้เลย (0)</option>
+                            <option value="1">ทำได้บ้าง (1)</option>
+                            <option value="2" selected>ทำได้ปกติ (2)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">การขับถ่าย</label>
+                        <select class="form-select form-select-sm adl-select" id="adl3">
+                            <option value="0">ควบคุมไม่ได้ (0)</option>
+                            <option value="1">ควบคุมได้บ้าง (1)</option>
+                            <option value="2" selected>ควบคุมได้ปกติ (2)</option>
+                        </select>
+                    </div>
+                    <!-- Other ADLs omitted for brevity -->
+                    <div class="col-12 mt-2">
+                        <div class="alert alert-info py-2 mb-0 d-flex justify-content-between align-items-center">
+                            <span>คะแนน ADL รวม (ตัวอย่าง): <strong id="adlTotal">6</strong>/20</span>
+                            <span class="badge bg-success" id="adlLevel">ติดสังคม</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold mb-3 text-danger">ประเมินภาวะซึมเศร้า 2Q</h6>
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label">1. ใน 2 สัปดาห์ที่ผ่านมารวมวันนี้ ท่านรู้สึก หดหู่ เศร้า หรือท้อแท้สิ้นหวัง หรือไม่?</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="q1" id="q1n" value="false" checked>
+                                <label class="form-check-label" for="q1n">ไม่มี</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="q1" id="q1y" value="true">
+                                <label class="form-check-label" for="q1y">มี</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">2. ใน 2 สัปดาห์ที่ผ่านมารวมวันนี้ ท่านรู้สึก เบื่อ ทำอะไรก็ไม่เพลิดเพลิน หรือไม่?</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="q2" id="q2n" value="false" checked>
+                                <label class="form-check-label" for="q2n">ไม่มี</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="q2" id="q2y" value="true">
+                                <label class="form-check-label" for="q2y">มี</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Outcomes -->
+            <div class="form-section">
+                <h5 class="form-section-title"><i class="fa-solid fa-comment-medical me-2"></i>ผลการดูแลและหลักฐาน</h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label">ปัญหาที่พบ <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="problems" rows="3" required></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">การให้การดูแล/กิจกรรม <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="activities" rows="3" required></textarea>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">ข้อเสนอแนะถึง Care Manager</label>
+                        <textarea class="form-control" id="recs" rows="2" placeholder="เช่น ต้องการเตียงลมเพิ่ม"></textarea>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">ผลการเยี่ยม <span class="text-danger">*</span></label>
+                        <select class="form-select" id="result" required>
+                            <option value="ดีขึ้น">ดีขึ้น</option>
+                            <option value="เท่าเดิม" selected>เท่าเดิม</option>
+                            <option value="แย่ลง">แย่ลง</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="camera-btn" onclick="document.getElementById('photoInput').click()">
+                            <i class="fa-solid fa-camera fa-2x mb-2"></i>
+                            <div>ถ่ายภาพขณะเยี่ยมบ้าน</div>
+                        </div>
+                        <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center h-100 p-3 bg-light rounded border">
+                            <div>
+                                <h6 class="fw-bold mb-1"><i class="fa-solid fa-location-dot text-danger me-2"></i>ตำแหน่ง GPS</h6>
+                                <p class="text-muted small mb-2" id="gpsStatus">กรุณากดเพื่อบันทึกพิกัด</p>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="getGPS()"><i class="fa-solid fa-map-pin me-1"></i>บันทึกพิกัด</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-end mb-5">
+                <button type="button" class="btn btn-light me-2 border">ยกเลิก</button>
+                <button type="submit" class="btn btn-primary px-4 fw-bold"><i class="fa-solid fa-save me-2"></i>บันทึกส่งข้อมูลให้ CM ตรวจสอบ</button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/cg.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('visitDate').valueAsDate = new Date();
+        
+        // Mock get patient from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const p = urlParams.get('patient');
+        if(p) document.getElementById('patientId').value = p;
+        
+        // Attach ADL calc
+        document.querySelectorAll('.adl-select').forEach(sel => {
+            sel.addEventListener('change', calcAdl);
+        });
+    });
+
+    function calcBmi() {
+        const w = parseFloat(document.getElementById('weight').value);
+        const h = parseFloat(document.getElementById('height').value);
+        if(w && h) {
+            const bmi = CGService.calculateBMI(w, h);
+            document.getElementById('bmi').value = bmi;
+            if(bmi < 18.5) document.getElementById('bmi').classList.add('text-danger');
+            else document.getElementById('bmi').classList.remove('text-danger');
+        }
+    }
+
+    function calcAdl() {
+        let score = 0;
+        document.querySelectorAll('.adl-select').forEach(sel => {
+            score += parseInt(sel.value);
+        });
+        const res = CGService.analyzeADL(score);
+        document.getElementById('adlTotal').textContent = res.score;
+        const b = document.getElementById('adlLevel');
+        b.textContent = res.level;
+        b.className = 'badge bg-' + res.color;
+    }
+
+    function getGPS() {
+        const status = document.getElementById('gpsStatus');
+        status.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>กำลังค้นหาพิกัด...';
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    status.innerHTML = `<span class="text-success"><i class="fa-solid fa-check me-1"></i>ละติจูด: ${position.coords.latitude.toFixed(4)}, ลองจิจูด: ${position.coords.longitude.toFixed(4)}</span>`;
+                },
+                (error) => {
+                    status.innerHTML = `<span class="text-danger"><i class="fa-solid fa-times me-1"></i>ไม่สามารถดึงพิกัดได้</span>`;
+                }
+            );
+        }
+    }
+
+    function handleSaveVisit(e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'บันทึกสำเร็จ!',
+            text: 'ส่งข้อมูลการเยี่ยมให้ Care Manager เรียบร้อยแล้ว',
+            icon: 'success',
+            confirmButtonText: 'ตกลง'
+        }).then(() => {
+            window.location.href = 'cg-dashboard.html';
+        });
+    }
+</script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

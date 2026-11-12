@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ผู้นำ/อาสาสมัคร - Digital Data Center</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ผู้นำชุมชนและอาสาสมัคร"></div>
+    <div class="page-content">
+        <div class="mb-3"><a href="digital-data-dashboard.html" class="btn btn-light shadow-sm border fw-bold" style="border-radius:10px;"><i class="fa-solid fa-arrow-left me-2"></i>ย้อนกลับ (Digital Data Center)</a></div>
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div><h4 class="fw-bold mb-1"><i class="fa-solid fa-people-group text-primary me-2"></i>ผู้นำชุมชนและอาสาสมัคร</h4>
+            <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;"><li class="breadcrumb-item"><a href="digital-data-dashboard.html" class="text-decoration-none">Digital Data Center</a></li><li class="breadcrumb-item active">ผู้นำ/อาสาสมัคร</li></ol></nav></div>
+            <div class="d-flex gap-2"><button class="btn btn-sm btn-primary" onclick="showToast('กำลังพัฒนา','info')"><i class="fa-solid fa-plus me-1"></i>เพิ่มข้อมูล</button><button class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-file-excel me-1"></i>Export</button></div>
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ผู้นำ/อาสาสมัครรวม</div><div class="kpi-value" id="k1">—</div></div><div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-people-group"></i></div></div></div></div>
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ผู้ใหญ่บ้าน</div><div class="kpi-value text-success" id="k2">—</div></div><div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-user-tie"></i></div></div></div></div>
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">อสม.</div><div class="kpi-value text-info" id="k3">—</div></div><div class="kpi-icon bg-info bg-opacity-10 text-info"><i class="fa-solid fa-heart-pulse"></i></div></div></div></div>
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">อปพร.</div><div class="kpi-value text-warning" id="k4">—</div></div><div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-shield-halved"></i></div></div></div></div>
+        </div>
+        <div class="card mb-3"><div class="card-body py-2"><div class="row g-2 align-items-center">
+            <div class="col-md-6"><div class="input-group input-group-sm"><span class="input-group-text bg-light"><i class="fa-solid fa-search text-muted"></i></span><input type="text" class="form-control" id="sI" placeholder="ค้นหาชื่อ..." onkeyup="ft()"></div></div>
+            <div class="col-md-3"><select class="form-select form-select-sm" id="fR" onchange="ft()"><option value="">ทุกบทบาท</option><option value="VillageLeader">ผู้ใหญ่บ้าน</option><option value="CommunityLeader">ผู้นำชุมชน</option><option value="VillageHealthVolunteer">อสม.</option><option value="CivilDefenseVolunteer">อปพร.</option></select></div>
+            <div class="col-md-3 text-end"><span class="text-xs text-muted" id="rc">—</span></div>
+        </div></div></div>
+        <div class="card"><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0">
+            <thead><tr><th class="ps-4">ชื่อ-สกุล</th><th>อายุ</th><th>บทบาท</th><th>บ้านเลขที่</th><th>หมู่บ้าน</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
+            <tbody id="tB"><tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody>
+        </table></div></div></div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script><script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/digital-data-service.js"></script><script src="assets/js/household-service.js"></script><script src="assets/js/responsive.js"></script>
+<script>
+let ad=[];
+const ROLE_LABELS={VillageLeader:'ผู้ใหญ่บ้าน',CommunityLeader:'ผู้นำชุมชน',VillageHealthVolunteer:'อสม.',CivilDefenseVolunteer:'อปพร.'};
+const ROLE_COLORS={VillageLeader:'bg-success',CommunityLeader:'bg-primary',VillageHealthVolunteer:'bg-info',CivilDefenseVolunteer:'bg-warning'};
+const mk=[
+    {id:'l1',role_type:'VillageLeader',dd_household_members:{prefix:'นาย',first_name:'สมชาย',last_name:'ใจดี',age:52,gender:'ชาย',dd_households:{house_number:'1',village_no:1,village_name:'บ้านท่าสะอาด'}}},
+    {id:'l2',role_type:'VillageLeader',dd_household_members:{prefix:'นาย',first_name:'วิชัย',last_name:'แสนดี',age:48,gender:'ชาย',dd_households:{house_number:'34',village_no:2,village_name:'บ้านหนองบัว'}}},
+    {id:'l3',role_type:'VillageHealthVolunteer',dd_household_members:{prefix:'นาง',first_name:'สมหญิง',last_name:'ทองมี',age:45,gender:'หญิง',dd_households:{house_number:'56',village_no:3,village_name:'บ้านดอนสวรรค์'}}},
+    {id:'l4',role_type:'VillageHealthVolunteer',dd_household_members:{prefix:'นาง',first_name:'วิไล',last_name:'สุขใจ',age:42,gender:'หญิง',dd_households:{house_number:'78',village_no:4,village_name:'บ้านโนนสวาท'}}},
+    {id:'l5',role_type:'CivilDefenseVolunteer',dd_household_members:{prefix:'นาย',first_name:'สมศักดิ์',last_name:'ศรีสุข',age:38,gender:'ชาย',dd_households:{house_number:'23',village_no:5,village_name:'บ้านโคกกลาง'}}},
+    {id:'l6',role_type:'CommunityLeader',dd_household_members:{prefix:'นาย',first_name:'บุญมี',last_name:'แก้วมณี',age:55,gender:'ชาย',dd_households:{house_number:'12',village_no:6,village_name:'บ้านหนองผือ'}}},
+];
+document.addEventListener('DOMContentLoaded',async()=>{
+    let d=await HouseholdService.getLeaderList(); if(!d.length) d=mk; ad=d; rn(d);
+    document.getElementById('k1').textContent=d.length;
+    document.getElementById('k2').textContent=d.filter(x=>x.role_type==='VillageLeader').length;
+    document.getElementById('k3').textContent=d.filter(x=>x.role_type==='VillageHealthVolunteer').length;
+    document.getElementById('k4').textContent=d.filter(x=>x.role_type==='CivilDefenseVolunteer').length;
+});
+function rn(d){
+    const tb=document.getElementById('tB');document.getElementById('rc').textContent=d.length+' ท่าน';
+    if(!d.length){tb.innerHTML='<tr><td colspan="6" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';return;}
+    tb.innerHTML=d.map(x=>{const m=x.dd_household_members||{};const h=m.dd_households||{};return `<tr>
+        <td class="ps-4 fw-semibold">${m.prefix||''} ${m.first_name||''} ${m.last_name||''}</td><td>${m.age||'-'} ปี</td>
+        <td><span class="badge ${ROLE_COLORS[x.role_type]||'bg-secondary'}">${ROLE_LABELS[x.role_type]||x.role_type}</span></td>
+        <td>${h.house_number||'-'}</td><td>ม.${h.village_no||'-'} ${h.village_name||''}</td>
+        <td class="pe-4 text-center"><button class="btn btn-xs btn-outline-primary"><i class="fa-solid fa-eye"></i></button></td>
+    </tr>`;}).join('');
+}
+function ft(){const q=document.getElementById('sI').value.toLowerCase();const r=document.getElementById('fR').value;let d=ad;if(q)d=d.filter(x=>{const m=x.dd_household_members||{};return(m.first_name||'').toLowerCase().includes(q)||(m.last_name||'').toLowerCase().includes(q);});if(r)d=d.filter(x=>x.role_type===r);rn(d);}
+</script>
+</body>
+</html>

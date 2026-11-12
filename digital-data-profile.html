@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>โปรไฟล์ครัวเรือน - Digital Data Center</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .profile-hero{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#1a56db 100%);border-radius:20px;padding:2.5rem 3rem;color:#fff;position:relative;overflow:hidden;margin-bottom:2rem;box-shadow:0 10px 25px rgba(26,86,219,0.2)}
+        .profile-hero::before{content:'';position:absolute;top:-50px;right:-50px;width:250px;height:250px;border-radius:50%;background:rgba(255,255,255,0.06)}
+        .profile-hero .house-badge{background:rgba(255,255,255,0.2);backdrop-filter:blur(10px);border-radius:16px;padding:16px 24px;display:inline-flex;align-items:center;gap:12px;font-size:2rem;font-weight:800;letter-spacing:-0.5px}
+        .profile-hero .house-badge i{font-size:1.6rem;opacity:0.8}
+        .profile-hero .meta-row{display:flex;gap:2rem;flex-wrap:wrap;margin-top:20px;font-size:1rem;opacity:0.9;font-weight:500}
+        .profile-hero .meta-row .meta-item{display:flex;align-items:center;gap:8px}
+        
+        .stat-card{display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:14px 20px;border:1px solid #e5e7eb;box-shadow:0 2px 4px rgba(0,0,0,0.02);transition:all .2s;height:100%}
+        .stat-card:hover{border-color:#3b82f6;box-shadow:0 6px 15px rgba(59,130,246,0.1);transform:translateY(-2px)}
+        .stat-card .sc-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+        .stat-card .sc-val{font-weight:800;font-size:1.5rem;line-height:1;margin-bottom:2px}
+        .stat-card .sc-label{color:#6b7280;font-size:0.85rem;font-weight:600}
+        
+        .member-card{border:1px solid #e5e7eb;border-radius:16px;padding:1.5rem;transition:all .2s;position:relative;background:#fff}
+        .member-card:hover{border-color:#3b82f6;box-shadow:0 8px 24px rgba(59,130,246,0.12);z-index:2;transform:scale(1.01)}
+        .member-card.is-head{border-left:5px solid #1a56db}
+        .member-card .member-avatar{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;flex-shrink:0}
+        .member-card .member-avatar.male{background:rgba(59,130,246,0.1);color:#3b82f6;border:2px solid rgba(59,130,246,0.2)}
+        .member-card .member-avatar.female{background:rgba(236,72,153,0.1);color:#ec4899;border:2px solid rgba(236,72,153,0.2)}
+        .member-card .member-name{font-weight:700;font-size:1.2rem;color:#1f2937}
+        .member-card .member-meta{font-size:0.9rem;color:#4b5563;font-weight:500}
+        .member-card .member-meta span{display:inline-block;margin-top:6px}
+        
+        .status-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:8px;font-size:0.75rem;font-weight:600;letter-spacing:0.3px}
+        .status-tag.elderly{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+        .status-tag.disabled{background:#ede9fe;color:#5b21b6;border:1px solid #ddd6fe}
+        .status-tag.bedridden{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+        .status-tag.newborn{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0}
+        .status-tag.head{background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe}
+        .status-tag.poor{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1}
+        
+        #profileMap{height:250px;border-radius:12px;z-index:1;border:1px solid #e5e7eb}
+        .section-title{font-size:1rem;text-transform:uppercase;letter-spacing:0.5px;font-weight:800;color:#374151;margin-bottom:1.25rem;display:flex;align-items:center;gap:8px}
+        .detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem}
+        .detail-item{font-size:1rem;background:#f9fafb;padding:12px 16px;border-radius:10px;border:1px solid #f3f4f6}
+        .detail-item .di-label{color:#6b7280;font-size:0.8rem;font-weight:600;margin-bottom:4px;text-transform:uppercase}
+        .detail-item .di-val{font-weight:700;color:#111827}
+        
+        .action-bar{display:flex;gap:12px;flex-wrap:wrap}
+        .action-bar .btn { font-weight:600; padding:8px 16px; border-radius:8px; }
+        
+        .vuln-section{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.03)}
+        .vuln-section .vuln-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;font-weight:700;font-size:1.05rem}
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="โปรไฟล์ครัวเรือน"></div>
+    <div class="page-content">
+        <div class="mb-3"><a href="digital-data-households.html" class="btn btn-light shadow-sm border fw-bold" style="border-radius:10px;"><i class="fa-solid fa-arrow-left me-2"></i>ย้อนกลับไปหน้าครัวเรือน</a></div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-5">
+            <div class="spinner-border text-primary mb-3" role="status"></div>
+            <p class="text-muted">กำลังโหลดข้อมูลครัวเรือน...</p>
+        </div>
+
+        <!-- Profile Content (hidden until loaded) -->
+        <div id="profileContent" style="display:none;">
+
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-3"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                <li class="breadcrumb-item"><a href="digital-data-dashboard.html" class="text-decoration-none">Digital Data Center</a></li>
+                <li class="breadcrumb-item"><a href="digital-data-households.html" class="text-decoration-none">ครัวเรือน</a></li>
+                <li class="breadcrumb-item active" id="breadcrumbTitle">โปรไฟล์</li>
+            </ol></nav>
+
+            <!-- Hero Header -->
+            <div class="profile-hero fade-in-up">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                    <div>
+                        <div class="house-badge"><i class="fa-solid fa-house-chimney"></i><span id="heroHouseNo">—</span></div>
+                        <div class="meta-row">
+                            <div class="meta-item"><i class="fa-solid fa-map-pin"></i><span id="heroVillage">—</span></div>
+                            <div class="meta-item"><i class="fa-solid fa-user"></i><span id="heroOwner">—</span></div>
+                            <div class="meta-item"><i class="fa-solid fa-file-lines"></i>ทร.14: <span id="heroTR14">—</span></div>
+                        </div>
+                    </div>
+                    <div class="action-bar">
+                        <button class="btn btn-sm btn-light" onclick="editHousehold()"><i class="fa-solid fa-pen me-1"></i>แก้ไข</button>
+                        <button class="btn btn-sm btn-outline-light" onclick="printProfile()"><i class="fa-solid fa-print me-1"></i>พิมพ์</button>
+                        <a href="digital-data-map.html" class="btn btn-sm btn-outline-light"><i class="fa-solid fa-map-location-dot me-1"></i>ดูบนแผนที่</a>
+                    </div>
+                </div>
+                <!-- Status Badges -->
+                <div class="d-flex gap-2 mt-3 flex-wrap" id="heroBadges"></div>
+            </div>
+
+            <!-- Quick Stats Row -->
+            <div class="d-flex gap-3 flex-wrap mb-4" id="quickStats"></div>
+
+            <!-- Main 2-column layout -->
+            <div class="row g-4">
+                <!-- Left Column: Members -->
+                <div class="col-lg-8">
+                    <!-- Members Section -->
+                    <div class="card mb-4">
+                        <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0"><i class="fa-solid fa-users text-primary me-2"></i>สมาชิกในครัวเรือน (<span id="memberCount">0</span> คน)</h6>
+                            <button class="btn btn-sm btn-success" onclick="showAddMemberModal()"><i class="fa-solid fa-user-plus me-1"></i>เพิ่มสมาชิก</button>
+                        </div>
+                        <div class="card-body pt-0" id="membersContainer">
+                            <p class="text-muted text-center py-3">กำลังโหลด...</p>
+                        </div>
+                    </div>
+
+                    <!-- Vulnerability Summary -->
+                    <div id="vulnerabilitySection"></div>
+                </div>
+
+                <!-- Right Column: Info + Map -->
+                <div class="col-lg-4">
+                    <!-- Location Map -->
+                    <div class="card mb-4">
+                        <div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-map-location-dot text-success me-2"></i>ตำแหน่งที่ตั้ง</h6></div>
+                        <div class="card-body pt-0">
+                            <div id="profileMap" style="height: 250px; border-radius: 8px;"></div>
+                            <div class="mt-2 text-center" style="font-size:0.75rem;color:#6b7280; background:#f3f4f6; padding: 4px; border-radius: 4px;">
+                                <i class="fa-solid fa-location-crosshairs text-primary me-1"></i>พิกัด: <span id="coordDisplay">—</span>
+                            </div>
+                            <div class="d-flex gap-2 mt-2">
+                                <button class="btn btn-sm btn-info flex-fill text-white" onclick="navigateLocation()" title="นำทางไปยังจุดนี้"><i class="fa-solid fa-directions me-1"></i>นำทาง</button>
+                                <button class="btn btn-sm btn-outline-primary flex-fill" onclick="fetchCurrentLocation()" title="ดึงพิกัดปัจจุบัน"><i class="fa-solid fa-location-crosshairs me-1"></i>ปัจจุบัน</button>
+                                <button class="btn btn-sm btn-success flex-fill" onclick="saveMapLocation()" title="บันทึกพิกัด"><i class="fa-solid fa-floppy-disk me-1"></i>บันทึก</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Household Details -->
+                    <div class="card mb-4">
+                        <div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-circle-info text-info me-2"></i>ข้อมูลครัวเรือน</h6></div>
+                        <div class="card-body pt-0">
+                            <div class="detail-grid" id="detailGrid"></div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Links -->
+                    <div class="card">
+                        <div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-link text-warning me-2"></i>ลิงก์ที่เกี่ยวข้อง</h6></div>
+                        <div class="card-body pt-0">
+                            <div class="d-flex flex-column gap-2">
+                                <a href="digital-data-elderly.html" class="btn btn-sm btn-outline-warning w-100 text-start"><i class="fa-solid fa-person-cane me-2"></i>ฐานข้อมูลผู้สูงอายุ</a>
+                                <a href="digital-data-disabled.html" class="btn btn-sm btn-outline-info w-100 text-start"><i class="fa-solid fa-wheelchair me-2"></i>ฐานข้อมูลผู้พิการ</a>
+                                <a href="digital-data-bedridden.html" class="btn btn-sm btn-outline-danger w-100 text-start"><i class="fa-solid fa-bed-pulse me-2"></i>ผู้ป่วยติดเตียง</a>
+                                <a href="digital-data-poor.html" class="btn btn-sm btn-outline-danger w-100 text-start"><i class="fa-solid fa-hand-holding-heart me-2"></i>ครัวเรือนยากจน</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Member Modal -->
+<div class="modal fade" id="memberModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+    <div class="modal-header border-0"><h5 class="modal-title fw-bold" id="memberModalTitle"><i class="fa-solid fa-user-plus text-primary me-2"></i>เพิ่มสมาชิก</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+        <form id="memberForm">
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">คำนำหน้า</label><select class="form-select" id="mPrefix"><option>นาย</option><option>นาง</option><option>นางสาว</option><option>เด็กชาย</option><option>เด็กหญิง</option></select></div>
+                <div class="col-md-4"><label class="form-label">ชื่อ <span class="text-danger">*</span></label><input type="text" class="form-control" id="mFirstName" required></div>
+                <div class="col-md-5"><label class="form-label">นามสกุล <span class="text-danger">*</span></label><input type="text" class="form-control" id="mLastName" required></div>
+                <div class="col-md-4"><label class="form-label">เลขบัตรประชาชน</label><input type="text" class="form-control" id="mCitizenId" maxlength="13" placeholder="13 หลัก"></div>
+                <div class="col-md-2"><label class="form-label">เพศ</label><select class="form-select" id="mGender"><option>ชาย</option><option>หญิง</option></select></div>
+                <div class="col-md-3"><label class="form-label">วันเกิด</label><input type="date" class="form-control" id="mBirthDate" onchange="calcAge(this.value)"></div>
+                <div class="col-md-3"><label class="form-label">อายุ</label><input type="number" class="form-control" id="mAge" min="0" max="120"></div>
+                <div class="col-md-4"><label class="form-label">ความสัมพันธ์</label><select class="form-select" id="mRelation"><option>เจ้าบ้าน</option><option>ผู้อยู่อาศัย</option><option>ผู้อาศัย</option><option>คู่สมรส</option><option>บุตร</option><option>บิดา</option><option>มารดา</option><option>ญาติ</option><option>อื่นๆ</option></select></div>
+                <div class="col-md-4"><label class="form-label">อาชีพ</label><input type="text" class="form-control" id="mOccupation"></div>
+                <div class="col-md-4"><label class="form-label">การศึกษา</label><select class="form-select" id="mEducation"><option value="">ไม่ระบุ</option><option>ไม่ได้เรียน</option><option>ประถมศึกษา</option><option>มัธยมต้น</option><option>มัธยมปลาย/ปวช.</option><option>อนุปริญญา/ปวส.</option><option>ปริญญาตรี</option><option>สูงกว่าปริญญาตรี</option></select></div>
+                <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="mIsHead"><label class="form-check-label" for="mIsHead">เป็นหัวหน้าครัวเรือน</label></div></div>
+            </div>
+        </form>
+    </div>
+    <div class="modal-footer border-0"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button><button type="button" class="btn btn-primary" onclick="saveMember()"><i class="fa-solid fa-save me-1"></i>บันทึก</button></div>
+</div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/digital-data-service.js"></script>
+<script src="assets/js/household-service.js"></script>
+<script src="assets/js/responsive.js"></script>
+<script>
+let profileData = null;
+let householdId = null;
+let miniMap = null;
+let currentMarker = null;
+let editingMemberId = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const params = new URLSearchParams(window.location.search);
+    householdId = params.get('id');
+    if (!householdId) { window.location.href = 'digital-data-households.html'; return; }
+    await loadProfile(householdId);
+});
+
+async function loadProfile(id) {
+    document.getElementById('loadingState').style.display = '';
+    document.getElementById('profileContent').style.display = 'none';
+
+    profileData = await DigitalDataService.getHouseholdProfile(id);
+
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('profileContent').style.display = '';
+
+    renderHero(profileData);
+    renderQuickStats(profileData);
+    renderMembers(profileData.members || []);
+    renderDetails(profileData);
+    renderVulnerability(profileData);
+    initMap(profileData);
+}
+
+function renderHero(p) {
+    document.getElementById('heroHouseNo').textContent = `บ้านเลขที่ ${p.house_number || '-'}`;
+    document.getElementById('heroVillage').textContent = `หมู่ ${p.village_no || '-'} ${p.village_name || ''}`;
+    document.getElementById('heroOwner').textContent = p.owner_name || '-';
+    document.getElementById('heroTR14').textContent = p.tr14_number || 'ไม่ระบุ';
+    document.getElementById('breadcrumbTitle').textContent = `บ้านเลขที่ ${p.house_number || '-'}`;
+
+    // Status badges
+    const badges = [];
+    if (p.poverty_status) badges.push('<span class="badge bg-danger"><i class="fa-solid fa-hand-holding-heart me-1"></i>ครัวเรือนยากจน</span>');
+    if (p.jp2t_failed) badges.push('<span class="badge bg-warning text-dark"><i class="fa-solid fa-triangle-exclamation me-1"></i>จปฐ. ตกเกณฑ์</span>');
+    if ((p.elderly_count || 0) > 0) badges.push(`<span class="badge" style="background:rgba(245,158,11,0.2);color:#fbbf24"><i class="fa-solid fa-person-cane me-1"></i>ผู้สูงอายุ ${p.elderly_count}</span>`);
+    if ((p.disabled_count || 0) > 0) badges.push(`<span class="badge" style="background:rgba(139,92,246,0.2);color:#a78bfa"><i class="fa-solid fa-wheelchair me-1"></i>ผู้พิการ ${p.disabled_count}</span>`);
+    if ((p.bedridden_count || 0) > 0) badges.push(`<span class="badge" style="background:rgba(239,68,68,0.2);color:#fca5a5"><i class="fa-solid fa-bed-pulse me-1"></i>ติดเตียง ${p.bedridden_count}</span>`);
+    if ((p.newborn_count || 0) > 0) badges.push(`<span class="badge" style="background:rgba(16,185,129,0.2);color:#6ee7b7"><i class="fa-solid fa-baby me-1"></i>แรกเกิด ${p.newborn_count}</span>`);
+    if (!badges.length) badges.push('<span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>ปกติ</span>');
+    document.getElementById('heroBadges').innerHTML = badges.join('');
+}
+
+function renderQuickStats(p) {
+    const items = [
+        { icon: 'fa-users', color: '#1a56db', bg: 'rgba(26,86,219,0.1)', val: p.total_members || 0, label: 'สมาชิกทั้งหมด' },
+        { icon: 'fa-mars', color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', val: p.male_count || 0, label: 'ชาย' },
+        { icon: 'fa-venus', color: '#ec4899', bg: 'rgba(236,72,153,0.1)', val: p.female_count || 0, label: 'หญิง' },
+        { icon: 'fa-person-cane', color: '#d97706', bg: 'rgba(245,158,11,0.1)', val: p.elderly_count || 0, label: 'ผู้สูงอายุ (60+)' },
+        { icon: 'fa-wheelchair', color: '#7c3aed', bg: 'rgba(139,92,246,0.1)', val: p.disabled_count || 0, label: 'ผู้พิการ' },
+        { icon: 'fa-bed-pulse', color: '#dc2626', bg: 'rgba(239,68,68,0.1)', val: p.bedridden_count || 0, label: 'ผู้ป่วยติดเตียง' },
+        { icon: 'fa-baby', color: '#059669', bg: 'rgba(16,185,129,0.1)', val: p.newborn_count || 0, label: 'เด็กแรกเกิด' },
+    ];
+    document.getElementById('quickStats').innerHTML = '<div class="row g-3 w-100 m-0">' + items.map((s,i) =>
+        `<div class="col-6 col-md-4 col-lg-3"><div class="stat-card fade-in-up" style="animation-delay:${i*0.05}s"><div class="sc-icon" style="background:${s.bg};color:${s.color};"><i class="fa-solid ${s.icon}"></i></div><div><div class="sc-val" style="color:${s.color}">${s.val}</div><div class="sc-label">${s.label}</div></div></div></div>`
+    ).join('') + '</div>';
+}
+
+function renderMembers(members) {
+    document.getElementById('memberCount').textContent = members.length;
+    if (!members.length) {
+        document.getElementById('membersContainer').innerHTML = '<div class="text-center py-4 text-muted"><i class="fa-solid fa-user-slash fa-2x mb-2 d-block opacity-50"></i>ยังไม่มีข้อมูลสมาชิก</div>';
+        return;
+    }
+
+    document.getElementById('membersContainer').innerHTML = '<div class="d-flex flex-column gap-3">' +
+        members.map((m, i) => {
+            const isMale = m.gender === 'ชาย';
+            const tags = [];
+            if (m.is_head) tags.push('<span class="status-tag head"><i class="fa-solid fa-crown"></i>หัวหน้า</span>');
+            if (m.age >= 60 || m.elderly) tags.push('<span class="status-tag elderly"><i class="fa-solid fa-person-cane"></i>ผู้สูงอายุ</span>');
+            if (m.disabled) tags.push('<span class="status-tag disabled"><i class="fa-solid fa-wheelchair"></i>ผู้พิการ</span>');
+            if (m.bedridden) tags.push('<span class="status-tag bedridden"><i class="fa-solid fa-bed-pulse"></i>ติดเตียง</span>');
+            if (m.newborn || (m.age !== null && m.age <= 3)) tags.push('<span class="status-tag newborn"><i class="fa-solid fa-baby"></i>แรกเกิด</span>');
+            if (profileData && profileData.poverty_status) tags.push('<span class="status-tag poor"><i class="fa-solid fa-hand-holding-heart"></i>ผู้ด้อยโอกาส</span>');
+
+            const initials = (m.first_name || '?').charAt(0);
+
+            return `<div class="member-card ${m.is_head ? 'is-head' : ''} fade-in-up" style="animation-delay:${i * 0.05}s">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="member-avatar ${isMale ? 'male' : 'female'}">${initials}</div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="member-name">${m.prefix || ''} ${m.first_name || ''} ${m.last_name || ''}</span>
+                            ${tags.join('')}
+                        </div>
+                        <div class="member-meta mt-1">
+                            <span><i class="fa-solid ${isMale ? 'fa-mars text-primary' : 'fa-venus text-pink'} me-1"></i>${m.gender || '-'}</span>
+                            <span class="ms-3"><i class="fa-regular fa-calendar me-1"></i>${m.age != null ? m.age + ' ปี' : '<span class="text-danger fw-bold"><i class="fa-solid fa-circle-exclamation me-1"></i>ข้อมูลยังไม่ครบ</span>'}</span>
+                            <span class="ms-3"><i class="fa-solid fa-people-arrows me-1"></i>${m.relationship || '-'}</span>
+                            ${m.citizen_id ? `<span class="ms-3"><i class="fa-regular fa-id-card me-1"></i>${maskCitizenId(m.citizen_id)}</span>` : ''}
+                            ${m.occupation ? `<span class="ms-3"><i class="fa-solid fa-briefcase me-1"></i>${m.occupation}</span>` : ''}
+                            ${m.education ? `<span class="ms-3"><i class="fa-solid fa-graduation-cap me-1"></i>${m.education}</span>` : ''}
+                        </div>
+                        ${renderMemberDetails(m)}
+                    </div>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-xs btn-outline-secondary" title="แก้ไข" onclick="editMember('${m.id}')"><i class="fa-solid fa-pen"></i></button>
+                        <button class="btn btn-xs btn-outline-danger" title="ลบ" onclick="deleteMember('${m.id}','${m.first_name} ${m.last_name}')"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('') + '</div>';
+}
+
+function renderMemberDetails(m) {
+    const details = [];
+    
+    if (m.elderly || (m.age !== null && m.age >= 60)) {
+        let welfare = '-';
+        let level = '-';
+        let caregiver = '-';
+        let gps = false;
+        
+        if (m.elderly) {
+            welfare = m.elderly.welfare_status && m.elderly.welfare_status !== '-' ? m.elderly.welfare_status : '';
+            level = m.elderly.dependency_level || '-';
+            caregiver = m.elderly.caregiver || '-';
+            gps = m.elderly.gps_verified;
+        }
+        
+        if (!welfare && m.age >= 60) {
+            if (m.age >= 90) welfare = '1,000 บาท';
+            else if (m.age >= 80) welfare = '800 บาท';
+            else if (m.age >= 70) welfare = '700 บาท';
+            else welfare = '600 บาท';
+        } else if (!welfare) {
+            welfare = '-';
+        }
+        
+        details.push(`<div class="mt-2 p-2 rounded" style="background:#fffbeb;font-size:0.75rem;">
+            <b><i class="fa-solid fa-person-cane text-warning me-1"></i>ข้อมูลผู้สูงอายุ:</b>
+            สวัสดิการ: <b class="text-success">${welfare}</b> | ระดับ: <b>${level}</b> | ผู้ดูแล: ${caregiver}
+            ${gps ? ' | <i class="fa-solid fa-circle-check text-success"></i> GPS ยืนยัน' : ''}
+        </div>`);
+    }
+    
+    if (m.disabled) {
+        let disabledWelfare = m.disabled.allowance_status && m.disabled.allowance_status !== '-' ? m.disabled.allowance_status : '800 บาท';
+        details.push(`<div class="mt-2 p-2 rounded" style="background:#f5f3ff;font-size:0.75rem;">
+            <b><i class="fa-solid fa-wheelchair" style="color:#8b5cf6"></i> ข้อมูลความพิการ:</b>
+            ประเภท: ${m.disabled.disability_type || '-'} | ระดับ: <b>${m.disabled.severity || '-'}</b> | สิทธิ์: ${m.disabled.rights_status || '-'}
+            | เบี้ยยังชีพ: <b class="text-success">${disabledWelfare}</b>
+        </div>`);
+    }
+    
+    if (m.bedridden) {
+        details.push(`<div class="mt-2 p-2 rounded" style="background:#fef2f2;font-size:0.75rem;">
+            <b><i class="fa-solid fa-bed-pulse text-danger"></i> ข้อมูลติดเตียง:</b>
+            โรค: ${m.bedridden.disease || '-'} | ระดับ: <b>${m.bedridden.condition_level || '-'}</b> | ผู้ดูแล: ${m.bedridden.caregiver || '-'}
+            ${m.bedridden.medical_note ? ` | <i class="fa-solid fa-note-medical"></i> ${m.bedridden.medical_note}` : ''}
+        </div>`);
+    }
+    
+    if (m.newborn || (m.age !== null && m.age <= 3)) {
+        let weight = '-';
+        let guardian = '-';
+        let low = false;
+        
+        if (m.newborn) {
+            weight = m.newborn.birth_weight || '-';
+            guardian = m.newborn.guardian_name || '-';
+            low = (m.newborn.birth_weight || 9) < 2.5;
+        }
+        
+        details.push(`<div class="mt-2 p-2 rounded" style="background:#ecfdf5;font-size:0.75rem;">
+            <b><i class="fa-solid fa-baby text-success"></i> ข้อมูลแรกเกิด:</b>
+            น้ำหนัก: <b class="${low ? 'text-danger' : ''}">${weight} กก.</b>${low ? ' ⚠️ ต่ำกว่าเกณฑ์' : ''}
+            | ผู้ปกครอง: ${guardian}
+        </div>`);
+    }
+    return details.join('');
+}
+
+function renderDetails(p) {
+    const items = [
+        { label: 'บ้านเลขที่', val: p.house_number || '-' },
+        { label: 'หมู่ที่', val: p.village_no || '-' },
+        { label: 'ชื่อหมู่บ้าน', val: p.village_name || '-' },
+        { label: 'เจ้าบ้าน', val: p.owner_name || '-' },
+        { label: 'ทร.14', val: p.tr14_number || '-' },
+        { label: 'ตำบล', val: p.subdistrict || 'ท่าสะอาด' },
+        { label: 'อำเภอ', val: p.district || 'เซกา' },
+        { label: 'จังหวัด', val: p.province || 'บึงกาฬ' },
+        { label: 'ละติจูด', val: p.latitude ? p.latitude.toFixed(6) : '-' },
+        { label: 'ลองจิจูด', val: p.longitude ? p.longitude.toFixed(6) : '-' },
+        { label: 'สถานะ', val: p.poverty_status ? '🔴 ครัวเรือนยากจน' : '🟢 ปกติ' },
+        { label: 'จปฐ.', val: p.jp2t_failed ? '⚠️ ตกเกณฑ์' : '✅ ผ่าน' },
+    ];
+    document.getElementById('detailGrid').innerHTML = items.map(d =>
+        `<div class="detail-item"><div class="di-label">${d.label}</div><div class="di-val">${d.val}</div></div>`
+    ).join('');
+}
+
+function renderVulnerability(p) {
+    const sections = [];
+    const members = p.members || [];
+
+    // Elderly members
+    const elderly = members.filter(m => m.elderly || m.age >= 60);
+    if (elderly.length) {
+        sections.push(`<div class="vuln-section">
+            <div class="vuln-header"><i class="fa-solid fa-person-cane text-warning"></i>ผู้สูงอายุในครัวเรือน (${elderly.length} คน)</div>
+            <div class="table-responsive"><table class="table table-sm mb-0" style="font-size:0.8rem">
+                <thead><tr><th>ชื่อ</th><th>อายุ</th><th>ระดับ</th><th>สวัสดิการ</th><th>ผู้ดูแล</th></tr></thead>
+                <tbody>${elderly.map(m => `<tr>
+                    <td class="fw-semibold">${m.prefix||''} ${m.first_name} ${m.last_name}</td>
+                    <td>${m.age != null ? m.age + ' ปี' : '<span class="text-danger fw-bold"><i class="fa-solid fa-circle-exclamation me-1"></i>ข้อมูลยังไม่ครบ</span>'}</td>
+                    <td>${m.elderly ? `<span class="badge ${m.elderly.dependency_level==='ติดเตียง'?'bg-danger':m.elderly.dependency_level==='ติดบ้าน'?'bg-info':'bg-success'}">${m.elderly.dependency_level}</span>` : '-'}</td>
+                    <td>${m.elderly?.welfare_status||'-'}</td>
+                    <td>${m.elderly?.caregiver||'-'}</td>
+                </tr>`).join('')}</tbody>
+            </table></div>
+        </div>`);
+    }
+
+    // Poor household
+    if (p.poverty_status || (p.poorRecords && p.poorRecords.length)) {
+        const pr = p.poorRecords?.[0] || {};
+        sections.push(`<div class="vuln-section">
+            <div class="vuln-header"><i class="fa-solid fa-hand-holding-heart text-danger"></i>ข้อมูลครัวเรือนยากจน</div>
+            <div class="detail-grid">
+                <div class="detail-item"><div class="di-label">ประเภทความยากจน</div><div class="di-val">${pr.poverty_type||'ไม่ระบุ'}</div></div>
+                <div class="detail-item"><div class="di-label">สภาพที่อยู่อาศัย</div><div class="di-val">${pr.housing_condition||'ไม่ระบุ'}</div></div>
+                <div class="detail-item"><div class="di-label">จปฐ. ตกเกณฑ์</div><div class="di-val">${pr.jp2t_status||p.jp2t_failed?'⚠️ ตกเกณฑ์':'ผ่าน'}</div></div>
+                <div class="detail-item"><div class="di-label">ความช่วยเหลือที่ต้องการ</div><div class="di-val">${pr.assistance_required||'ไม่ระบุ'}</div></div>
+            </div>
+        </div>`);
+    }
+
+    document.getElementById('vulnerabilitySection').innerHTML = sections.length ?
+        `<div class="section-title"><i class="fa-solid fa-shield-heart text-danger"></i>ข้อมูลกลุ่มเปราะบาง (Vulnerability Data)</div>${sections.join('')}` :
+        `<div class="card"><div class="card-body text-center text-muted py-4"><i class="fa-solid fa-shield-check fa-2x mb-2 d-block text-success opacity-50"></i>ไม่มีสมาชิกกลุ่มเปราะบางในครัวเรือนนี้</div></div>`;
+}
+
+function initMap(p) {
+    let lat = p.latitude;
+    let lng = p.longitude;
+    const hasLocation = !!(lat && lng);
+    
+    if (!hasLocation) {
+        lat = 14.7975; // Default center (adjust as needed)
+        lng = 100.1066;
+    }
+
+    if (miniMap) miniMap.remove();
+    miniMap = L.map('profileMap').setView([lat, lng], hasLocation ? 17 : 6);
+    
+    // Google Satellite Map
+    L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+    }).addTo(miniMap);
+    
+    if (hasLocation) {
+        currentMarker = L.marker([lat, lng], { draggable: true }).addTo(miniMap)
+            .bindPopup(`<b>🏠 บ้านเลขที่ ${p.house_number || '-'}</b><br>ม.${p.village_no || '-'} ${p.village_name || ''}`).openPopup();
+        
+        currentMarker.on('dragend', function (e) {
+            const pos = e.target.getLatLng();
+            document.getElementById('coordDisplay').textContent = `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
+        });
+        document.getElementById('coordDisplay').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    } else {
+        document.getElementById('coordDisplay').textContent = 'ยังไม่มีพิกัด (ลากจุดเพื่อกำหนด)';
+        
+        // Add a default draggable marker anyway so user can set it
+        currentMarker = L.marker([lat, lng], { draggable: true }).addTo(miniMap)
+            .bindPopup(`<b>🏠 ลากหมุดเพื่อระบุตำแหน่ง</b>`).openPopup();
+            
+        currentMarker.on('dragend', function (e) {
+            const pos = e.target.getLatLng();
+            document.getElementById('coordDisplay').textContent = `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
+        });
+    }
+    
+    setTimeout(() => miniMap.invalidateSize(), 200);
+}
+
+function navigateLocation() {
+    if (!currentMarker) return;
+    const pos = currentMarker.getLatLng();
+    // Open Google Maps directions to this location
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${pos.lat},${pos.lng}`, '_blank');
+}
+
+function fetchCurrentLocation() {
+    if (!navigator.geolocation) {
+        Swal.fire('ไม่รองรับ','เบราว์เซอร์ของคุณไม่รองรับการดึงตำแหน่ง','error');
+        return;
+    }
+    Swal.fire({ title: 'กำลังค้นหาตำแหน่ง...', didOpen: () => Swal.showLoading(), allowOutsideClick: false });
+    navigator.geolocation.getCurrentPosition((pos) => {
+        Swal.close();
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        if (miniMap) {
+            miniMap.setView([lat, lng], 18);
+            if (currentMarker) {
+                currentMarker.setLatLng([lat, lng]);
+            }
+            document.getElementById('coordDisplay').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        }
+    }, (err) => {
+        Swal.close();
+        Swal.fire('ข้อผิดพลาด','ไม่สามารถดึงตำแหน่งได้ กรุณาอนุญาตการเข้าถึงตำแหน่งในเบราว์เซอร์','error');
+    });
+}
+
+async function saveMapLocation() {
+    if (!currentMarker) return;
+    const pos = currentMarker.getLatLng();
+    try {
+        Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading(), allowOutsideClick: false });
+        await HouseholdService.updateHousehold(householdId, { latitude: pos.lat, longitude: pos.lng });
+        profileData.latitude = pos.lat;
+        profileData.longitude = pos.lng;
+        Swal.fire('สำเร็จ', 'บันทึกตำแหน่งเรียบร้อยแล้ว', 'success');
+    } catch (e) {
+        console.error(e);
+        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกตำแหน่งได้', 'error');
+    }
+}
+
+function maskCitizenId(id) {
+    if (!id || id.length < 13) return id || '-';
+    return id.substring(0, 1) + '-' + id.substring(1, 5) + '-xxxxx-' + id.substring(10, 12) + '-' + id.substring(12);
+}
+
+function parseBirthDate(dateStr) {
+    if (!dateStr) return null;
+    let parts = dateStr.split('-');
+    if (parts.length !== 3) return null;
+    let y = parseInt(parts[0], 10);
+    if (y > 2400) {
+        y -= 543;
+        parts[0] = y.toString();
+        return parts.join('-');
+    }
+    return dateStr;
+}
+
+function calcAge(dateStr) {
+    const validDate = parseBirthDate(dateStr);
+    if (!validDate) return;
+    const dob = new Date(validDate);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+        age--;
+    }
+    if (age >= 0) document.getElementById('mAge').value = age;
+}
+
+// Member CRUD
+function showAddMemberModal() {
+    editingMemberId = null;
+    document.getElementById('memberModalTitle').innerHTML = '<i class="fa-solid fa-user-plus text-primary me-2"></i>เพิ่มสมาชิก';
+    document.getElementById('memberForm').reset();
+    new bootstrap.Modal(document.getElementById('memberModal')).show();
+}
+
+async function saveMember() {
+    const data = {
+        prefix: document.getElementById('mPrefix').value,
+        first_name: document.getElementById('mFirstName').value,
+        last_name: document.getElementById('mLastName').value,
+        citizen_id: document.getElementById('mCitizenId').value || null,
+        gender: document.getElementById('mGender').value,
+        birth_date: parseBirthDate(document.getElementById('mBirthDate').value),
+        age: parseInt(document.getElementById('mAge').value) || null,
+        relationship: document.getElementById('mRelation').value,
+        occupation: document.getElementById('mOccupation').value || null,
+        education: document.getElementById('mEducation').value || null,
+        is_head: document.getElementById('mIsHead').checked,
+    };
+    if (!data.first_name || !data.last_name) { Swal.fire('กรุณากรอกชื่อ-สกุล', '', 'warning'); return; }
+    try {
+        if (editingMemberId) {
+            await HouseholdService.updateMember(editingMemberId, data);
+        } else {
+            await HouseholdService.linkMember(householdId, data);
+        }
+        bootstrap.Modal.getInstance(document.getElementById('memberModal')).hide();
+        Swal.fire({ icon: 'success', title: editingMemberId ? 'แก้ไขสมาชิกสำเร็จ' : 'เพิ่มสมาชิกสำเร็จ', timer: 1500, showConfirmButton: false });
+        await loadProfile(householdId);
+    } catch (e) { Swal.fire('เกิดข้อผิดพลาด', e.message, 'error'); }
+}
+
+function editMember(id) {
+    const m = (profileData.members || []).find(x => x.id === id);
+    if (!m) return;
+    editingMemberId = id;
+    document.getElementById('memberModalTitle').innerHTML = '<i class="fa-solid fa-pen text-primary me-2"></i>แก้ไขสมาชิก';
+    document.getElementById('mPrefix').value = m.prefix || 'นาย';
+    document.getElementById('mFirstName').value = m.first_name || '';
+    document.getElementById('mLastName').value = m.last_name || '';
+    document.getElementById('mCitizenId').value = m.citizen_id || '';
+    document.getElementById('mGender').value = m.gender || 'ชาย';
+    document.getElementById('mBirthDate').value = m.birth_date || '';
+    document.getElementById('mAge').value = m.age || '';
+    document.getElementById('mRelation').value = m.relationship || (m.is_head ? 'เจ้าบ้าน' : 'ผู้อยู่อาศัย');
+    document.getElementById('mOccupation').value = m.occupation || '';
+    document.getElementById('mEducation').value = m.education || '';
+    document.getElementById('mIsHead').checked = m.is_head || false;
+    new bootstrap.Modal(document.getElementById('memberModal')).show();
+}
+
+async function deleteMember(id, name) {
+    const result = await Swal.fire({ title: 'ยืนยันการลบ', text: `ต้องการลบ "${name}" ออกจากครัวเรือน?`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'ลบ', cancelButtonText: 'ยกเลิก' });
+    if (!result.isConfirmed) return;
+    try {
+        await HouseholdService.unlinkMember(id);
+        Swal.fire({ icon: 'success', title: 'ลบสมาชิกสำเร็จ', timer: 1500, showConfirmButton: false });
+        await loadProfile(householdId);
+    } catch (e) { Swal.fire('เกิดข้อผิดพลาด', e.message, 'error'); }
+}
+
+function editHousehold() { window.location.href = `digital-data-households.html?edit=${householdId}`; }
+function printProfile() { window.print(); }
+</script>
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>กองสาธารณสุขฯ (Public Health) - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style> #routeMap { height: 320px; border-radius: 12px; } </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ระบบกองสาธารณสุขและสิ่งแวดล้อม"></div>
+    <div class="page-content">
+
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">ระบบกองสาธารณสุขและสิ่งแวดล้อม</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item active">กองสาธารณสุขฯ</li>
+                </ol></nav>
+            </div>
+            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addVulnerableModal">
+                <i class="fa-solid fa-user-plus me-1"></i> เพิ่มข้อมูลกลุ่มเปราะบาง
+            </button>
+        </div>
+
+        <!-- KPI -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-xl-3"><div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div><div class="kpi-label mb-1">ผู้สูงอายุในระบบ</div><div class="kpi-value text-success">1,245</div></div>
+                    <div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-person-cane"></i></div>
+                </div>
+            </div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div><div class="kpi-label mb-1">ผู้พิการ/ผู้ป่วยติดเตียง</div><div class="kpi-value text-warning">89</div></div>
+                    <div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-wheelchair"></i></div>
+                </div>
+            </div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div><div class="kpi-label mb-1">นัดลงพื้นที่วันนี้</div><div class="kpi-value text-primary">12</div></div>
+                    <div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-user-nurse"></i></div>
+                </div>
+            </div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div><div class="kpi-label mb-1">ใบอนุญาตใกล้หมดอายุ</div><div class="kpi-value text-danger">3</div></div>
+                    <div class="kpi-icon bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-file-contract"></i></div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <!-- Vulnerable People -->
+            <div class="col-lg-7">
+                <div class="card h-100">
+                    <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-heart-pulse text-success me-2"></i>ฐานข้อมูลกลุ่มเปราะบาง (LTC)</h6>
+                        <input type="text" class="form-control form-control-sm" style="width:180px;" placeholder="ค้นหาชื่อ...">
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0">
+                            <thead><tr>
+                                <th class="ps-4">ชื่อ-สกุล</th><th>กลุ่ม</th><th>ที่อยู่</th>
+                                <th>นัดครั้งต่อไป</th><th class="pe-4">จัดการ</th>
+                            </tr></thead>
+                            <tbody>
+                                <tr>
+                                    <td class="ps-4"><span class="fw-semibold">คุณตาบุญมี อายุยืน</span><br><span class="text-xs text-muted">82 ปี</span></td>
+                                    <td><span class="badge" style="background:#fef3c7;color:#92400e;">ผู้ป่วยติดเตียง</span></td>
+                                    <td class="text-sm">45 หมู่ 1</td>
+                                    <td><span class="text-sm text-success fw-semibold">1 พ.ค. 2026</span></td>
+                                    <td class="pe-4"><button class="btn btn-xs btn-outline-success">ดูประวัติ</button></td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4"><span class="fw-semibold">คุณยายศรีนวล ใจสู้</span><br><span class="text-xs text-muted">78 ปี</span></td>
+                                    <td><span class="badge" style="background:#dbeafe;color:#1e40af;">อยู่ลำพัง</span></td>
+                                    <td class="text-sm">112/4 หมู่ 3</td>
+                                    <td><span class="text-sm text-primary fw-semibold">3 พ.ค. 2026</span></td>
+                                    <td class="pe-4"><button class="btn btn-xs btn-outline-success">ดูประวัติ</button></td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4"><span class="fw-semibold">นายสมหวัง พิการแต่กำเนิด</span><br><span class="text-xs text-muted">45 ปี</span></td>
+                                    <td><span class="badge" style="background:#f3e8ff;color:#6b21a8;">ผู้พิการ</span></td>
+                                    <td class="text-sm">22 หมู่ 2</td>
+                                    <td><span class="text-sm text-muted">8 พ.ค. 2026</span></td>
+                                    <td class="pe-4"><button class="btn btn-xs btn-outline-success">ดูประวัติ</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-body border-top pt-3">
+                        <button class="btn btn-sm btn-outline-success me-2" onclick="showToast('ส่ง LINE แจ้งเตือนพยาบาลทั้งหมด','success')">
+                            <i class="fa-brands fa-line me-1"></i> แจ้งเตือนทีมพยาบาล
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="showToast('Export รายงาน LTC สำเร็จ','info')">
+                            <i class="fa-solid fa-file-excel me-1"></i> Export รายงาน
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Truck Tracking + Business License -->
+            <div class="col-lg-5">
+                <div class="card mb-3">
+                    <div class="card-header border-0">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-truck-fast text-success me-2"></i>ติดตามรถเก็บขยะ (Real-time)</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="routeMap"></div>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div><span class="status-dot online"></span><span class="text-sm fw-semibold">ทะเบียน 82-4451</span> — <span class="text-sm text-muted">สาย โซน 1</span></div>
+                            <span class="badge bg-success">กำลังวิ่งงาน</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <div><span class="status-dot offline"></span><span class="text-sm fw-semibold">ทะเบียน 82-4452</span> — <span class="text-sm text-muted">สาย โซน 2</span></div>
+                            <span class="badge bg-secondary">จอดพัก</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0 text-sm"><i class="fa-solid fa-file-contract text-info me-2"></i>ใบอนุญาตกิจการ</h6>
+                        <button class="btn btn-xs btn-outline-danger" onclick="showToast('ส่ง LINE แจ้งเตือนต่ออายุสำเร็จ','success')">
+                            <i class="fa-brands fa-line me-1"></i>แจ้งเตือน
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0" style="font-size:0.82rem;">
+                            <thead><tr><th class="ps-4">ชื่อกิจการ</th><th>ประเภท</th><th class="pe-4">สถานะ</th></tr></thead>
+                            <tbody>
+                                <tr>
+                                    <td class="ps-4 fw-semibold">ร้านอาหารแซ่บอีสาน</td>
+                                    <td>ด้านอาหาร</td>
+                                    <td class="pe-4"><span class="badge bg-danger">หมดอายุแล้ว</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4 fw-semibold">ปั๊มน้ำมัน ปตท.</td>
+                                    <td>กิจการอันตราย</td>
+                                    <td class="pe-4"><span class="badge bg-warning text-dark">เหลือ 15 วัน</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4 fw-semibold">ตลาดสดเทศบาล</td>
+                                    <td>ตลาด ประเภท 1</td>
+                                    <td class="pe-4"><span class="badge bg-success">ปกติ</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Vulnerable Modal -->
+<div class="modal fade" id="addVulnerableModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-14">
+            <div class="modal-header border-0">
+                <h6 class="modal-title fw-bold">เพิ่มข้อมูลกลุ่มเปราะบาง</h6>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">เลขบัตรประชาชน</label>
+                        <input class="form-control" placeholder="1-XXXX-XXXXX-XX-X">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">ชื่อ</label>
+                        <input class="form-control" placeholder="ชื่อ">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">นามสกุล</label>
+                        <input class="form-control" placeholder="นามสกุล">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">กลุ่ม</label>
+                        <select class="form-select">
+                            <option>ผู้สูงอายุ</option>
+                            <option>ผู้ป่วยติดเตียง</option>
+                            <option>ผู้พิการ</option>
+                            <option>ผู้ยากไร้</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                <button class="btn btn-success" onclick="showToast('บันทึกข้อมูลกลุ่มเปราะบางสำเร็จ!','success'); bootstrap.Modal.getInstance(document.getElementById('addVulnerableModal')).hide();">
+                    <i class="fa-solid fa-save me-1"></i>บันทึก
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const map = L.map('routeMap', { zoomControl: false }).setView([13.7367, 100.5231], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    const truckIcon = L.divIcon({ html: '<i class="fa-solid fa-truck" style="color:#057a55;font-size:1.4rem;"></i>', iconSize:[24,24], className:'' });
+    L.marker([13.738, 100.523], { icon: truckIcon }).addTo(map).bindPopup('รถ 82-4451 — กำลังวิ่งงาน');
+    L.polyline([[13.736,100.520],[13.738,100.523],[13.740,100.526]], { color:'#057a55', weight:3, dashArray:'6,4' }).addTo(map);
+</script>
+    <script src="assets/js/responsive.js"></script>
+</body>
+</html>

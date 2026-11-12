@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบแผนที่สารสนเทศโครงสร้างพื้นฐานดิจิทัล (GIS Overview Map) - กองช่าง</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet GIS Leaflet Library -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; }
+        #gisMasterMap {
+            height: calc(100vh - 140px);
+            width: 100%;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+            z-index: 5;
+        }
+        .map-floating-sidebar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 99;
+            width: 320px;
+            max-height: calc(100vh - 180px);
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+        }
+        .custom-infra-popup {
+            font-family: 'Prompt', sans-serif;
+            min-width: 250px;
+        }
+        /* Custom Survey Marker Styles */
+        .survey-marker-container {
+            position: relative;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .survey-marker-pulse {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: survey-marker-pulse 2s infinite ease-out;
+            pointer-events: none;
+        }
+        .survey-marker-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2.5px solid #ffffff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        .survey-marker-inner {
+            width: 5px;
+            height: 5px;
+            background-color: #ffffff;
+            border-radius: 50%;
+        }
+        @keyframes survey-marker-pulse {
+            0% {
+                transform: scale(0.4);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(2.4);
+                opacity: 0;
+            }
+        }
+        /* Fullscreen Map Styles */
+        #btnMapFullscreen {
+            transition: all 0.2s ease;
+        }
+        #btnMapFullscreen:hover {
+            background-color: #f1f5f9 !important;
+            transform: scale(1.05);
+        }
+        /* When map container is in fullscreen mode */
+        .fullscreen-active #gisMasterMap {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+        }
+        .fullscreen-active #btnMapFullscreen {
+            position: fixed !important;
+            top: 20px !important;
+            left: 20px !important;
+            z-index: 10000 !important;
+        }
+        .fullscreen-active .map-floating-sidebar {
+            position: fixed !important;
+            top: 20px !important;
+            right: 20px !important;
+            z-index: 10000 !important;
+            max-height: calc(100vh - 40px) !important;
+        }
+        /* Pole Labels Tooltips (Zoom-dependent) */
+        .leaflet-tooltip.pole-label-tooltip {
+            background: rgba(15, 23, 42, 0.9) !important;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 6px !important;
+            color: #f8fafc !important; 
+            font-family: 'Prompt', sans-serif !important;
+            font-size: 0.75rem !important;
+            padding: 2px 6px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
+            white-space: nowrap;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            line-height: 1.2;
+        }
+
+        .leaflet-tooltip.pole-label-tooltip::before {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="แผนที่บูรณาการโครงสร้างพื้นฐาน GIS"></div>
+    <div class="page-content p-4 position-relative">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+                <h1 class="text-xl font-bold text-slate-800 mb-0 d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-map-location-dot text-indigo-600"></i> แผนที่บูรณาการโครงสร้างพื้นฐานระดับตำบล (Master GIS)
+                </h1>
+                <p class="text-xs text-slate-500 mb-0">แสดงพิกัดเชิงบูรณาการ ถนน แหล่งน้ำ ฝาท่อระบายน้ำ เสาไฟฟ้า ที่สาธารณะ และแนวเขต</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="digital-infrastructure-dashboard.html" class="btn btn-sm btn-light border"><i class="fa-solid fa-chart-pie me-1"></i>กลับไปแดชบอร์ด</a>
+                <button class="btn btn-sm btn-primary" onclick="fitMapBounds()"><i class="fa-solid fa-expand me-1"></i>ซูมรวมชั้นข้อมูล</button>
+            </div>
+        </div>
+
+        <!-- GIS Map Main Container -->
+        <div class="position-relative" id="mapContainer">
+            <div id="gisMasterMap"></div>
+            <button type="button" id="btnMapFullscreen" class="btn btn-light shadow-sm border" style="position: absolute; top: 80px; left: 10px; z-index: 1050; width: 34px; height: 34px; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 0;" onclick="toggleMapFullscreen()" title="ย่อ-ขยายแผนที่เต็มหน้าจอ">
+                <i class="fa-solid fa-expand text-slate-700 text-sm"></i>
+            </button>
+
+            <!-- Map Floating Sidebar Control panel -->
+            <div class="map-floating-sidebar p-4 shadow-lg">
+                <div class="border-b pb-3 mb-3">
+                    <h5 class="font-bold text-slate-800 text-sm mb-1 d-flex align-items-center justify-content-between">
+                        <span><i class="fa-solid fa-layer-group text-indigo-600 me-1"></i> ควบคุมเลเยอร์แผนที่</span>
+                        <span class="text-[10px] text-slate-400 font-normal">WGS 84</span>
+                    </h5>
+                    <small class="text-slate-500 text-[10px]">เลือกคลิกเพื่อเปิด/ปิดแสดงสัญวิทยาบนระวาง</small>
+                </div>
+
+                <!-- Layer List Switches -->
+                <div class="space-y-2 mb-4 text-xs font-semibold text-slate-700">
+                    <div class="form-check form-switch d-flex align-items-center justify-content-between ps-0">
+                        <label class="form-check-label d-flex align-items-center gap-2" for="layerBoundarySubdistrict">
+                            <i class="fa-solid fa-draw-polygon text-purple-600 w-4 text-center"></i> 🗺️ ขอบเขตการปกครองตำบล
+                        </label>
+                        <input class="form-check-input ms-0" type="checkbox" role="switch" id="layerBoundarySubdistrict" checked onchange="toggleGISLayer('boundarySubdistrict')">
+                    </div>
+
+                    <div class="form-check form-switch d-flex align-items-center justify-content-between ps-0">
+                        <label class="form-check-label d-flex align-items-center gap-2" for="layerBoundaryVillage">
+                            <i class="fa-solid fa-draw-polygon text-emerald-600 w-4 text-center"></i> 🏡 ขอบเขตปกครองหมู่บ้าน
+                        </label>
+                        <input class="form-check-input ms-0" type="checkbox" role="switch" id="layerBoundaryVillage" checked onchange="toggleGISLayer('boundaryVillage')">
+                    </div>
+
+                    <div class="form-check form-switch d-flex align-items-center justify-content-between ps-0">
+                        <label class="form-check-label d-flex align-items-center gap-2" for="layerBoundaryMarker">
+                            <i class="fa-solid fa-location-pin text-indigo-600 w-4 text-center"></i> 📍 หมุดหลักเขตปกครอง
+                        </label>
+                        <input class="form-check-input ms-0" type="checkbox" role="switch" id="layerBoundaryMarker" checked onchange="toggleGISLayer('boundaryMarker')">
+                    </div>
+
+                    <div class="form-check form-switch d-flex align-items-center justify-content-between ps-0">
+                        <label class="form-check-label d-flex align-items-center gap-2" for="layerRoads">
+                            <i class="fa-solid fa-road text-red-600 w-4 text-center"></i> 🛣️ ทะเบียนถนนสายทาง
+                        </label>
+                        <input class="form-check-input ms-0" type="checkbox" role="switch" id="layerRoads" checked onchange="toggleGISLayer('roads')">
+                    </div>
+
+                    <div class="form-check form-switch d-flex align-items-center justify-content-between ps-0">
+                        <label class="form-check-label d-flex align-items-center gap-2" for="layerWater">
+                            <i class="fa-solid fa-circle text-sky-500 w-4 text-center"></i> 💧 แหล่งน้ำ & สระ
+                        </label>
+                        <input class="form-check-input ms-0" type="checkbox" role="switch" id="layerWater" checked onchange="toggleGISLayer('water')">
+                    </div>
+
+                    <div class="form-check form-switch d-flex align-items-center justify-content-between ps-0">
+                        <label class="form-check-label d-flex align-items-center gap-2" for="layerWaterways">
+                            <i class="fa-solid fa-droplet text-sky-600 w-4 text-center"></i> 🏞️ ลำคลอง & ลำห้วย
+                        </label>
+                        <input class="form-check-input ms-0" type="checkbox" role="switch" id="layerWaterways" checked onchange="toggleGISLayer('waterways')">
+                    </div>
+
+                    <div class="form-check form-switch d-flex align-items-center justify-content-between ps-0">
+                        <label class="form-check-label d-flex align-items-center gap-2" for="layerDrainage">
+                            <i class="fa-solid fa-circle text-emerald-500 w-4 text-center"></i> 🚧 ราง & ฝาท่อระบายน้ำ
+                        </label>
+                        <input class="form-check-input ms-0" type="checkbox" role="switch" id="layerDrainage" checked onchange="toggleGISLayer('drainage')">
+                    </div>
+
+                    <div class="form-check form-switch d-flex align-items-center justify-content-between ps-0">
+                        <label class="form-check-label d-flex align-items-center gap-2" for="layerLighting">
+                            <i class="fa-solid fa-bolt text-yellow-500 w-4 text-center"></i> ⚡ ไฟฟ้าส่องสว่าง
+                        </label>
+                        <input class="form-check-input ms-0" type="checkbox" role="switch" id="layerLighting" checked onchange="toggleGISLayer('lighting')">
+                    </div>
+
+                    <div class="form-check form-switch d-flex align-items-center justify-content-between ps-0">
+                        <label class="form-check-label d-flex align-items-center gap-2" for="layerPublicLand">
+                            <i class="fa-solid fa-square text-green-600 w-4 text-center"></i> 🌿 ที่ดินสาธารณประโยชน์
+                        </label>
+                        <input class="form-check-input ms-0" type="checkbox" role="switch" id="layerPublicLand" checked onchange="toggleGISLayer('publicLand')">
+                    </div>
+
+                    <div class="form-check form-switch d-flex align-items-center justify-content-between ps-0">
+                        <label class="form-check-label d-flex align-items-center gap-2" for="layerRepairs">
+                            <i class="fa-solid fa-wrench text-orange-500 w-4 text-center"></i> 🔧 จุดแจ้งซ่อมบำรุง
+                        </label>
+                        <input class="form-check-input ms-0" type="checkbox" role="switch" id="layerRepairs" checked onchange="toggleGISLayer('repairs')">
+                    </div>
+                </div>
+
+                <!-- Spatial Search Section -->
+                <div class="border-t pt-3">
+                    <h6 class="font-bold text-slate-800 text-xs mb-2"><i class="fa-solid fa-magnifying-glass-location text-indigo-600 me-1"></i> ค้นหารัศมีรอบจุด (Spatial Search)</h6>
+                    <div class="row g-2 text-xs mb-2">
+                        <div class="col-8">
+                            <select class="form-select form-select-sm" id="searchTargetVillage" style="font-size: 11px;">
+                                <option value="">-- ทุกพื้นที่/หมู่ --</option>
+                                <option value="2">หมู่ 2 บูรพาพัฒนา</option>
+                                <option value="3">หมู่ 3 สุขใจ</option>
+                                <option value="5">หมู่ 5 โคกเจริญ</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <button class="btn btn-xs btn-indigo bg-indigo-600 hover:bg-indigo-700 text-white w-100 py-2 font-bold" onclick="searchBySpatialFilters()">กรอง</button>
+                        </div>
+                    </div>
+                    <small class="text-slate-400 text-[9px] d-block">คลิกวัตถุบนแผนที่เพื่อดูข้อมูล ประวัติการซ่อมบำรุง และเอกสาร E-Permit ที่เกี่ยวข้อง</small>
+                </div>
+
+                <!-- Road Color Legend -->
+                <div class="border-t pt-3 mt-3">
+                    <h6 class="font-bold text-slate-800 text-xs mb-2"><i class="fa-solid fa-palette text-indigo-600 me-1"></i> คำอธิบายสีเส้นถนน</h6>
+                    <div class="space-y-1 text-[11px] text-slate-600" id="mapRoadLegendContainer">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                
+                <!-- Boundary & Marker Legend -->
+                <div class="border-t pt-3 mt-3">
+                    <h6 class="font-bold text-slate-800 text-xs mb-2"><i class="fa-solid fa-map-location-dot text-indigo-600 me-1"></i> คำอธิบายสัญลักษณ์แนวเขต/หมุด</h6>
+                    <div class="space-y-1.5 text-[11px] text-slate-600">
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="display:inline-block;width:24px;height:4px;background:#facc15;border-radius:2px;border:0.5px dashed #ca8a04;"></span>
+                            <span>แนวเขตตำบล (เส้นปะเหลืองทอง)</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="display:inline-block;width:24px;height:3px;background:#ef4444;border-radius:2.5px;border:0.5px dashed #b91c1c;"></span>
+                            <span>ขอบเขตปกครองหมู่บ้าน (เส้นปะแดง)</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#facc15;border:1.5px solid #ffffff;box-shadow: 0 0 4px rgba(0,0,0,0.3);"></span>
+                            <span>หมุดหลักเขตตำบล (วงแหวนเหลืองทอง)</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;border:1.5px solid #ffffff;box-shadow: 0 0 4px rgba(0,0,0,0.3);"></span>
+                            <span>หมุดหลักเขตหมู่บ้าน (วงแหวนแดงเรืองแสง)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Leaflet JS Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/digital-infrastructure.js"></script>
+<script src="services/gisSpatialService.js"></script>
+<script src="services/waterSpatialService.js"></script>
+<script src="services/publicLandSpatialService.js"></script>
+<script src="services/boundarySpatialService.js"></script>
+<script>
+    let map;
+    let layers = {};
+    let activeFilters = {
+        roads: true, water: true, waterways: true, drainage: true, lighting: true, publicLand: true,
+        boundarySubdistrict: true, boundaryVillage: true, boundaryMarker: true, repairs: true
+    };
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await DigitalInfraService.loadRoadSurfaceTypesFromDB();
+        initGISMap();
+        loadGISLayers();
+        initMapRoadLegend();
+    });
+
+    function initGISMap() {
+        // อิงพิกัดกลางตำบลจากที่ตรวจจับได้
+        map = L.map('gisMasterMap', {
+            preferCanvas: true,
+            wheelDebounceTime: 150
+        });
+
+        // แผนที่ฐานดาวเทียมและถนน
+        const googleStreets = L.tileLayer('http://mt0.google.com/vt/lyrs=m&hl=th&x={x}&y={y}&z={z}', {
+            attribution: '&copy; Google Maps', maxZoom: 20
+        });
+        const googleHybrid = L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=th&x={x}&y={y}&z={z}', {
+            attribution: '&copy; Google Maps (Satellite)', maxZoom: 20
+        });
+
+        googleHybrid.addTo(map);
+
+        const baseMaps = {
+            "🗺️ แผนที่ถนน (Google Street)": googleStreets,
+            "🛰️ ดาวเทียม (Google Hybrid)": googleHybrid
+        };
+
+        L.control.layers(baseMaps, null, { position: 'topleft' }).addTo(map);
+
+        // สร้าง Feature Group สำหรับแต่ละเลเยอร์หลัก
+        Object.keys(activeFilters).forEach(key => {
+            layers[key] = L.featureGroup().addTo(map);
+        });
+
+        // Toggle pole labels on zoom dynamically to prevent DOM lag
+        map.on('zoomend moveend', function() {
+            const zoom = map.getZoom();
+            if (zoom >= 19 && layers.lighting) {
+                const bounds = map.getBounds();
+                layers.lighting.eachLayer(circle => {
+                    if (bounds.contains(circle.getLatLng())) {
+                        if (!circle.getTooltip()) {
+                            circle.bindTooltip(`<b>${circle.pole_code}</b><br><span style="font-size:0.65rem;color:#94a3b8;">${circle.light_type || '-'}</span>`, {
+                                permanent: true, direction: 'right', offset: [5, 0], className: 'pole-label-tooltip'
+                            });
+                        }
+                    } else {
+                        if (circle.getTooltip()) circle.unbindTooltip();
+                    }
+                });
+            } else if (layers.lighting) {
+                layers.lighting.eachLayer(circle => {
+                    if (circle.getTooltip()) circle.unbindTooltip();
+                });
+            }
+        });
+    }
+
+    async function loadGISLayers() {
+        try {
+            // ดึงข้อมูลทั้งหมดจาก Core Service
+            const roads = await DigitalInfraService.getRoads();
+            const water = await DigitalInfraService.getWater();
+            const waterways = await DigitalInfraService.getWaterways();
+            const drainage = await DigitalInfraService.getDrainage();
+            const publicLand = await DigitalInfraService.getPublicLand();
+            const boundaryMarkers = await DigitalInfraService.getBoundaryMarkers();
+            const repairs = await DigitalInfraService.getRepairs();
+
+            // เคลียร์เลเยอร์เก่าก่อนเรนเดอร์ใหม่
+            Object.keys(layers).forEach(k => layers[k].clearLayers());
+
+            // 1. เรนเดอร์สายทางถนน (Roads)
+            roads.forEach(r => {
+                let geojsonLayer;
+                
+                // ตรวจสอบว่ามีข้อมูลพิกัดแนวเส้นทางแบบละเอียด (GeoJSON) หรือไม่
+                if (r.geom && r.geom.coordinates && r.geom.coordinates.length > 0) {
+                    // แปลงพิกัด GeoJSON ให้อยู่ในสไตล์และเรนเดอร์ผ่าน L.geoJSON
+                    geojsonLayer = L.geoJSON(r.geom, {
+                        style: DigitalInfraService.getRoadStyle(r)
+                    });
+                } else if (r.latitude && r.longitude) {
+                    // หากไม่มีพิกัดเส้น ให้วาดเส้นพิกัดจุดเริ่มต้นจำลองแบบเดิมเพื่อป้องกันข้อมูลสูญหาย
+                    const pts = [
+                        [r.latitude, r.longitude],
+                        [r.latitude + 0.005, r.longitude + 0.005]
+                    ];
+                    geojsonLayer = L.polyline(pts, DigitalInfraService.getRoadStyle(r));
+                } else {
+                    return;
+                }
+
+                // สภาพ Badge และข้อความสำหรับ Popup
+                let statusClass = 'bg-success';
+                let statusText = 'ดีเยี่ยม';
+                if (r.status === 'poor') { statusClass = 'bg-danger'; statusText = 'ชำรุดหนัก'; }
+                else if (r.status === 'fair') { statusClass = 'bg-warning text-dark'; statusText = 'ปานกลาง'; }
+
+                geojsonLayer.bindPopup(buildInfraPopupHTML('ถนน/ซอย', r.road_name, `
+                    <b>รหัสสายทาง:</b> ${r.road_id || '-'}<br>
+                    <b>ประเภทผิว:</b> ${r.surface_type || '-'}<br>
+                    <b>ความยาว:</b> ${r.length_m || 0} เมตร · <b>กว้าง:</b> ${r.width || 0} เมตร<br>
+                    <b>สภาพปัจจุบัน:</b> <span class="badge ${statusClass}">${statusText}</span>
+                `));
+                
+                layers.roads.addLayer(geojsonLayer);
+            });
+
+            // 2. เรนเดอร์แหล่งน้ำ (Water Polygon)
+            water.forEach(w => {
+                let polygon;
+                if (w.geom && w.geom.coordinates && w.geom.coordinates[0] && w.geom.coordinates[0].length > 0) {
+                    polygon = L.polygon(w.geom.coordinates[0].map(pt => [pt[1], pt[0]]), DigitalInfraService.LAYER_STYLES.water);
+                } else if (w.latitude && w.longitude) {
+                    polygon = L.polygon([
+                        [w.latitude - 0.002, w.longitude - 0.002],
+                        [w.latitude - 0.002, w.longitude + 0.002],
+                        [w.latitude + 0.002, w.longitude + 0.002],
+                        [w.latitude + 0.002, w.longitude - 0.002]
+                    ], DigitalInfraService.LAYER_STYLES.water);
+                } else {
+                    return;
+                }
+                
+                polygon.bindPopup(buildInfraPopupHTML('แหล่งน้ำสาธารณะ', w.water_name, `
+                    <b>รหัสแหล่งน้ำ:</b> ${w.water_code}<br>
+                    <b>ประเภท:</b> ${w.water_type}<br>
+                    <b>เนื้อที่ผิวน้ำ:</b> ${(w.surface_area_sqm || 0).toLocaleString()} ตร.ม.<br>
+                    <b>ความจุอ่าง:</b> ${(w.capacity_cum || 0).toLocaleString()} ลบ.ม.<br>
+                    <b>สภาพ:</b> ${w.status === 'normal' ? 'สมบูรณ์มีน้ำใช้' : 'ตื้นเขิน'}
+                `));
+                layers.water.addLayer(polygon);
+            });
+
+            // 3. เรนเดอร์เส้นทางน้ำ (Waterways)
+            waterways.forEach(ww => {
+                let polyline;
+                if (ww.geom && ww.geom.coordinates && ww.geom.coordinates.length > 0) {
+                    polyline = L.polyline(ww.geom.coordinates.map(pt => [pt[1], pt[0]]), DigitalInfraService.LAYER_STYLES.waterways);
+                } else if (ww.latitude && ww.longitude) {
+                    polyline = L.polyline([
+                        [ww.latitude, ww.longitude],
+                        [ww.latitude - 0.004, ww.longitude + 0.004]
+                    ], DigitalInfraService.LAYER_STYLES.waterways);
+                } else {
+                    return;
+                }
+
+                polyline.bindPopup(buildInfraPopupHTML('เส้นทางน้ำ/ลำคลอง', ww.waterway_name, `
+                    <b>รหัสคลอง:</b> ${ww.waterway_code}<br>
+                    <b>ประเภท:</b> ${ww.waterway_type || 'คลองส่งน้ำ'}<br>
+                    <b>กว้างเฉลี่ย:</b> ${ww.width_m} ม. · <b>ลึก:</b> ${ww.depth_m} ม.<br>
+                    <b>ความยาว:</b> ${(ww.length_m || 0).toLocaleString()} เมตร
+                `));
+                layers.waterways.addLayer(polyline);
+            });
+
+            // 4. เรนเดอร์ฝาท่อ/รางระบายน้ำ (Drainage)
+            drainage.forEach(d => {
+                let circle;
+                if (d.geom && d.geom.coordinates) {
+                    const coords = d.geom.coordinates;
+                    circle = L.circleMarker([coords[1], coords[0]], DigitalInfraService.LAYER_STYLES.drainage);
+                } else if (d.latitude && d.longitude) {
+                    circle = L.circleMarker([d.latitude, d.longitude], DigitalInfraService.LAYER_STYLES.drainage);
+                } else {
+                    return;
+                }
+
+                circle.bindPopup(buildInfraPopupHTML('ท่อ/ฝาระบายน้ำ', d.asset_id, `
+                    <b>ประเภท:</b> ${d.drainage_type}<br>
+                    <b>วัสดุ:</b> ${d.material}<br>
+                    <b>พิกัดสายทาง:</b> ${d.road_id || '-'}<br>
+                    <b>หมู่บ้าน:</b> หมู่ ${d.village_no}
+                `));
+                layers.drainage.addLayer(circle);
+            });
+
+            // 5. เรนเดอร์ไฟฟ้าส่องสว่าง (Lighting)
+            // 5. เรนเดอร์ไฟฟ้าส่องสว่าง (Lighting)
+            if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                const { data: poles, error } = await supabaseClient.from('electric_poles').select('*');
+                if (!error && poles) {
+                    poles.forEach(p => {
+                        if (!p.lat || !p.lng || (p.lat === 0 && p.lng === 0)) return;
+                        const circle = L.circleMarker([p.lat, p.lng], DigitalInfraService.LAYER_STYLES.lighting);
+                        circle.pole_code = p.pole_code;
+                        circle.light_type = p.light_type;
+                        circle.bindPopup(buildInfraPopupHTML('เสาไฟฟ้าส่องสว่าง', p.pole_code, `
+                            <b>ประเภทโคม:</b> ${p.light_type || '-'}<br>
+                            <b>ประเภทเสา:</b> ${p.pole_type || '-'}<br>
+                            <b>หมู่ที่:</b> ${p.village_no || '-'}<br>
+                            <b>สถานะ:</b> <span style="color:${p.status === 'broken' ? '#dc2626' : '#166534'}">${p.status === 'broken' ? 'ชำรุด' : 'ปกติ'}</span>
+                        `));
+                        layers.lighting.addLayer(circle);
+                    });
+                }
+            }
+
+            // 6. ที่สาธารณประโยชน์ (Public Land Polygon)
+            publicLand.forEach(pl => {
+                let polygon;
+                if (pl.geom && pl.geom.type === 'Polygon' && pl.geom.coordinates && pl.geom.coordinates[0].length > 0) {
+                    const pts = pl.geom.coordinates[0].map(coord => [coord[1], coord[0]]);
+                    polygon = L.polygon(pts, DigitalInfraService.LAYER_STYLES.publicLand);
+                } else if (pl.latitude && pl.longitude) {
+                    polygon = L.polygon([
+                        [pl.latitude - 0.003, pl.longitude - 0.003],
+                        [pl.latitude - 0.003, pl.longitude + 0.003],
+                        [pl.latitude + 0.003, pl.longitude + 0.003],
+                        [pl.latitude + 0.003, pl.longitude - 0.003]
+                    ], DigitalInfraService.LAYER_STYLES.publicLand);
+                } else {
+                    return;
+                }
+                polygon.bindPopup(buildInfraPopupHTML('ที่ดินสาธารณประโยชน์', pl.land_name, `
+                    <b>รหัสทะเบียน:</b> ${pl.land_code || '-'}<br>
+                    <b>ประเภท:</b> ${pl.land_type || '-'}<br>
+                    <b>ขนาดเนื้อที่:</b> ${pl.area_rai || 0} ไร่ ${pl.area_ngan || 0} งาน ${pl.area_sqwa || 0} ตร.วา<br>
+                    <b>การใช้ประโยชน์:</b> ${pl.current_use || '-'}
+                `));
+                layers.publicLand.addLayer(polygon);
+            });
+
+            // 7. แนวเขตปกครองและหมุดหลักเขตจริงจากฐานข้อมูล (Real Boundaries & Markers)
+            try {
+                // โหลดขอบเขตปกครองตำบล/หมู่บ้านจริง
+                let dbBoundaries = [];
+                if (typeof BoundarySpatialService !== 'undefined') {
+                    dbBoundaries = await BoundarySpatialService.loadBoundaries();
+                }
+                
+                dbBoundaries.forEach(b => {
+                    let geojsonLayer;
+                    if (b.geom && b.geom.coordinates && b.geom.coordinates.length > 0) {
+                        // แยกสไตล์สี: ตำบลสีเหลืองประเส้นใหญ่ขึ้น หมู่บ้านสีแดงประหนาปานกลาง
+                        const style = b.boundary_type === 'แนวเขตตำบล' ? 
+                            { color: '#facc15', fillColor: '#fef08a', fillOpacity: 0.15, weight: 5, dashArray: '12, 10' } :
+                            { color: '#ef4444', fillColor: '#fee2e2', fillOpacity: 0.10, weight: 3.5, dashArray: '6, 6' };
+                            
+                        // ถ้าเป็นโพลีกอนเดี่ยวหรือมัลติโพลีกอน วาดด้วย L.geoJSON
+                        geojsonLayer = L.geoJSON(b.geom, { style: style });
+                    } else {
+                        return;
+                    }
+
+                    const areaSqm = b.area_sqm || 0;
+                    const areaSqkm = (areaSqm / 1000000).toFixed(4);
+                    const areaThai = formatSqmToThaiArea(areaSqm);
+
+                    geojsonLayer.bindPopup(buildInfraPopupHTML(b.boundary_type, b.boundary_name, `
+                        ${b.boundary_type === 'แนวเขตหมู่บ้าน' ? `<b>หมู่ที่:</b> หมู่ ${b.village_no || '-'}<br>` : ''}
+                        <b>ขนาดเนื้อที่:</b> ${areaSqm.toLocaleString()} ตร.ม.<br>
+                        <b>ขนาดเนื้อที่ ตร.กม:</b> ${areaSqkm} ตร.กม.<br>
+                        <b>ขนาดเนื้อที่หน่วยไทย:</b> ${areaThai}<br>
+                        <b>คำบรรยายแนวเขต:</b> ${b.gazette_announcement_text || '-'}<br>
+                        <b>ระวางอ้างอิง:</b> ${b.map_reference || '-'}
+                    `));
+                    
+                    // แทรก customId และ customType ในออพชันชั้นข้อมูลเพื่อรองรับการโฟกัสพอยต์/โพลีกอน
+                    const groupKey = b.boundary_type === 'แนวเขตตำบล' ? 'boundarySubdistrict' : 'boundaryVillage';
+                    
+                    geojsonLayer.eachLayer(l => {
+                        l.options.customId = l.options.customId || b.id;
+                        l.options.customType = l.options.customType || groupKey;
+                        l.options.name = l.options.name || b.boundary_name;
+                    });
+                    
+                    geojsonLayer.options.customId = b.id;
+                    geojsonLayer.options.customType = groupKey;
+                    geojsonLayer.options.name = b.boundary_name;
+                    
+                    layers[groupKey].addLayer(geojsonLayer);
+                });
+
+                // โหลดพิกัดหมุดหลักเขตจริง
+                let dbMarkers = [];
+                if (typeof BoundarySpatialService !== 'undefined') {
+                    dbMarkers = await BoundarySpatialService.loadMarkers();
+                } else {
+                    dbMarkers = [];
+                }
+
+                dbMarkers.forEach(bm => {
+                    let lat = bm.latitude;
+                    let lng = bm.longitude;
+                    if (!lat || !lng) return;
+
+                    // สีหมุดหลักเขตตามประเภท: สีเหลืองทองสำหรับตำบล สีแดงสดสำหรับหมู่บ้าน
+                    const markerColor = bm.marker_type.includes('ตำบล') ? '#facc15' : '#ef4444';
+                    
+                    // สร้าง DivIcon หมุดหลักเขตพร้อมเอฟเฟกต์วงแหวนเรืองแสงและหัวหมุดสะท้อนแสง
+                    const customDivIcon = L.divIcon({
+                        className: 'custom-survey-marker',
+                        html: `
+                            <div class="survey-marker-container">
+                                <div class="survey-marker-pulse" style="background-color: ${markerColor};"></div>
+                                <div class="survey-marker-dot" style="background-color: ${markerColor};" title="${bm.marker_code}: ${bm.marker_type}">
+                                    <div class="survey-marker-inner"></div>
+                                </div>
+                            </div>
+                        `,
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 15]
+                    });
+
+                    const marker = L.marker([lat, lng], { icon: customDivIcon });
+                    
+                    marker.bindPopup(buildInfraPopupHTML(bm.marker_type, bm.marker_code, `
+                        <b>รหัสหลักเขต:</b> ${bm.marker_code}<br>
+                        <b>ประเภทหลักหมุด:</b> ${bm.marker_type}<br>
+                        <b>หมู่ที่ตั้ง:</b> หมู่ที่ ${bm.village_no || '-'}<br>
+                        <b>พิกัดภูมิศาสตร์:</b> ${lat.toFixed(6)}, ${lng.toFixed(6)}<br>
+                        <b>สภาพหมุด:</b> <span class="badge ${bm.marker_condition === 'perfect' ? 'bg-success' : 'bg-danger'}">
+                            ${bm.marker_condition === 'perfect' ? 'ปกติ/สมบูรณ์ดี' : 'ชำรุดเสียหาย'}
+                        </span><br>
+                        <b>ลักษณะสถานที่:</b> ${bm.description || '-'}
+                    `));
+
+                    marker.options.customId = bm.id;
+                    marker.options.customType = 'boundaryMarker';
+                    marker.options.name = bm.marker_code;
+
+                    layers.boundaryMarker.addLayer(marker);
+                });
+
+            } catch (err) {
+                console.error("Failed to render real boundaries & markers on map:", err);
+            }
+
+            // 8. จุดแจ้งซ่อมบำรุงโครงสร้าง (Repairs)
+            repairs.forEach(rep => {
+                if(!rep.latitude || !rep.longitude) return;
+                
+                // สัญวิทยาตามสถานะ
+                const color = rep.status === 'completed' ? '#22c55e' : '#f97316';
+                const statusText = rep.status === 'completed' ? 'ซ่อมเสร็จแล้ว' : 'รอดำเนินการ';
+                
+                const marker = L.marker([rep.latitude, rep.longitude]);
+                marker.bindPopup(buildInfraPopupHTML('ใบงานแจ้งซ่อมบำรุง', rep.repair_code, `
+                    <b>ประเภทสินทรัพย์:</b> ${rep.asset_type}<br>
+                    <b>รหัสสินทรัพย์:</b> ${rep.asset_id}<br>
+                    <b>อาการที่แจ้ง:</b> ${rep.damage_detail}<br>
+                    <b>สถานะซ่อม:</b> <span class="badge ${rep.status==='completed'?'bg-success':'bg-warning text-dark'}">${statusText}</span>
+                `));
+                layers.repairs.addLayer(marker);
+            });
+
+            // Check URL focus parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const focusType = urlParams.get('focus');
+            const focusId = urlParams.get('id');
+
+            if (focusType && focusId) {
+                console.log(`Focusing map on ${focusType} with ID: ${focusId}`);
+                let targetLayer = null;
+                let targetGroupKey = null;
+
+                // ค้นหา Layer ใน FeatureGroups
+                Object.entries(layers).forEach(([groupKey, group]) => {
+                    group.eachLayer(layer => {
+                        let match = false;
+                        if (layer.options && layer.options.customId === focusId && (layer.options.customType === focusType || focusType === 'boundary' || focusType === 'marker')) {
+                            match = true;
+                        }
+                        
+                        if (match) {
+                            targetLayer = layer;
+                            targetGroupKey = groupKey;
+                        } else if (layer.eachLayer) {
+                            layer.eachLayer(subLayer => {
+                                if (subLayer.options && subLayer.options.customId === focusId) {
+                                    targetLayer = subLayer;
+                                    targetGroupKey = groupKey;
+                                }
+                            });
+                        }
+                    });
+                });
+
+                if (targetLayer && targetGroupKey) {
+                    // หากปิดฟิลเตอร์ชั้นนี้ ให้สั่งเปิดอัตโนมัติ
+                    const checkboxId = 'layer' + targetGroupKey.charAt(0).toUpperCase() + targetGroupKey.slice(1);
+                    const checkbox = document.getElementById(checkboxId);
+                    if (checkbox && !checkbox.checked) {
+                        checkbox.checked = true;
+                        activeFilters[targetGroupKey] = true;
+                        map.addLayer(layers[targetGroupKey]);
+                    }
+
+                    if (targetLayer.getBounds) {
+                        // แปลงรูปปิดโพลีกอน/เส้นขอบเขต
+                        map.fitBounds(targetLayer.getBounds(), { padding: [50, 50] });
+                        setTimeout(() => targetLayer.openPopup(), 600);
+                    } else if (targetLayer.getLatLng) {
+                        // หลักหมุดจุดพิกัดภูมิศาสตร์
+                        map.setView(targetLayer.getLatLng(), 16);
+                        setTimeout(() => targetLayer.openPopup(), 600);
+                    }
+                } else {
+                    fitMapBounds();
+                }
+            } else {
+                fitMapBounds();
+            }
+        } catch(e) {
+            console.error("GIS loading layers error:", e);
+        }
+    }
+
+    function buildInfraPopupHTML(title, id, body) {
+        return `
+            <div class="custom-infra-popup">
+                <div class="bg-indigo-900 text-white p-2 rounded-t-lg -mx-3 -mt-3 mb-2 flex items-center justify-between">
+                    <span class="font-bold text-xs"><i class="fa-solid fa-map-pin text-yellow-400 me-1"></i> ${title}</span>
+                    <span class="badge bg-white/20 text-[10px]">${id}</span>
+                </div>
+                <div class="text-xs text-slate-700 leading-relaxed py-1">
+                    ${body}
+                </div>
+            </div>
+        `;
+    }
+
+    function formatSqmToThaiArea(sqm) {
+        if (!sqm || isNaN(sqm)) return '0 ไร่ 0 งาน 0 ตร.ว.';
+        const sqWa = sqm / 4;
+        const rai = Math.floor(sqWa / 400);
+        const remainWa = sqWa % 400;
+        const ngan = Math.floor(remainWa / 100);
+        const finalWa = Math.round((remainWa % 100) * 10) / 10;
+        return `${rai} ไร่ ${ngan} งาน ${finalWa} ตร.ว.`;
+    }
+
+    function toggleGISLayer(layerKey) {
+        const isChecked = document.getElementById('layer' + layerKey.charAt(0).toUpperCase() + layerKey.slice(1)).checked;
+        activeFilters[layerKey] = isChecked;
+        if(isChecked) {
+            map.addLayer(layers[layerKey]);
+        } else {
+            map.removeLayer(layers[layerKey]);
+        }
+    }
+
+    function fitMapBounds() {
+        const allBounds = L.latLngBounds();
+        
+        // Priority Zoom: If there are actual imported administrative boundaries or markers, zoom to them first!
+        // This instantly centers the map on the user's municipality (e.g. Bang Bua) rather than being pulled to mock Sakon Nakhon layers.
+        if (layers.boundarySubdistrict && layers.boundarySubdistrict.getLayers().length > 0) {
+            allBounds.extend(layers.boundarySubdistrict.getBounds());
+        } else if (layers.boundaryVillage && layers.boundaryVillage.getLayers().length > 0) {
+            allBounds.extend(layers.boundaryVillage.getBounds());
+        } else if (layers.boundaryMarker && layers.boundaryMarker.getLayers().length > 0) {
+            allBounds.extend(layers.boundaryMarker.getBounds());
+        } else {
+            // Otherwise, fall back to fitting bounds of all active layers
+            Object.keys(layers).forEach(k => {
+                if(activeFilters[k] && layers[k].getLayers().length) {
+                    allBounds.extend(layers[k].getBounds());
+                }
+            });
+        }
+        
+        if(allBounds.isValid()) {
+            map.fitBounds(allBounds, { padding: [50, 50] });
+        } else {
+            map.setView([14.882, 100.414], 13.5);
+        }
+    }
+
+    function searchBySpatialFilters() {
+        const village = document.getElementById('searchTargetVillage').value;
+        if (typeof showToast !== 'undefined') {
+            showToast(village ? `กรองแสดงทรัพย์สินเชิงพื้นที่หมู่ ${village} ทั่วตำบล` : 'แสดงข้อมูลทรัพย์สินทุกพื้นที่', 'info');
+        }
+        
+        // กรองชั้นแผนที่จริงในการคัดผลลัพธ์
+        loadGISLayers();
+    }
+
+    function toggleMapFullscreen() {
+        const container = document.getElementById('mapContainer');
+        const icon = document.querySelector('#btnMapFullscreen i');
+        
+        if (container.classList.contains('fullscreen-active')) {
+            container.classList.remove('fullscreen-active');
+            if (icon) {
+                icon.className = 'fa-solid fa-expand text-slate-700 text-sm';
+            }
+            if (typeof showToast !== 'undefined') {
+                showToast('ย่อขนาดแผนที่กลับสู่ขนาดปกติ', 'info');
+            }
+        } else {
+            container.classList.add('fullscreen-active');
+            if (icon) {
+                icon.className = 'fa-solid fa-compress text-slate-700 text-sm';
+            }
+            if (typeof showToast !== 'undefined') {
+                showToast('ขยายแผนที่เต็มหน้าจอหลักบูรณาการ GIS', 'info');
+            }
+        }
+        
+        setTimeout(() => {
+            if (map) {
+                map.invalidateSize();
+            }
+        }, 100);
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const container = document.getElementById('mapContainer');
+            if (container && container.classList.contains('fullscreen-active')) {
+                toggleMapFullscreen();
+            }
+        }
+    });
+
+    function initMapRoadLegend() {
+        const types = DigitalInfraService.getRoadSurfaceTypes();
+        const legendContainer = document.getElementById('mapRoadLegendContainer');
+        if (legendContainer) {
+            let legendHTML = `
+                <div class="d-flex align-items-center gap-2">
+                    <span style="display:inline-block;width:24px;height:4px;border-radius:2px;background:#eab308;"></span>
+                    <span>ถนนในแผนพัฒนา</span>
+                </div>
+            `;
+            types.forEach(t => {
+                legendHTML += `
+                <div class="d-flex align-items-center gap-2">
+                    <span style="display:inline-block;width:24px;height:4px;border-radius:2px;background:${t.color};"></span>
+                    <span>${t.name}</span>
+                </div>
+                `;
+            });
+            legendContainer.innerHTML = legendHTML;
+        }
+    }
+</script>
+</body>
+</html>

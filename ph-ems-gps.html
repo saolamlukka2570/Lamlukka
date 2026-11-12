@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS ติดตามรถ - EMS อัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        .map-container { position: relative; height: calc(100vh - 180px); width: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
+        #fullGisMap { width: 100%; height: 100%; z-index: 1; }
+        
+        .floating-panel {
+            position: absolute; top: 20px; left: 20px; z-index: 1000;
+            width: 320px; max-height: calc(100% - 40px); background: white;
+            border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .panel-header { background: #1e293b; color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .panel-body { overflow-y: auto; flex: 1; }
+        
+        .tracker-item { padding: 12px 15px; border-bottom: 1px solid #f3f4f6; cursor: pointer; transition: 0.2s; }
+        .tracker-item:hover { background-color: #f8f9fa; }
+        .tracker-item:last-child { border-bottom: none; }
+        
+        .speed-badge { font-size: 0.7rem; font-family: monospace; font-weight: bold; background: #e5e7eb; padding: 2px 6px; border-radius: 4px; }
+        .speed-badge.fast { background: #fee2e2; color: #b91c1c; }
+        
+        .icon-marker { text-shadow: 0 2px 5px rgba(0,0,0,0.3); font-size: 1.8rem; }
+    </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="GPS ติดตามรถ"></div>
+    <div class="page-content p-3 p-md-4">
+        
+        <div class="d-flex justify-content-between align-items-center mb-3 fade-in-up">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-light border text-secondary shadow-sm" onclick="history.back()" title="ย้อนกลับ">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h5 class="fw-bold mb-0"><i class="fa-solid fa-location-crosshairs text-success me-2"></i>ระบบติดตามรถฉุกเฉิน (Real-time GPS)</h5>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary" onclick="resetMap()"><i class="fa-solid fa-expand me-1"></i> ปรับมุมมอง</button>
+        </div>
+
+        <div class="map-container fade-in-up">
+            <div id="fullGisMap"></div>
+            
+            <div class="floating-panel">
+                <div class="panel-header">
+                    <span><i class="fa-solid fa-list-ul me-2"></i> รายการรถทั้งหมด (5)</span>
+                    <span class="badge bg-danger rounded-pill">2 วิ่งงาน</span>
+                </div>
+                <div class="p-2 border-bottom bg-light">
+                    <input type="text" class="form-control form-control-sm" placeholder="ค้นหา รหัสรถ, ทะเบียน...">
+                </div>
+                <div class="panel-body">
+                    <!-- EMS-01 -->
+                    <div class="tracker-item" onclick="focusVehicle(13.7380, 100.5230)">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <span class="fw-bold text-primary">EMS-01</span>
+                            <span class="badge bg-danger">ออกเหตุ</span>
+                        </div>
+                        <div class="text-xs text-muted mb-1">กท-1234 (ALS) • 👨‍⚕️ สมชาย</div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="speed-badge fast">85 km/h</span>
+                            <span class="text-xs text-muted"><i class="fa-solid fa-clock me-1"></i> อัปเดต 2 วิที่แล้ว</span>
+                        </div>
+                    </div>
+                    <!-- EMS-02 -->
+                    <div class="tracker-item" onclick="focusVehicle(13.7420, 100.5310)">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <span class="fw-bold text-primary">EMS-02</span>
+                            <span class="badge bg-danger">ส่ง รพ.</span>
+                        </div>
+                        <div class="text-xs text-muted mb-1">กท-5678 (BLS) • 👨‍⚕️ วิชัย</div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="speed-badge">42 km/h</span>
+                            <span class="text-xs text-muted"><i class="fa-solid fa-clock me-1"></i> อัปเดต 5 วิที่แล้ว</span>
+                        </div>
+                    </div>
+                    <!-- EMS-03 -->
+                    <div class="tracker-item" onclick="focusVehicle(13.7300, 100.5150)">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <span class="fw-bold text-dark">EMS-03</span>
+                            <span class="badge bg-success">Standby</span>
+                        </div>
+                        <div class="text-xs text-muted mb-1">กท-9012 (BLS) • 👨‍⚕️ มานะ</div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="speed-badge">0 km/h</span>
+                            <span class="text-xs text-muted"><i class="fa-solid fa-location-dot me-1"></i> ฐานปฏิบัติการ</span>
+                        </div>
+                    </div>
+                    <!-- EMS-04 -->
+                    <div class="tracker-item" onclick="focusVehicle(13.7250, 100.5280)">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <span class="fw-bold text-dark">EMS-04</span>
+                            <span class="badge bg-warning text-dark">ซ่อมบำรุง</span>
+                        </div>
+                        <div class="text-xs text-muted mb-1">ฮข-3321 (FR) • -</div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="speed-badge">0 km/h</span>
+                            <span class="text-xs text-muted"><i class="fa-solid fa-wrench me-1"></i> อู่ซ่อม</span>
+                        </div>
+                    </div>
+                    <!-- EMS-05 -->
+                    <div class="tracker-item" onclick="focusVehicle(13.7500, 100.5350)">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <span class="fw-bold text-dark">EMS-05</span>
+                            <span class="badge bg-success">Standby</span>
+                        </div>
+                        <div class="text-xs text-muted mb-1">ฮข-1122 (BLS) • 👨‍⚕️ วินัย</div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="speed-badge">0 km/h</span>
+                            <span class="text-xs text-muted"><i class="fa-solid fa-location-dot me-1"></i> จุดจอด 2</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const map = L.map('fullGisMap', { zoomControl: false }).setView([13.7380, 100.5250], 14);
+    L.control.zoom({ position: 'topright' }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // Marker Icons
+    const iconActive = L.divIcon({ html: '<i class="fa-solid fa-truck-medical text-danger icon-marker"></i>', iconSize: [30,30], className: '' });
+    const iconStandby = L.divIcon({ html: '<i class="fa-solid fa-truck-medical text-success icon-marker"></i>', iconSize: [30,30], className: '' });
+    const iconMaint = L.divIcon({ html: '<i class="fa-solid fa-truck-medical text-warning icon-marker"></i>', iconSize: [30,30], className: '' });
+
+    // Place Markers
+    L.marker([13.7380, 100.5230], {icon: iconActive}).addTo(map).bindPopup("<b>EMS-01</b><br>85 km/h");
+    L.marker([13.7420, 100.5310], {icon: iconActive}).addTo(map).bindPopup("<b>EMS-02</b><br>42 km/h");
+    L.marker([13.7300, 100.5150], {icon: iconStandby}).addTo(map).bindPopup("<b>EMS-03</b><br>Standby");
+    L.marker([13.7250, 100.5280], {icon: iconMaint}).addTo(map).bindPopup("<b>EMS-04</b><br>ซ่อมบำรุง");
+    L.marker([13.7500, 100.5350], {icon: iconStandby}).addTo(map).bindPopup("<b>EMS-05</b><br>Standby");
+
+    function focusVehicle(lat, lng) {
+        map.flyTo([lat, lng], 16, { animate: true, duration: 1.5 });
+    }
+
+    function resetMap() {
+        map.flyTo([13.7380, 100.5250], 14, { animate: true, duration: 1 });
+    }
+</script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

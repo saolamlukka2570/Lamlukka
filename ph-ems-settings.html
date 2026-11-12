@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตั้งค่าระบบ EMS - EMS อัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ตั้งค่าระบบ EMS"></div>
+    <div class="page-content p-3 p-md-4">
+        
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 fade-in-up">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-light border text-secondary shadow-sm" onclick="history.back()" title="ย้อนกลับ">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div>
+                    <h4 class="fw-bold mb-1"><i class="fa-solid fa-gear text-secondary me-2"></i>ตั้งค่าระบบ (System Settings)</h4>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                            <li class="breadcrumb-item"><a href="ph-ems-dashboard.html" class="text-decoration-none">EMS</a></li>
+                            <li class="breadcrumb-item active">ตั้งค่าระบบ</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+            <button class="btn btn-primary mt-3 mt-md-0 shadow-sm" onclick="showToast('บันทึกการตั้งค่าระบบสำเร็จ','success')">
+                <i class="fa-solid fa-save me-1"></i> บันทึกการตั้งค่าทั้งหมด
+            </button>
+        </div>
+
+        <div class="row g-4 fade-in-up">
+            <!-- Left Column: Settings Nav -->
+            <div class="col-lg-3">
+                <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                    <div class="list-group list-group-flush" style="border-radius: 12px; overflow: hidden;">
+                        <a href="#master-data" class="list-group-item list-group-item-action active fw-semibold py-3" data-bs-toggle="list">
+                            <i class="fa-solid fa-database w-20 me-2 text-center"></i> ข้อมูลพื้นฐาน (Master Data)
+                        </a>
+                        <a href="#notifications" class="list-group-item list-group-item-action fw-semibold py-3" data-bs-toggle="list">
+                            <i class="fa-solid fa-bell w-20 me-2 text-center"></i> การแจ้งเตือน (Notifications)
+                        </a>
+                        <a href="#permissions" class="list-group-item list-group-item-action fw-semibold py-3" data-bs-toggle="list">
+                            <i class="fa-solid fa-user-shield w-20 me-2 text-center"></i> สิทธิ์ผู้ใช้งาน (Roles & Permissions)
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Settings Content -->
+            <div class="col-lg-9">
+                <div class="tab-content">
+                    
+                    <!-- Master Data -->
+                    <div class="tab-pane fade show active" id="master-data">
+                        <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+                            <div class="card-header bg-white border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                                <h6 class="fw-bold mb-0">ประเภทเหตุการณ์ (Incident Types)</h6>
+                                <button class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-plus"></i> เพิ่มใหม่</button>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <span class="fw-semibold">อุบัติเหตุจราจร (Traffic Accident)</span>
+                                            <div class="text-xs text-muted">รหัส: INC-01, ค่าเริ่มต้นระดับความเร่งด่วน: แดง/เหลือง</div>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-sm btn-light text-primary me-1"><i class="fa-solid fa-edit"></i></button>
+                                            <div class="form-check form-switch d-inline-block"><input class="form-check-input" type="checkbox" checked></div>
+                                        </div>
+                                    </li>
+                                    <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <span class="fw-semibold">ผู้ป่วยมีโรคประจำตัว (Medical Emergency)</span>
+                                            <div class="text-xs text-muted">รหัส: INC-02, ค่าเริ่มต้นระดับความเร่งด่วน: เหลือง/เขียว</div>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-sm btn-light text-primary me-1"><i class="fa-solid fa-edit"></i></button>
+                                            <div class="form-check form-switch d-inline-block"><input class="form-check-input" type="checkbox" checked></div>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                            <div class="card-header bg-white border-0 pt-4 pb-0">
+                                <h6 class="fw-bold mb-0">ประเภทรถพยาบาล (Vehicle Types)</h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                        <span class="fw-semibold">ALS (Advance Life Support) - รถพยาบาลระดับสูง</span>
+                                        <div class="form-check form-switch d-inline-block"><input class="form-check-input" type="checkbox" checked disabled></div>
+                                    </li>
+                                    <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                        <span class="fw-semibold">BLS (Basic Life Support) - รถพยาบาลระดับพื้นฐาน</span>
+                                        <div class="form-check form-switch d-inline-block"><input class="form-check-input" type="checkbox" checked disabled></div>
+                                    </li>
+                                    <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                        <span class="fw-semibold">FR (First Responder) - ชุดปฏิบัติการเบื้องต้น</span>
+                                        <div class="form-check form-switch d-inline-block"><input class="form-check-input" type="checkbox" checked disabled></div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notifications -->
+                    <div class="tab-pane fade" id="notifications">
+                        <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                            <div class="card-header bg-white border-0 pt-4 pb-0">
+                                <h6 class="fw-bold mb-0">ช่องทางการแจ้งเตือนอัตโนมัติ</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold">LINE Notify Token (กลุ่มศูนย์สั่งการ EMS)</label>
+                                    <input type="text" class="form-control" value="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                                    <div class="text-xs text-muted mt-1">ใช้สำหรับแจ้งเตือนเมื่อมีการรับแจ้งเหตุใหม่ (Code Red) ทันที</div>
+                                </div>
+                                <hr>
+                                <h6 class="fw-bold mb-3 mt-4 text-sm">เลือกเหตุการณ์ที่ต้องการแจ้งเตือนผ่าน LINE</h6>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="n1" checked>
+                                    <label class="form-check-label ms-2" for="n1">รับแจ้งเหตุใหม่ที่มีความเร่งด่วน สีแดง / สีเหลือง</label>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="n2" checked>
+                                    <label class="form-check-label ms-2" for="n2">แจ้งเตือนบุคลากรเข้าเวรล่วงหน้า 1 ชั่วโมง</label>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="n3" checked>
+                                    <label class="form-check-label ms-2" for="n3">แจ้งเตือนใบอนุญาต/ภาษี/พรบ. รถใกล้หมดอายุ (ล่วงหน้า 30 วัน)</label>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="n4">
+                                    <label class="form-check-label ms-2" for="n4">แจ้งเตือนรถถึงระยะ PM ซ่อมบำรุง</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Permissions -->
+                    <div class="tab-pane fade" id="permissions">
+                        <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                            <div class="card-header bg-white border-0 pt-4 pb-0">
+                                <h6 class="fw-bold mb-0">บทบาทและสิทธิ์ผู้ใช้งาน (Roles & Access)</h6>
+                                <p class="text-xs text-muted mb-0 mt-1">อ้างอิงจากระบบสมาชิกหลัก (Auth System) กองสาธารณสุข</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm align-middle text-center text-sm">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="text-start">เมนู / ฟังก์ชัน</th>
+                                                <th>EMS Dispatcher</th>
+                                                <th>EMS Officer (ทีม)</th>
+                                                <th>Executive (ผู้บริหาร)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-start">รับแจ้งเหตุฉุกเฉิน (Intake)</td>
+                                                <td><i class="fa-solid fa-check text-success"></i></td>
+                                                <td><i class="fa-solid fa-xmark text-danger"></i></td>
+                                                <td><i class="fa-solid fa-eye text-primary"></i> (ดูเท่านั้น)</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-start">ศูนย์สั่งการ (Dispatch)</td>
+                                                <td><i class="fa-solid fa-check text-success"></i></td>
+                                                <td><i class="fa-solid fa-eye text-primary"></i> (เฉพาะเคสตัวเอง)</td>
+                                                <td><i class="fa-solid fa-eye text-primary"></i> (ดูเท่านั้น)</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-start">บันทึก PCR</td>
+                                                <td><i class="fa-solid fa-xmark text-danger"></i></td>
+                                                <td><i class="fa-solid fa-check text-success"></i></td>
+                                                <td><i class="fa-solid fa-eye text-primary"></i> (ดูเท่านั้น)</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-start">แก้ไขตารางเวร / ข้อมูลรถ</td>
+                                                <td><i class="fa-solid fa-check text-success"></i></td>
+                                                <td><i class="fa-solid fa-xmark text-danger"></i></td>
+                                                <td><i class="fa-solid fa-xmark text-danger"></i></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-start">รายงานและ KPI</td>
+                                                <td><i class="fa-solid fa-check text-success"></i></td>
+                                                <td><i class="fa-solid fa-xmark text-danger"></i></td>
+                                                <td><i class="fa-solid fa-check text-success"></i></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

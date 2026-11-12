@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานสรุป (CM) - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="รายงานสรุประบบดูแลผู้ป่วย"></div>
+    <div class="page-content">
+        <div class="mb-3"><a href="cm-dashboard.html" class="btn btn-light shadow-sm border fw-bold" style="border-radius:10px;"><i class="fa-solid fa-arrow-left me-2"></i>ย้อนกลับ</a></div>
+
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-chart-column text-primary me-2"></i>รายงานสรุปข้อมูล (Reports)</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="cm-dashboard.html" class="text-decoration-none">CM Dashboard</a></li>
+                    <li class="breadcrumb-item active">รายงาน</li>
+                </ol></nav>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 h-100 p-4 report-card">
+                    <div class="text-center mb-3">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px; font-size: 2.5rem;">
+                            <i class="fa-solid fa-file-export"></i>
+                        </div>
+                        <h5 class="fw-bold">รายงานผลการเยี่ยมบ้านประจำเดือน</h5>
+                        <p class="text-muted small">สรุปสถิติการเยี่ยมบ้านของ CG พร้อมผลการประเมิน ADL และ 2Q</p>
+                    </div>
+                    <button class="btn btn-primary w-100"><i class="fa-solid fa-download me-2"></i>ดาวน์โหลด (Excel)</button>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 h-100 p-4 report-card">
+                    <div class="text-center mb-3">
+                        <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px; font-size: 2.5rem;">
+                            <i class="fa-solid fa-wheelchair"></i>
+                        </div>
+                        <h5 class="fw-bold">รายงานสรุปการเบิกจ่ายอุปกรณ์</h5>
+                        <p class="text-muted small">ตรวจสอบยอดคงเหลือ และประวัติการยืม-คืนอุปกรณ์การแพทย์ทั้งหมด</p>
+                    </div>
+                    <button class="btn btn-success w-100"><i class="fa-solid fa-download me-2"></i>ดาวน์โหลด (Excel)</button>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 h-100 p-4 report-card">
+                    <div class="text-center mb-3">
+                        <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px; font-size: 2.5rem;">
+                            <i class="fa-solid fa-user-check"></i>
+                        </div>
+                        <h5 class="fw-bold">รายงานค่าตอบแทน CG (รายบุคคล)</h5>
+                        <p class="text-muted small">ข้อมูลสำหรับคำนวณเบี้ยเลี้ยง หรือค่าตอบแทนตามรอบการปฏิบัติงาน</p>
+                    </div>
+                    <button class="btn btn-warning w-100 text-dark"><i class="fa-solid fa-download me-2"></i>ดาวน์โหลด (Excel)</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

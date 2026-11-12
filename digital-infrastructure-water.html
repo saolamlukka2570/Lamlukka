@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แหล่งน้ำ เส้นทางน้ำ และระบบระบายน้ำ (DIIS) - กองช่าง</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet Map CSS Leaflet Library -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; }
+        .dropzone-box {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            background: #fff;
+            transition: all 0.2s ease;
+        }
+        .dropzone-box:hover {
+            border-color: #4f46e5;
+            background: #f8fafc;
+        }
+        #digitizeMap {
+            border: 1px solid #cbd5e1;
+        }
+        /* Fullscreen Map Styles */
+        .fullscreen-map {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+        }
+        .fullscreen-map + #btnMapFullscreen {
+            position: fixed !important;
+            top: 20px !important;
+            left: 20px !important;
+            z-index: 10000 !important;
+        }
+        .fullscreen-panel {
+            position: fixed !important;
+            top: 20px !important;
+            right: 20px !important;
+            z-index: 10000 !important;
+        }
+        #btnMapFullscreen {
+            transition: all 0.2s ease;
+        }
+        #btnMapFullscreen:hover {
+            background-color: #f1f5f9 !important;
+            transform: scale(1.05);
+        }
+        .table-gov thead th {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ระบบควบคุมแหล่งน้ำและระบายน้ำ"></div>
+    <div class="page-content p-4">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+                <h1 class="text-xl font-bold text-slate-800 mb-0 d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-droplet text-indigo-600"></i> ทะเบียนแหล่งน้ำ เส้นทางน้ำ และระบบระบายน้ำ
+                </h1>
+                <p class="text-xs text-slate-500 mb-0">ระบบลงทะเบียน ค้นหา และวิเคราะห์พิกัดแหล่งน้ำและโครงข่ายระบายน้ำสาธารณะ</p>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary font-bold text-xs" onclick="refreshAllData()"><i class="fa-solid fa-sync me-1"></i>รีเฟรช</button>
+                <button class="btn btn-sm btn-outline-indigo border-indigo-600 text-indigo-600 hover:bg-indigo-50 fw-semibold font-bold text-xs" onclick="openExportGISModal()"><i class="fa-solid fa-file-export me-1"></i> ส่งออกข้อมูล GIS (EXPORT)</button>
+                <button class="btn btn-sm btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 fw-semibold font-bold text-xs" data-bs-toggle="modal" data-bs-target="#newWaterModal" onclick="initNewAssetModal()"><i class="fa-solid fa-plus me-1"></i> ขึ้นทะเบียนทรัพย์สินใหม่</button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs for different views (Roads-like Model) -->
+        <ul class="nav nav-pills mb-4 text-xs font-semibold" id="pills-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="tab-list-tab" data-bs-toggle="pill" data-bs-target="#tab-list" type="button" role="tab"><i class="fa-solid fa-list me-1"></i> บัญชีทะเบียนทรัพย์สินแหล่งน้ำ & ระบายน้ำ</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-upload-tab" data-bs-toggle="pill" data-bs-target="#tab-upload" type="button" role="tab"><i class="fa-solid fa-file-import me-1"></i> นำเข้าไฟล์แผนที่ GIS (Shapefile / GeoJSON)</button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="pills-tabContent">
+            <!-- 1. Road List Tab -->
+            <div class="tab-pane fade show active" id="tab-list" role="tabpanel">
+                
+                <!-- Sub tabs for different water assets -->
+                <ul class="nav nav-tabs mb-3 text-xs font-semibold border-bottom" id="waterSubTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active text-slate-600 border-bottom-2" id="sub-res-tab" data-bs-toggle="tab" data-bs-target="#sub-res" type="button" role="tab"><i class="fa-solid fa-circle text-sky-600 me-1"></i> 1. แหล่งน้ำนิ่งสาธารณะ (หนอง/บึง/สระ)</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link text-slate-600" id="sub-way-tab" data-bs-toggle="tab" data-bs-target="#sub-way" type="button" role="tab"><i class="fa-solid fa-water text-indigo-600 me-1"></i> 2. เส้นทางน้ำไหล (คลองส่งน้ำ/ลำห้วย)</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link text-slate-600" id="sub-drain-tab" data-bs-toggle="tab" data-bs-target="#sub-drain" type="button" role="tab"><i class="fa-solid fa-circle-notch text-emerald-600 me-1"></i> 3. ท่อระบายน้ำ & ฝาท่อระบาย</button>
+                    </li>
+                </ul>
+
+                <!-- Sub Tab Panes -->
+                <div class="tab-content text-xs font-semibold text-slate-700" id="waterSubTabsContent">
+                    <!-- Sub Tab 1: Water Resources -->
+                    <div class="tab-pane fade show active" id="sub-res" role="tabpanel">
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                            <div class="table-responsive">
+                                <table class="table table-gov table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th class="ps-4 text-nowrap">รหัสแหล่งน้ำ</th>
+                                            <th class="text-nowrap">ชื่อแหล่งน้ำ</th>
+                                            <th class="text-nowrap">ประเภทแหล่งน้ำ</th>
+                                            <th class="text-nowrap">ขนาดเนื้อที่ผิวน้ำ (ตร.ม.)</th>
+                                            <th class="text-nowrap">ความลึกเฉลี่ย (เมตร)</th>
+                                            <th class="text-nowrap">ความจุน้ำรวม (ลบ.ม.)</th>
+                                            <th class="text-nowrap">หมู่ที่</th>
+                                            <th class="text-nowrap">สถานภาพแหล่งน้ำ</th>
+                                            <th class="text-nowrap">ตำแหน่งแผนที่</th>
+                                            <th class="text-center pe-4 text-nowrap">จัดการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="waterResTableBody">
+                                        <tr><td colspan="10" class="text-center py-4 text-muted">กำลังโหลดข้อมูลแหล่งน้ำนิ่ง...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub Tab 2: Waterways -->
+                    <div class="tab-pane fade" id="sub-way" role="tabpanel">
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                            <div class="table-responsive">
+                                <table class="table table-gov table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th class="ps-4 text-nowrap">รหัสทางน้ำ</th>
+                                            <th class="text-nowrap">ชื่อเส้นทางน้ำ</th>
+                                            <th class="text-nowrap">ประเภททางน้ำ</th>
+                                            <th class="text-nowrap">ความกว้างเฉลี่ย (ม.)</th>
+                                            <th class="text-nowrap">ความลึกเฉลี่ย (ม.)</th>
+                                            <th class="text-nowrap">ความยาวเส้นทาง (เมตร)</th>
+                                            <th class="text-nowrap">หมู่ที่</th>
+                                            <th class="text-nowrap">สภาพการระบายน้ำ</th>
+                                            <th class="text-nowrap">ตำแหน่งแผนที่</th>
+                                            <th class="text-center pe-4 text-nowrap">จัดการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="waterwaysTableBody">
+                                        <tr><td colspan="10" class="text-center py-4 text-muted">กำลังโหลดข้อมูลลำคลองและทางน้ำ...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub Tab 3: Drainage -->
+                    <div class="tab-pane fade" id="sub-drain" role="tabpanel">
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                            <div class="table-responsive">
+                                <table class="table table-gov table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th class="ps-4 text-nowrap">รหัสระบบระบายน้ำ</th>
+                                            <th class="text-nowrap">ประเภทระบบระบาย</th>
+                                            <th class="text-nowrap">วัสดุก่อสร้าง</th>
+                                            <th class="text-nowrap">กว้าง (เมตร)</th>
+                                            <th class="text-nowrap">ลึก (เมตร)</th>
+                                            <th class="text-nowrap">ความยาวท่อ/ราง (ม.)</th>
+                                            <th class="text-nowrap">พิกัดสายทางถนน</th>
+                                            <th class="text-nowrap">หมู่ที่</th>
+                                            <th class="text-nowrap">สภาพทางกายภาพ</th>
+                                            <th class="text-nowrap">ตำแหน่งแผนที่</th>
+                                            <th class="text-center pe-4 text-nowrap">จัดการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="drainageTableBody">
+                                        <tr><td colspan="11" class="text-center py-4 text-muted">กำลังโหลดข้อมูลท่อระบายน้ำ...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 2. GIS File Upload Center Tab -->
+            <div class="tab-pane fade" id="tab-upload" role="tabpanel">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    <!-- Dropzone -->
+                    <div class="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-column justify-between" style="min-height:300px;">
+                        <div>
+                            <div class="mb-3">
+                                <label class="form-label font-bold text-slate-700 text-xs mb-2">ระบุตารางเป้าหมายที่ต้องการนำเข้าข้อมูลแผนที่ <span class="text-danger">*</span></label>
+                                <select class="form-select text-xs font-semibold py-2 border-indigo-200" id="uploadTableTarget">
+                                    <option value="res">ตารางแหล่งน้ำสาธารณะ (Polygon)</option>
+                                    <option value="way">ตารางเส้นทางน้ำธรรมชาติ/ลำธาร (LineString)</option>
+                                    <option value="drain">ตารางท่อระบายน้ำและฝาท่อระบาย (Point)</option>
+                                </select>
+                            </div>
+                            <h5 class="font-bold text-slate-800 text-sm mb-1"><i class="fa-solid fa-cloud-arrow-up text-indigo-600 me-1"></i> GIS File Drag & Drop Center</h5>
+                            <p class="text-xs text-slate-500 mb-3">รองรับ .zip (Shapefile), .geojson, .kml — ระบบจะวิเคราะห์ฟิลด์ข้อมูลและจับคู่กับฐานข้อมูลอัตโนมัติ</p>
+                        </div>
+                        
+                        <!-- Dropzone container box -->
+                        <div class="dropzone-box flex-grow flex flex-column items-center justify-center p-6 cursor-pointer border-2" id="dropZoneContainer">
+                            <i class="fa-solid fa-map-location-dot text-slate-400 text-4xl mb-3"></i>
+                            <span class="text-xs font-bold text-slate-700 mb-1">ลากวางไฟล์ที่ต้องการอัปโหลดแผนที่ที่นี่</span>
+                            <span class="text-[10px] text-slate-400">หรือคลิกเพื่อเลือกไฟล์จากคอมพิวเตอร์ของท่าน (ขนาดสูงสุด 10MB)</span>
+                            <input type="file" id="fileUploadInput" class="hidden" accept=".zip, .geojson, .json, .kml">
+                        </div>
+
+                        <!-- Progress indicator -->
+                        <div class="mt-3 text-xs hidden" id="uploadProgressPanel">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-semibold text-indigo-600" id="uploadFileNameLabel">น้ำสาธารณะ.zip</span>
+                                <span class="text-slate-500" id="uploadPercentLabel">0%</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-indigo-600" role="progressbar" style="width: 0%" id="uploadProgressBar"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Geometry Validator + Attribute Mapper -->
+                    <div class="lg:col-span-7 flex flex-column gap-4">
+                        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                            <h5 class="font-bold text-slate-800 text-sm mb-2"><i class="fa-solid fa-circle-check text-emerald-500 me-1"></i> ผลการตรวจรับสัญวิทยา (Geometry Validator)</h5>
+                            <div class="p-3 rounded-xl border bg-slate-50 text-xs text-slate-600 mb-3 space-y-1">
+                                <div><b>ระบบพิกัดที่ตรวจพบ (CRS):</b> <span id="detectedCRS">WGS 84 (EPSG:4326)</span></div>
+                                <div><b>รูปแบบโครงสร้าง (Feature Type):</b> <span id="detectedGeomType">ไม่ได้อัปโหลดไฟล์</span></div>
+                                <div><b>จำนวนฟีเจอร์ที่ตรวจพบ:</b> <span id="detectedCount">0</span></div>
+                                <div><b>จำนวนฟิลด์ข้อมูล (Attributes):</b> <span id="detectedFieldsCount">0</span> ฟิลด์</div>
+                            </div>
+                            <div id="attributeMapperContainer">
+                                <div class="p-3 text-center text-muted border rounded-xl bg-slate-50 text-xs">
+                                    กรุณาอัปโหลดไฟล์ข้อมูล GIS เพื่อเริ่มต้นจับคู่แอตทริบิวต์ฟิลด์อัตโนมัติ
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GIS Upload History -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm mt-4 text-xs font-semibold text-slate-700">
+                    <h5 class="font-bold text-slate-800 text-sm mb-3 border-b pb-2 d-flex align-items-center justify-content-between">
+                        <span><i class="fa-solid fa-cloud text-indigo-600 me-2"></i> แฟ้มคลังไฟล์แผนที่ภูมิสารสนเทศ (Supabase Cloud Storage & Database Sync History)</span>
+                        <button class="btn btn-xs btn-outline-secondary font-bold" onclick="loadGISUploadHistory()"><i class="fa-solid fa-sync"></i> รีเฟรชประวัติ</button>
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-gov table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4 text-nowrap">รหัสอ้างอิงนำเข้า</th>
+                                    <th class="text-nowrap">ชื่อไฟล์แผนที่ต้นฉบับ</th>
+                                    <th class="text-nowrap">ระบบพิกัดแผนที่ (CRS)</th>
+                                    <th class="text-nowrap">ประเภทเรขาคณิต</th>
+                                    <th class="text-nowrap">จำนวนวัตถุ</th>
+                                    <th class="text-nowrap">วันที่ซิงก์อัปโหลด</th>
+                                    <th class="text-nowrap">สถานะคลาวด์</th>
+                                    <th class="text-center pe-4 text-nowrap">เรียกใช้งาน / ดาวน์โหลดแผนที่</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gisUploadsTableBody">
+                                <tr><td colspan="8" class="text-center py-4 text-muted">ไม่พบข้อมูลประวัตินำเข้าจากคลาวด์</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal ขึ้นทะเบียนแหล่งน้ำ/ทางระบายน้ำ (Digitize Sidebar Edition) -->
+<div class="modal fade" id="newWaterModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header border-bottom bg-slate-50">
+                <h5 class="modal-title fw-bold" id="newWaterModalTitle"><i class="fa-solid fa-droplet text-indigo-600 me-2"></i>ขึ้นทะเบียนทรัพย์สินระบบน้ำและระบายน้ำใหม่</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="row g-0">
+                    <!-- คอลัมน์กรอกข้อมูล (ฟอร์ม) -->
+                    <div class="col-lg-5 p-4 text-xs font-semibold text-slate-700 bg-white" style="max-height: 80vh; overflow-y: auto;">
+                        <form id="newWaterForm" onsubmit="submitNewAsset(event)">
+                            <input type="hidden" id="nrAssetIdField">
+                            
+                            <div class="row g-3">
+                                <!-- 👑 ประเภททรัพย์สิน (บนสุด ไฮไลท์สีคราม) -->
+                                <div class="col-12">
+                                    <div class="p-3 bg-indigo-50 border border-indigo-100 rounded-3">
+                                        <label class="form-label fw-bold text-indigo-800 text-[11px] mb-2"><i class="fa-solid fa-layer-group me-1"></i> จำแนกประเภททรัพย์สินระบบน้ำเชิงพื้นที่ <span class="text-danger">*</span></label>
+                                        <select class="form-select border-indigo-200 text-indigo-950 fw-bold py-2" id="naTableTarget" onchange="toggleFormFields(); resetDigitizeState();" style="font-size:12px; border-radius:6px;">
+                                            <option value="res">แหล่งน้ำนิ่ง (หนอง/บึง/สระ) · POLYGON</option>
+                                            <option value="way">เส้นทางน้ำไหล (คลอง/ลำราง) · LINESTRING</option>
+                                            <option value="drain">ท่อระบายน้ำ & ฝาท่อระบาย · POINT</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- รหัส และ ชื่อเรียก -->
+                                <div class="col-md-6">
+                                    <label class="form-label text-nowrap">รหัสทรัพย์สิน/สินทรัพย์ <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="naCode" required placeholder="เช่น WR-003, WW-004">
+                                </div>
+                                <div class="col-md-6" id="fieldTargetName">
+                                    <label class="form-label text-nowrap">ชื่อเรียกทรัพย์สิน <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="naName" placeholder="เช่น หนองน้ำบ้านเจริญสุข">
+                                </div>
+
+                                <!-- ประเภทเฉพาะตัว และ วัสดุ -->
+                                <div class="col-md-6">
+                                    <label class="form-label text-nowrap" id="labelNaType">ประเภทเจาะจง (ย่อย)</label>
+                                    <input type="text" class="form-control" id="naType" placeholder="เช่น สระน้ำห้วย, คลองดิน">
+                                </div>
+                                <div class="col-md-6" id="fieldTargetMaterial" style="display: none;">
+                                    <label class="form-label text-nowrap">วัสดุก่อสร้าง</label>
+                                    <select class="form-select" id="naMaterial">
+                                        <option>คอนกรีต</option>
+                                        <option>เหล็กหล่อ</option>
+                                        <option>พลาสติก HDPE</option>
+                                        <option>หินก่อ</option>
+                                    </select>
+                                </div>
+
+                                <!-- ขนาด มิติพื้นที่ -->
+                                <div class="col-12 mt-2.5 mb-1" id="dividerDimensions">
+                                    <div class="text-[10px] text-slate-400 fw-bold border-bottom pb-1 d-flex align-items-center gap-1">
+                                        <i class="fa-solid fa-ruler-combined text-indigo-500" style="font-size: 11px;"></i> ขนาดและมิติทางกายภาพ
+                                    </div>
+                                </div>
+                                <div class="col-md-4" id="fieldTargetArea">
+                                    <label class="form-label text-nowrap">เนื้อที่ผิวน้ำ (ตร.ม.)</label>
+                                    <input type="number" class="form-control" id="naArea" value="">
+                                </div>
+                                <div class="col-md-4" id="fieldTargetDepth">
+                                    <label class="form-label text-nowrap">ความลึกเฉลี่ย (เมตร)</label>
+                                    <input type="number" step="0.1" class="form-control" id="naDepth" value="">
+                                </div>
+                                <div class="col-md-4" id="fieldTargetLength">
+                                    <label class="form-label text-nowrap">ความยาวสายน้ำ/ท่อ (ม.)</label>
+                                    <input type="number" class="form-control" id="naLength" value="">
+                                </div>
+
+                                <!-- พิกัดสายทางถนน (ท่อระบายน้ำ) -->
+                                <div class="col-12" id="fieldTargetRoad" style="display: none;">
+                                    <label class="form-label text-nowrap">เชื่อมโยงพิกัดสายทางถนน (รหัสสายทาง)</label>
+                                    <input type="text" class="form-control" id="naRoadId" placeholder="เช่น ถ.ทถ. 1-0002">
+                                </div>
+
+                                <!-- พิกัดและตำแหน่งที่ตั้ง -->
+                                <div class="col-12 mt-3 mb-1">
+                                    <div class="text-[10px] text-slate-400 fw-bold border-bottom pb-1 d-flex align-items-center gap-1">
+                                        <i class="fa-solid fa-map-location-dot text-indigo-500" style="font-size: 11px;"></i> ตำแหน่งและพิกัดทางภูมิศาสตร์
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-nowrap">หมู่ที่ตั้ง <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="naVillage" required value="">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-nowrap">พิกัด Latitude (Y) <span class="text-danger">*</span></label>
+                                    <input type="number" step="0.000001" class="form-control" id="naLat" required value="">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-nowrap">พิกัด Longitude (X) <span class="text-danger">*</span></label>
+                                    <input type="number" step="0.000001" class="form-control" id="naLng" required value="">
+                                </div>
+
+                                <!-- สภาพทรัพย์สิน -->
+                                <div class="col-12 mt-2">
+                                    <label class="form-label text-nowrap">สถานภาพทรัพย์สินในปัจจุบัน</label>
+                                    <select class="form-select" id="naStatus">
+                                        <option value="normal">ปกติ / ไหลเวียนดี / มีน้ำใช้</option>
+                                        <option value="shallow">ตื้นเขิน / ปริมาณน้ำน้อย</option>
+                                        <option value="clogged">อุดตัน / วัชพืชหนาแน่น</option>
+                                        <option value="damaged">ชำรุดเสียหาย / ต้องซ่อมบำรุง</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                                <button type="button" class="btn btn-light px-4 font-bold" data-bs-dismiss="modal">ยกเลิก</button>
+                                <button type="submit" class="btn btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 px-4 fw-semibold font-bold"><i class="fa-solid fa-save me-1"></i>บันทึกขึ้นทะเบียน</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- คอลัมน์วาดพิกัดเชิงเส้นแผนที่ Leaflet (ขวา) -->
+                    <div class="col-lg-7 position-relative" style="height: 80vh;">
+                        <!-- Digitize Controllers Overlay (Moved to top-right end-3 to prevent overlap with Leaflet zoom control on top-left) -->
+                        <div id="digitizePanelOverlay" class="position-absolute top-3 end-3 bg-white p-3 shadow-lg border border-slate-200" style="z-index: 1000; width: 360px; max-width: 90%; border-radius: 16px; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.12), 0 10px 15px -5px rgba(0, 0, 0, 0.06) !important;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="font-bold text-slate-800 mb-0 d-flex align-items-center" style="font-size: 13px; font-weight: 700; letter-spacing: -0.2px;">
+                                    <i class="fa-solid fa-compass-drafting text-indigo-600 me-2" style="font-size: 14px;"></i>
+                                    แผงนำทางวาดพิกัดแผนที่ (Digitizer)
+                                </h6>
+                                <span class="badge bg-danger animate-pulse hidden" id="digitizeBadge" style="font-size: 9px; border-radius: 4px; padding: 2px 6px;">กำลังบันทึกพิกัด...</span>
+                            </div>
+                            
+                            <p class="text-slate-500 mb-2 leading-relaxed" id="digitizeHelperText" style="font-size: 11px; font-weight: 400;">
+                                คลิกแผนที่ด้านล่างเพื่อเริ่มสร้างขอบเขตแหล่งน้ำ (Polygon) หรือเส้นทางน้ำไหล (LineString) หรือจุดท่อระบายน้ำ (Point)
+                            </p>
+
+                            <!-- ควบคุมและแสดงมติพิกัดสะสม -->
+                            <div class="bg-light p-2.5 mb-3 border border-slate-100" style="border-radius: 12px; font-size: 11px; background-color: #f8fafc !important;">
+                                <div class="d-flex justify-content-between align-items-center mb-1 text-slate-600">
+                                    <span>ประเภทขอบเขต:</span>
+                                    <span id="activeGeomTypeLabel" class="fw-bold text-indigo-600" style="font-weight: 600;">Polygon (แหล่งน้ำ)</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-1 text-slate-600">
+                                    <span>จำนวนหมุดวาดสะสม:</span>
+                                    <span id="digitizePointsCount" class="fw-bold text-slate-800" style="font-weight: 600;">0 จุด</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center text-slate-600" id="digitizeResultSpec">
+                                    <span>ขนาด/ความยาวสะสม:</span>
+                                    <span id="digitizeResultValue" class="fw-bold text-emerald-600" style="font-weight: 700;">0 ตร.ม.</span>
+                                </div>
+                            </div>
+
+                            <!-- ปุ่มควบคุม -->
+                            <div class="row g-1" id="digitizeControls">
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-sm btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 w-100 font-bold py-1.5 px-2 text-[11px] rounded-lg shadow-sm border-0 transition-all d-flex align-items-center justify-content-center gap-1" id="btnToggleDigitize" onclick="toggleDigitizing()">
+                                        <i class="fa-solid fa-pencil"></i> เริ่มวาดพิกัด
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary bg-white text-slate-600 hover:bg-slate-50 w-100 font-bold py-1.5 px-2 text-[11px] rounded-lg shadow-xs transition-all d-flex align-items-center justify-content-center gap-1" id="btnUndoMarker" onclick="undoLastDigitizedPoint()" disabled>
+                                        <i class="fa-solid fa-reply"></i> ย้อนกลับ
+                                    </button>
+                                </div>
+                                <div class="col-4 mt-1.5">
+                                    <button type="button" class="btn btn-sm btn-outline-success bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-50 w-100 font-bold py-1.5 px-1 text-[11px] rounded-lg shadow-xs transition-all d-flex align-items-center justify-content-center gap-1" id="btnInsertVertex" onclick="showInsertVertexGuide()" disabled>
+                                        <i class="fa-solid fa-circle-plus"></i> แทรกหมุด
+                                    </button>
+                                </div>
+                                <div class="col-4 mt-1.5">
+                                    <button type="button" class="btn btn-sm btn-outline-warning bg-white text-amber-600 border-amber-200 hover:bg-amber-50 w-100 font-bold py-1.5 px-1 text-[11px] rounded-lg shadow-xs transition-all d-flex align-items-center justify-content-center gap-1" id="btnDeleteVertex" onclick="showDeleteVertexGuide()" disabled>
+                                        <i class="fa-solid fa-circle-minus"></i> ลบหมุด
+                                    </button>
+                                </div>
+                                <div class="col-4 mt-1.5">
+                                    <button type="button" class="btn btn-sm btn-outline-danger bg-white text-red-600 border-red-200 hover:bg-red-50 w-100 font-bold py-1.5 px-1 text-[11px] rounded-lg shadow-xs transition-all d-flex align-items-center justify-content-center gap-1" id="btnMapClear" onclick="clearDigitizedPath()" disabled>
+                                        <i class="fa-solid fa-trash"></i> ล้างแนว
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- แผนที่ดาวเทียม Leaflet -->
+                        <div id="digitizeMap" class="w-100 h-100"></div>
+                        <button type="button" id="btnMapFullscreen" class="btn btn-light shadow-sm border" style="position: absolute; top: 80px; left: 10px; z-index: 1050; width: 34px; height: 34px; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 0;" onclick="toggleMapFullscreen()" title="ย่อ-ขยายแผนที่เต็มหน้าจอ">
+                            <i class="fa-solid fa-expand text-slate-700 text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal พรีวิวดูพิกัดแผนที่ (View GIS Modal) -->
+<div class="modal fade" id="viewWaterMapModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold text-slate-800" id="viewMapModalTitle"><i class="fa-solid fa-map-location-dot text-indigo-600 me-2"></i> แผนภูมิพิกัดแนวทางภูมิสารสนเทศหลัก</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-2">
+                <div id="viewWaterMapContainer" style="height: 400px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; z-index: 10;"></div>
+            </div>
+            <div class="modal-footer border-top py-2">
+                <button type="button" class="btn btn-sm btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 px-4 font-bold" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export GIS Data Modal -->
+<div class="modal fade" id="exportGISModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom bg-slate-50">
+                <h5 class="modal-title fw-bold text-slate-800"><i class="fa-solid fa-file-export text-indigo-600 me-2"></i>ส่งออกข้อมูลภูมิสารสนเทศ (EXPORT GIS DATA)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-slate-800">
+                <div class="mb-3">
+                    <label class="form-label font-bold text-slate-700 text-xs mb-2">เลือกตารางข้อมูลแผนที่ที่ต้องการส่งออก (EXPORT) <span class="text-danger">*</span></label>
+                    <select class="form-select text-xs font-semibold py-2 border-indigo-200" id="exportTableTarget">
+                        <option value="res">ตารางแหล่งน้ำสาธารณะ (Polygon)</option>
+                        <option value="way">ตารางเส้นทางน้ำธรรมชาติ/ลำธาร (LineString)</option>
+                        <option value="drain">ตารางท่อระบายน้ำและฝาท่อระบาย (Point)</option>
+                    </select>
+                </div>
+                <p class="text-xs text-slate-600 mb-4">โปรดเลือกรูปแบบไฟล์แผนที่ที่ต้องการส่งออก ระบบจะจัดฟอร์แมตพิกัดตามระบบอ้างอิง WGS 84 (EPSG:4326) รองรับโปรแกรม QGIS 100%</p>
+                
+                <div class="d-flex flex-column gap-3">
+                    <div class="p-3 border rounded-3 bg-slate-50 hover:bg-slate-100 cursor-pointer d-flex align-items-center justify-content-between" onclick="triggerGISExport('geojson')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fs-4 text-emerald-600"><i class="fa-solid fa-code"></i></span>
+                            <div>
+                                <div class="fw-bold text-xs text-slate-800">ส่งออกเป็นไฟล์ GeoJSON</div>
+                                <div class="text-[11px] text-slate-500">มาตรฐานรูปแบบ JSON (water.geojson) เหมาะสำหรับการสตรีมแผนที่เว็บ</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-400"></i>
+                    </div>
+
+                    <div class="p-3 border rounded-3 bg-slate-50 hover:bg-slate-100 cursor-pointer d-flex align-items-center justify-content-between" onclick="triggerGISExport('shp')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fs-4 text-indigo-600"><i class="fa-solid fa-box-archive"></i></span>
+                            <div>
+                                <div class="fw-bold text-xs text-slate-800">ส่งออกเป็น ESRI Shapefile Package (ZIP)</div>
+                                <div class="text-[11px] text-slate-500">ประกอบด้วยไฟล์ .shp .dbf .shx .prj บีบอัดเป็น ZIP พร้อมทำงานร่วมกับ QGIS</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-400"></i>
+                    </div>
+
+                    <div class="p-3 border rounded-3 bg-slate-50 hover:bg-slate-100 cursor-pointer d-flex align-items-center justify-content-between" onclick="triggerGISExport('kml')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fs-4 text-danger"><i class="fa-solid fa-map-pin"></i></span>
+                            <div>
+                                <div class="fw-bold text-xs text-slate-800">ส่งออกเป็นไฟล์ KML</div>
+                                <div class="text-[11px] text-slate-500">รูปแบบไฟล์สำหรับ Google Earth และโปรแกรมสำรวจแผนที่สามมิติ</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-400"></i>
+                    </div>
+
+                    <div class="p-3 border rounded-3 bg-slate-50 hover:bg-slate-100 cursor-pointer d-flex align-items-center justify-content-between" onclick="triggerGISExport('csv')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fs-4 text-primary"><i class="fa-solid fa-file-csv"></i></span>
+                            <div>
+                                <div class="fw-bold text-xs text-slate-800">ส่งออกเป็นไฟล์ตาราง CSV</div>
+                                <div class="text-[11px] text-slate-500">บรรจุพิกัดละติจูด/ลองจิจูดเริ่มต้น สามารถเปิดใช้งานผ่าน Microsoft Excel ได้ทันที</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-400"></i>
+                    </div>
+                </div>
+
+                <!-- Export Status Area -->
+                <div id="exportStatusArea" class="mt-4 p-3 border border-indigo-100 rounded-3 bg-indigo-50/50 text-xs text-indigo-700 font-semibold align-items-center justify-content-center gap-2" style="display: none;">
+                    <div class="spinner-border spinner-border-sm text-indigo-600 me-2" role="status"></div>
+                    <span id="exportStatusText">กำลังดึงพิกัดจากฐานข้อมูลเชิงพื้นที่หลัก...</span>
+                </div>
+            </div>
+            <div class="modal-footer border-top py-2 bg-slate-50">
+                <button type="button" class="btn btn-sm btn-outline-secondary px-4 fw-semibold" data-bs-dismiss="modal">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Leaflet JS Map Leaflet Library -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/digital-infrastructure.js"></script>
+<script src="assets/js/shapefile-upload.js"></script>
+<script src="services/waterSpatialService.js"></script>
+<script src="services/gisExportService.js"></script>
+<script>
+    let activeAssets = { res: [], way: [], drain: [] };
+    
+    // Digitize Engine variables
+    let digitizeMapInstance = null;
+    let digitizedPoints = [];
+    let digitizedGraphic = null; // Can be Polyline, Polygon or CircleMarker
+    let digitizeMarkers = [];
+    let isDigitizingActive = false;
+    let selectedMarkerIndex = null;
+    let currentEditingAssetId = null;
+    let viewAssetMapInstance = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshAllData();
+        setupGISUploadEngine();
+        loadGISUploadHistory();
+        
+        // Modal events to trigger map reload and invalidateSize
+        const waterModal = document.getElementById('newWaterModal');
+        waterModal.addEventListener('shown.bs.modal', () => {
+            if (!digitizeMapInstance) {
+                initDigitizeMap();
+            } else {
+                digitizeMapInstance.invalidateSize();
+            }
+            drawExistingAssetCoordinates();
+        });
+    });
+
+    async function refreshAllData() {
+        await loadWaterRes();
+        await loadWaterways();
+        await loadDrainage();
+    }
+
+    async function loadWaterRes() {
+        const tbody = document.getElementById('waterResTableBody');
+        try {
+            const data = await WaterSpatialService.loadAssets('res');
+            activeAssets.res = data;
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-muted">ไม่พบข้อมูลแหล่งน้ำนิ่ง</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.map(w => {
+                const hasMap = !!(w.geom && w.geom.coordinates && w.geom.coordinates[0] && w.geom.coordinates[0].length > 0);
+                const mapBtn = hasMap
+                    ? `<button class="btn btn-xs btn-outline-indigo px-2 py-0.5" onclick="openViewMapModal('res', '${w.id}')"><i class="fa-solid fa-map"></i> ดูตำแหน่งแผนที่</button>`
+                    : `<span class="text-slate-400">ไม่มีแนววาดพิกัด</span>`;
+                return `
+                    <tr>
+                        <td class="ps-4 fw-bold text-indigo-600">${w.water_code}</td>
+                        <td class="font-semibold text-slate-800">${w.water_name}</td>
+                        <td>${w.water_type}</td>
+                        <td>${(w.surface_area_sqm || 0).toLocaleString()}</td>
+                        <td>${w.depth_m || '-'}</td>
+                        <td>${(w.capacity_cum || 0).toLocaleString()}</td>
+                        <td>หมู่ ${w.village_no}</td>
+                        <td><span class="badge bg-success">${w.status==='normal'?'สมบูรณ์มีน้ำใช้':'ตื้นเขิน'}</span></td>
+                        <td>${mapBtn}</td>
+                        <td class="text-center pe-4">
+                            <div class="d-inline-flex gap-1">
+                                <button class="btn btn-xs btn-outline-indigo" onclick="editAsset('res', '${w.id}')"><i class="fa-solid fa-edit"></i></button>
+                                <button class="btn btn-xs btn-outline-danger" onclick="deleteAsset('res', '${w.id}')"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } catch(e) { tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-danger">เกิดข้อผิดพลาดในการดึงข้อมูล</td></tr>'; }
+    }
+
+    async function loadWaterways() {
+        const tbody = document.getElementById('waterwaysTableBody');
+        try {
+            const data = await WaterSpatialService.loadAssets('way');
+            activeAssets.way = data;
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-muted">ไม่พบข้อมูลลำคลอง</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.map(ww => {
+                const hasMap = !!(ww.geom && ww.geom.coordinates && ww.geom.coordinates.length > 0);
+                const mapBtn = hasMap
+                    ? `<button class="btn btn-xs btn-outline-indigo px-2 py-0.5" onclick="openViewMapModal('way', '${ww.id}')"><i class="fa-solid fa-map"></i> ดูตำแหน่งแผนที่</button>`
+                    : `<span class="text-slate-400">ไม่มีแนววาดพิกัด</span>`;
+                return `
+                    <tr>
+                        <td class="ps-4 fw-bold text-indigo-600">${ww.waterway_code}</td>
+                        <td class="font-semibold text-slate-800">${ww.waterway_name}</td>
+                        <td>${ww.waterway_type}</td>
+                        <td>${ww.width_m}</td>
+                        <td>${ww.depth_m}</td>
+                        <td>${ww.length_m}</td>
+                        <td>หมู่ ${ww.village_no}</td>
+                        <td><span class="badge bg-success">ระบายน้ำได้ดี</span></td>
+                        <td>${mapBtn}</td>
+                        <td class="text-center pe-4">
+                            <div class="d-inline-flex gap-1">
+                                <button class="btn btn-xs btn-outline-indigo" onclick="editAsset('way', '${ww.id}')"><i class="fa-solid fa-edit"></i></button>
+                                <button class="btn btn-xs btn-outline-danger" onclick="deleteAsset('way', '${ww.id}')"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } catch(e) { tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-danger">เกิดข้อผิดพลาดในการดึงข้อมูล</td></tr>'; }
+    }
+
+    async function loadDrainage() {
+        const tbody = document.getElementById('drainageTableBody');
+        try {
+            const data = await WaterSpatialService.loadAssets('drain');
+            activeAssets.drain = data;
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="11" class="text-center py-4 text-muted">ไม่พบข้อมูลระบบระบายน้ำ</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.map(d => {
+                const hasMap = !!(d.geom && d.geom.coordinates);
+                const mapBtn = hasMap
+                    ? `<button class="btn btn-xs btn-outline-indigo px-2 py-0.5" onclick="openViewMapModal('drain', '${d.id}')"><i class="fa-solid fa-map"></i> ดูตำแหน่งแผนที่</button>`
+                    : `<span class="text-slate-400">ไม่มีตำแหน่งวาดพิกัด</span>`;
+                return `
+                    <tr>
+                        <td class="ps-4 fw-bold text-indigo-600">${d.asset_id}</td>
+                        <td>${d.drainage_type}</td>
+                        <td>${d.material || '-'}</td>
+                        <td>${d.width_m || '-'}</td>
+                        <td>${d.depth_m || '-'}</td>
+                        <td>${d.length_m || '-'}</td>
+                        <td class="text-indigo-600">${d.road_id || '-'}</td>
+                        <td>หมู่ ${d.village_no}</td>
+                        <td><span class="badge ${d.status==='good'||d.status==='normal'?'bg-success':'bg-warning text-dark'}">${d.status==='good'||d.status==='normal'?'ปกติ':'อุดตัน/ชำรุด'}</span></td>
+                        <td>${mapBtn}</td>
+                        <td class="text-center pe-4">
+                            <div class="d-inline-flex gap-1">
+                                <button class="btn btn-xs btn-outline-indigo" onclick="editAsset('drain', '${d.id}')"><i class="fa-solid fa-edit"></i></button>
+                                <button class="btn btn-xs btn-outline-danger" onclick="deleteAsset('drain', '${d.id}')"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } catch(e) { tbody.innerHTML = '<tr><td colspan="11" class="text-center py-4 text-danger">เกิดข้อผิดพลาดในการดึงข้อมูล</td></tr>'; }
+    }
+
+    function toggleFormFields() {
+        const target = document.getElementById('naTableTarget').value;
+        const fieldName = document.getElementById('fieldTargetName');
+        const fieldArea = document.getElementById('fieldTargetArea');
+        const fieldLength = document.getElementById('fieldTargetLength');
+        const fieldDepth = document.getElementById('fieldTargetDepth');
+        const fieldRoad = document.getElementById('fieldTargetRoad');
+        const fieldMaterial = document.getElementById('fieldTargetMaterial');
+        const labelNaType = document.getElementById('labelNaType');
+
+        const activeLabel = document.getElementById('activeGeomTypeLabel');
+        const resultLabel = document.getElementById('digitizeResultSpec');
+
+        // Reset display
+        fieldName.style.display = 'block';
+        fieldArea.style.display = 'block';
+        fieldLength.style.display = 'block';
+        fieldDepth.style.display = 'block';
+        fieldRoad.style.display = 'none';
+        fieldMaterial.style.display = 'none';
+        labelNaType.textContent = "ประเภทเจาะจง (ย่อย)";
+
+        if (target === 'drain') {
+            fieldName.style.display = 'none';
+            fieldArea.style.display = 'none';
+            fieldLength.style.display = 'block';
+            fieldRoad.style.display = 'block';
+            fieldMaterial.style.display = 'block';
+            document.getElementById('naName').required = false;
+            labelNaType.textContent = "ประเภทระบบระบาย (ย่อย)";
+            
+            activeLabel.textContent = "Point (ท่อระบายน้ำ/ฝาท่อ)";
+            resultLabel.style.display = 'none';
+        } else if (target === 'way') {
+            fieldArea.style.display = 'none';
+            document.getElementById('naName').required = true;
+            labelNaType.textContent = "ประเภททางน้ำ (ย่อย)";
+
+            activeLabel.textContent = "LineString (เส้นทางน้ำ)";
+            resultLabel.style.display = 'flex';
+            document.getElementById('digitizeResultSpec').querySelector('span:first-child').textContent = "ความยาวสะสม:";
+        } else { // res
+            fieldLength.style.display = 'none';
+            document.getElementById('naName').required = true;
+            labelNaType.textContent = "ประเภทแหล่งน้ำ (ย่อย)";
+
+            activeLabel.textContent = "Polygon (แหล่งน้ำสาธารณะ)";
+            resultLabel.style.display = 'flex';
+            document.getElementById('digitizeResultSpec').querySelector('span:first-child').textContent = "เนื้อที่ผิวน้ำสะสม:";
+        }
+    }
+
+    // ==========================================
+    // LEAFLET MAP DIGITIZE ENGINE (Polygon, LineString, Point)
+    // ==========================================
+    function toggleMapFullscreen() {
+        const mapDiv = document.getElementById('digitizeMap');
+        const icon = document.querySelector('#btnMapFullscreen i');
+        const panel = document.getElementById('digitizePanelOverlay');
+        
+        if (mapDiv.classList.contains('fullscreen-map')) {
+            mapDiv.classList.remove('fullscreen-map');
+            if (panel) {
+                panel.classList.remove('fullscreen-panel');
+            }
+            if (icon) {
+                icon.className = 'fa-solid fa-expand text-slate-700 text-sm';
+            }
+            if (typeof showToast !== 'undefined') {
+                showToast('ย่อขนาดแผนที่กลับสู่ฟอร์มปกติ', 'info');
+            }
+        } else {
+            mapDiv.classList.add('fullscreen-map');
+            if (panel) {
+                panel.classList.add('fullscreen-panel');
+            }
+            if (icon) {
+                icon.className = 'fa-solid fa-compress text-slate-700 text-sm';
+            }
+            if (typeof showToast !== 'undefined') {
+                showToast('ขยายแผนที่เต็มหน้าจอเพื่อสะดวกในการวาดแนวเส้นทาง', 'info');
+            }
+        }
+        
+        setTimeout(() => {
+            if (digitizeMapInstance) {
+                digitizeMapInstance.invalidateSize();
+            }
+        }, 100);
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const mapDiv = document.getElementById('digitizeMap');
+            if (mapDiv && mapDiv.classList.contains('fullscreen-map')) {
+                toggleMapFullscreen();
+            }
+        }
+    });
+
+    function initDigitizeMap() {
+        digitizeMapInstance = L.map('digitizeMap').setView([17.975, 103.472], 14);
+
+        L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=th&x={x}&y={y}&z={z}', {
+            attribution: '&copy; Google Satellite Hybrid',
+            maxZoom: 20
+        }).addTo(digitizeMapInstance);
+
+        digitizeMapInstance.on('click', (e) => {
+            if (!isDigitizingActive) return;
+
+            const targetType = document.getElementById('naTableTarget').value;
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+
+            if (targetType === 'drain') {
+                // Point - only one point allowed
+                digitizedPoints = [[lat, lng]];
+                document.getElementById('naLat').value = lat.toFixed(6);
+                document.getElementById('naLng').value = lng.toFixed(6);
+            } else {
+                // Polygon/LineString
+                digitizedPoints.push([lat, lng]);
+                if (digitizedPoints.length === 1) {
+                    document.getElementById('naLat').value = lat.toFixed(6);
+                    document.getElementById('naLng').value = lng.toFixed(6);
+                }
+            }
+
+            updateDigitizedRendering();
+        });
+        
+        digitizeMapInstance.invalidateSize();
+    }
+
+    function toggleDigitizing() {
+        isDigitizingActive = !isDigitizingActive;
+        const btn = document.getElementById('btnToggleDigitize');
+        const badge = document.getElementById('digitizeBadge');
+        
+        if (isDigitizingActive) {
+            btn.className = "btn btn-xs btn-danger text-white bg-red-600 hover:bg-red-700 font-bold py-1 px-2 text-[10px]";
+            btn.innerHTML = "<i class='fa-solid fa-stop me-1'></i> สิ้นสุดการวาด";
+            badge.classList.remove('hidden');
+            document.getElementById('digitizeHelperText').textContent = 
+                document.getElementById('naTableTarget').value === 'drain' 
+                ? "คลิกบนจุดในแผนที่เพื่อตั้งตำแหน่งฝาท่อ / ลากหมุดเพื่อปรับพิกัด"
+                : "คลิกบนจุดต่างๆ ในแผนที่เพื่อเริ่มปักแนวพิกัด หากเป็นแหล่งน้ำจะถูกต่อเชื่อมกันเป็น Polygon อัตโนมัติ";
+        } else {
+            btn.className = "btn btn-xs btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 font-bold py-1 px-2 text-[10px]";
+            btn.innerHTML = "<i class='fa-solid fa-pencil me-1'></i> เริ่มวาดพิกัด";
+            badge.classList.add('hidden');
+            document.getElementById('digitizeHelperText').textContent = "เปิดโหมดวาดอีกครั้ง หรือกดบันทึกขึ้นทะเบียนระบบน้ำด้านซ้ายมือได้เลยครับ";
+        }
+        updateDigitizedRendering();
+    }
+
+    function updateDigitizedRendering() {
+        // Clear old graphics and markers
+        if (digitizedGraphic) {
+            digitizeMapInstance.removeLayer(digitizedGraphic);
+            digitizedGraphic = null;
+        }
+        digitizeMarkers.forEach(m => digitizeMapInstance.removeLayer(m));
+        digitizeMarkers = [];
+
+        const targetType = document.getElementById('naTableTarget').value;
+        const isPolyOrLine = targetType === 'res' || targetType === 'way';
+
+        // Enable/Disable undo & clear & insert & delete buttons
+        document.getElementById('btnUndoMarker').disabled = !isDigitizingActive || digitizedPoints.length === 0;
+        document.getElementById('btnMapClear').disabled = !isDigitizingActive || digitizedPoints.length === 0;
+        if (document.getElementById('btnInsertVertex')) {
+            document.getElementById('btnInsertVertex').disabled = !isDigitizingActive || digitizedPoints.length < 2 || !isPolyOrLine;
+        }
+        if (document.getElementById('btnDeleteVertex')) {
+            document.getElementById('btnDeleteVertex').disabled = !isDigitizingActive || digitizedPoints.length === 0 || !isPolyOrLine;
+        }
+
+        document.getElementById('digitizePointsCount').textContent = `${digitizedPoints.length} จุด`;
+
+        if (digitizedPoints.length === 0) return;
+
+        // Render graphics
+        if (targetType === 'res') {
+            // Polygon
+            digitizedGraphic = L.polygon(digitizedPoints, {
+                color: '#0ea5e9',
+                fillColor: '#38bdf8',
+                fillOpacity: 0.5,
+                weight: 3
+            }).addTo(digitizeMapInstance);
+
+            // Calculate Polygon Area in sq meters (using simple flat approximation or standard calculation)
+            const area = calculatePolygonArea(digitizedPoints);
+            document.getElementById('digitizeResultValue').textContent = `${Math.round(area).toLocaleString()} ตร.ม.`;
+            document.getElementById('naArea').value = Math.round(area);
+        } else if (targetType === 'way') {
+            // LineString
+            digitizedGraphic = L.polyline(digitizedPoints, {
+                color: '#6366f1',
+                weight: 4,
+                opacity: 0.9
+            }).addTo(digitizeMapInstance);
+
+            // Calculate Polyline Length
+            let totalLength = 0;
+            for (let i = 0; i < digitizedPoints.length - 1; i++) {
+                totalLength += haversineDistanceMeters(digitizedPoints[i], digitizedPoints[i+1]);
+            }
+            document.getElementById('digitizeResultValue').textContent = `${Math.round(totalLength).toLocaleString()} เมตร`;
+            document.getElementById('naLength').value = Math.round(totalLength);
+        }
+
+        // Enable dynamic segment insertion on clicking the polyline/polygon itself
+        if (digitizedGraphic && isDigitizingActive) {
+            digitizedGraphic.on('click', (e) => {
+                L.DomEvent.stopPropagation(e); // Stop Leaflet map click event from firing
+                const clickedLatLng = e.latlng;
+                const insertIdx = findClosestSegmentIndex(clickedLatLng, digitizedPoints, targetType === 'res');
+                if (insertIdx !== -1) {
+                    digitizedPoints.splice(insertIdx, 0, [clickedLatLng.lat, clickedLatLng.lng]);
+                    if (typeof showToast !== 'undefined') {
+                        showToast('💡 แทรกหมุดพิกัดใหม่บนแนวเส้น/ขอบเขตแล้ว!', 'success');
+                    }
+                    updateDigitizedRendering();
+                }
+            });
+        }
+
+        // Render draggable points
+        digitizedPoints.forEach((pt, idx) => {
+            const markerColor = idx === 0 ? '#16a34a' : '#ef4444';
+            const customIcon = L.divIcon({
+                className: 'custom-digitize-marker',
+                html: `<div style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;">
+                         <div style="width:10px;height:10px;border-radius:50%;background-color:#fff;border:3px solid ${markerColor};box-shadow:0 1px 3px rgba(0,0,0,0.3);cursor:move;"></div>
+                       </div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+
+            const marker = L.marker(pt, {
+                draggable: isDigitizingActive,
+                icon: customIcon
+            }).addTo(digitizeMapInstance);
+
+            marker.bindTooltip(idx === 0 ? 'จุดเริ่มต้น' : `จุดที่ ${idx+1}`, { direction: 'top' });
+
+            marker.on('drag', (e) => {
+                const newLatLng = e.target.getLatLng();
+                digitizedPoints[idx] = [newLatLng.lat, newLatLng.lng];
+                if (idx === 0) {
+                    document.getElementById('naLat').value = newLatLng.lat.toFixed(6);
+                    document.getElementById('naLng').value = newLatLng.lng.toFixed(6);
+                }
+                
+                if (digitizedGraphic) {
+                    if (targetType === 'res') {
+                        digitizedGraphic.setLatLngs(digitizedPoints);
+                        const area = calculatePolygonArea(digitizedPoints);
+                        document.getElementById('digitizeResultValue').textContent = `${Math.round(area).toLocaleString()} ตร.ม.`;
+                        document.getElementById('naArea').value = Math.round(area);
+                    } else if (targetType === 'way') {
+                        digitizedGraphic.setLatLngs(digitizedPoints);
+                        let totalLength = 0;
+                        for (let i = 0; i < digitizedPoints.length - 1; i++) {
+                            totalLength += haversineDistanceMeters(digitizedPoints[i], digitizedPoints[i+1]);
+                        }
+                        document.getElementById('digitizeResultValue').textContent = `${Math.round(totalLength).toLocaleString()} เมตร`;
+                        document.getElementById('naLength').value = Math.round(totalLength);
+                    }
+                }
+            });
+
+            marker.on('dragend', () => {
+                updateDigitizedRendering();
+            });
+
+            // Click marker to prompt deletion popup (ลบหมุด)
+            marker.on('click', (e) => {
+                L.DomEvent.stopPropagation(e);
+                if (!isDigitizingActive) return;
+
+                const popupContent = `
+                    <div class="p-1 text-center" style="min-width: 90px;">
+                        <div class="text-[11px] mb-1 font-bold text-slate-700">หมุดที่ ${idx + 1}</div>
+                        <button type="button" class="btn btn-xs btn-danger bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-2 text-[10px] rounded"
+                                onclick="window.deleteDigitizedPoint(${idx})">
+                            <i class="fa-solid fa-trash me-1"></i> ลบหมุดนี้
+                        </button>
+                    </div>
+                `;
+                marker.bindPopup(popupContent).openPopup();
+            });
+
+            digitizeMarkers.push(marker);
+        });
+    }
+
+    function undoLastDigitizedPoint() {
+        if (digitizedPoints.length === 0) return;
+        digitizedPoints.pop();
+        
+        if (digitizedPoints.length > 0) {
+            document.getElementById('naLat').value = digitizedPoints[0][0].toFixed(6);
+            document.getElementById('naLng').value = digitizedPoints[0][1].toFixed(6);
+        } else {
+            document.getElementById('naLat').value = '';
+            document.getElementById('naLng').value = '';
+        }
+        updateDigitizedRendering();
+    }
+
+    function clearDigitizedPath() {
+        digitizedPoints = [];
+        updateDigitizedRendering();
+    }
+
+    function resetDigitizeState() {
+        digitizedPoints = [];
+        updateDigitizedRendering();
+    }
+
+    // Helper functions for inserting & deleting vertices
+    window.deleteDigitizedPoint = function(idx) {
+        if (idx >= 0 && idx < digitizedPoints.length) {
+            digitizedPoints.splice(idx, 1);
+            if (digitizedPoints.length > 0) {
+                document.getElementById('naLat').value = digitizedPoints[0][0].toFixed(6);
+                document.getElementById('naLng').value = digitizedPoints[0][1].toFixed(6);
+            } else {
+                document.getElementById('naLat').value = '';
+                document.getElementById('naLng').value = '';
+            }
+            if (typeof showToast !== 'undefined') {
+                showToast('❌ ลบหมุดพิกัดเรียบร้อยแล้ว', 'success');
+            }
+            updateDigitizedRendering();
+        }
+    };
+
+    function findClosestSegmentIndex(clickLatLng, pts, isPolygon) {
+        if (pts.length < 2) return -1;
+        let minD = Infinity;
+        let insertIdx = -1;
+
+        const x = clickLatLng.lng;
+        const y = clickLatLng.lat;
+
+        const limit = isPolygon ? pts.length : pts.length - 1;
+
+        for (let i = 0; i < limit; i++) {
+            const pt1 = pts[i];
+            const pt2 = pts[(i + 1) % pts.length];
+
+            const x1 = pt1[1];
+            const y1 = pt1[0];
+            const x2 = pt2[1];
+            const y2 = pt2[0];
+
+            // Vector AB
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const abLenSq = dx * dx + dy * dy;
+
+            let t = 0;
+            if (abLenSq > 0) {
+                t = ((x - x1) * dx + (y - y1) * dy) / abLenSq;
+                t = Math.max(0, Math.min(1, t)); // Clamp to segment
+            }
+
+            // Closest point on segment
+            const cx = x1 + t * dx;
+            const cy = y1 + t * dy;
+
+            // Distance squared
+            const distSq = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+
+            if (distSq < minD) {
+                minD = distSq;
+                insertIdx = i + 1; // Insert after index i
+            }
+        }
+
+        return insertIdx;
+    }
+
+    function showInsertVertexGuide() {
+        if (typeof showToast !== 'undefined') {
+            showToast('💡 วิธีแทรกหมุด: คลิกเมาส์ตรงจุดใดก็ได้บนแนวเส้นหรือขอบเขตเพื่อแทรกจุดหมุดใหม่ ณ ตำแหน่งนั้นทันทีครับ', 'info');
+        }
+    }
+
+    function showDeleteVertexGuide() {
+        if (typeof showToast !== 'undefined') {
+            showToast('💡 วิธีลบหมุด: คลิกที่จุดหมุด (กลมสีแดง) บนแผนที่ จากนั้นคลิกปุ่ม "ลบหมุดนี้" ในป๊อปอัพสีขาวครับ', 'info');
+        }
+    }
+
+    // Polygon Area Calculator in Square Meters (Geographic Coordinate projection flat approximation)
+    function calculatePolygonArea(coords) {
+        if (coords.length < 3) return 0;
+        let area = 0;
+        const factor = 111319.9; // Approximate meters per degree lat/lng near equator/Thailand
+        
+        for (let i = 0; i < coords.length; i++) {
+            const j = (i + 1) % coords.length;
+            const xi = coords[i][1] * factor * Math.cos(coords[i][0] * Math.PI / 180);
+            const yi = coords[i][0] * factor;
+            const xj = coords[j][1] * factor * Math.cos(coords[j][0] * Math.PI / 180);
+            const yj = coords[j][0] * factor;
+            
+            area += (xi * yj) - (xj * yi);
+        }
+        return Math.abs(area / 2);
+    }
+
+    function haversineDistanceMeters(pt1, pt2) {
+        const R = 6371e3; // Earth radius in meters
+        const phi1 = pt1[0] * Math.PI / 180;
+        const phi2 = pt2[0] * Math.PI / 180;
+        const deltaPhi = (pt2[0] - pt1[0]) * Math.PI / 180;
+        const deltaLambda = (pt2[1] - pt1[1]) * Math.PI / 180;
+
+        const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+                  Math.cos(phi1) * Math.cos(phi2) *
+                  Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c;
+    }
+
+    // Draw existing coordinates in Digitize Map when Editing
+    function drawExistingAssetCoordinates() {
+        if (currentEditingAssetId) {
+            const targetType = document.getElementById('naTableTarget').value;
+            let list = activeAssets[targetType] || [];
+            const item = list.find(x => x.id === currentEditingAssetId);
+            
+            if (item && item.geom && item.geom.coordinates && item.geom.coordinates.length > 0) {
+                if (targetType === 'res' && item.geom.type === 'Polygon') {
+                    // Coordinates is nested array for Polygon
+                    digitizedPoints = item.geom.coordinates[0].map(pt => [pt[1], pt[0]]);
+                    // Remove duplicate ending point if present for editing purposes
+                    if (digitizedPoints.length > 1 && 
+                        digitizedPoints[0][0] === digitizedPoints[digitizedPoints.length - 1][0] && 
+                        digitizedPoints[0][1] === digitizedPoints[digitizedPoints.length - 1][1]) {
+                        digitizedPoints.pop();
+                    }
+                } else if (targetType === 'way' && item.geom.type === 'LineString') {
+                    digitizedPoints = item.geom.coordinates.map(pt => [pt[1], pt[0]]);
+                } else if (targetType === 'drain' && item.geom.type === 'Point') {
+                    digitizedPoints = [[item.geom.coordinates[1], item.geom.coordinates[0]]];
+                }
+                
+                updateDigitizedRendering();
+                
+                if (digitizedPoints.length > 0) {
+                    digitizeMapInstance.setView(digitizedPoints[0], 16);
+                }
+            } else if (item && item.latitude && item.longitude) {
+                digitizedPoints = [[item.latitude, item.longitude]];
+                updateDigitizedRendering();
+                digitizeMapInstance.setView(digitizedPoints[0], 16);
+            }
+        } else {
+            resetDigitizeState();
+            // Default center
+            digitizeMapInstance.setView([17.975, 103.472], 14);
+        }
+    }
+
+    // ==========================================
+    // SAVE / UPDATE / DELETE SUBMISSION HANDLERS
+    // ==========================================
+    function initNewAssetModal() {
+        currentEditingAssetId = null;
+        document.getElementById('newWaterModalTitle').innerHTML = '<i class="fa-solid fa-droplet text-indigo-600 me-2"></i>ขึ้นทะเบียนระบบทรัพย์สินแหล่งน้ำและระบายน้ำใหม่';
+        
+        document.getElementById('newWaterForm').reset();
+        document.getElementById('naCode').value = `WR-${String(activeAssets.res.length + activeAssets.way.length + activeAssets.drain.length + 1).padStart(3, '0')}`;
+        document.getElementById('naTableTarget').disabled = false;
+        
+        toggleFormFields();
+        resetDigitizeState();
+    }
+
+    function editAsset(type, id) {
+        currentEditingAssetId = id;
+        document.getElementById('newWaterModalTitle').innerHTML = '<i class="fa-solid fa-edit text-indigo-600 me-2"></i> แก้ไขข้อมูลแนวพิกัดและรายละเอียดทรัพย์สิน';
+        
+        const list = activeAssets[type] || [];
+        const item = list.find(x => x.id === id);
+        
+        if (!item) return;
+
+        // Fill form fields
+        document.getElementById('naTableTarget').value = type;
+        document.getElementById('naTableTarget').disabled = true; // Cannot change target type when editing
+        document.getElementById('naCode').value = item.water_code || item.waterway_code || item.asset_id || '';
+        document.getElementById('naName').value = item.water_name || item.waterway_name || '';
+        document.getElementById('naType').value = item.water_type || item.waterway_type || item.drainage_type || '';
+        document.getElementById('naVillage').value = item.village_no || '1';
+        document.getElementById('naLat').value = item.latitude || '17.975';
+        document.getElementById('naLng').value = item.longitude || '103.472';
+        document.getElementById('naStatus').value = item.status || 'normal';
+
+        if (type === 'res') {
+            document.getElementById('naArea').value = item.surface_area_sqm || '';
+            document.getElementById('naDepth').value = item.depth_m || '';
+        } else if (type === 'way') {
+            document.getElementById('naDepth').value = item.depth_m || '';
+            document.getElementById('naLength').value = item.length_m || '';
+        } else if (type === 'drain') {
+            document.getElementById('naMaterial').value = item.material || 'คอนกรีต';
+            document.getElementById('naDepth').value = item.depth_m || '';
+            document.getElementById('naLength').value = item.length_m || '';
+            document.getElementById('naRoadId').value = item.road_id || '';
+        }
+
+        toggleFormFields();
+
+        // Show Modal
+        const modal = new bootstrap.Modal(document.getElementById('newWaterModal'));
+        modal.show();
+    }
+
+    async function submitNewAsset(e) {
+        e.preventDefault();
+        const type = document.getElementById('naTableTarget').value;
+        
+        // Build coordinates GeoJSON
+        let geomType = 'Polygon';
+        if (type === 'way') geomType = 'LineString';
+        else if (type === 'drain') geomType = 'Point';
+
+        const geojsonObj = WaterSpatialService.convertLeafletToGeoJSON(geomType, digitizedPoints);
+
+        const payload = {
+            id: currentEditingAssetId,
+            village_no: document.getElementById('naVillage').value,
+            latitude: parseFloat(document.getElementById('naLat').value) || 17.975,
+            longitude: parseFloat(document.getElementById('naLng').value) || 103.472,
+            status: document.getElementById('naStatus').value,
+            geom: geojsonObj
+        };
+
+        if (type === 'res') {
+            payload.water_code = document.getElementById('naCode').value;
+            payload.water_name = document.getElementById('naName').value;
+            payload.water_type = document.getElementById('naType').value || 'หนอง';
+            payload.surface_area_sqm = parseFloat(document.getElementById('naArea').value) || 0;
+            payload.depth_m = parseFloat(document.getElementById('naDepth').value) || 0;
+            payload.capacity_cum = payload.surface_area_sqm * payload.depth_m;
+        } else if (type === 'way') {
+            payload.waterway_code = document.getElementById('naCode').value;
+            payload.waterway_name = document.getElementById('naName').value;
+            payload.waterway_type = document.getElementById('naType').value || 'คลองส่งน้ำ';
+            payload.width_m = parseFloat(document.getElementById('naDepth').value) || 0; // Using depth box value in width for Way
+            payload.depth_m = parseFloat(document.getElementById('naDepth').value) || 0;
+            payload.length_m = parseFloat(document.getElementById('naLength').value) || 0;
+        } else if (type === 'drain') {
+            payload.asset_id = document.getElementById('naCode').value;
+            payload.drainage_type = document.getElementById('naType').value || 'ฝาท่อระบายน้ำ';
+            payload.material = document.getElementById('naMaterial').value || 'คอนกรีต';
+            payload.width_m = 0.8;
+            payload.depth_m = parseFloat(document.getElementById('naDepth').value) || 1.0;
+            payload.length_m = parseFloat(document.getElementById('naLength').value) || 1.0;
+            payload.road_id = document.getElementById('naRoadId').value || '';
+        }
+
+        try {
+            await WaterSpatialService.saveAsset(type, payload);
+            
+            bootstrap.Modal.getInstance(document.getElementById('newWaterModal')).hide();
+            if (typeof showToast !== 'undefined') {
+                showToast('ขึ้นทะเบียนระบบน้ำและระบายน้ำเชิงพื้นที่สำเร็จ!', 'success');
+            }
+            refreshAllData();
+        } catch (err) {
+            console.error(err);
+            if (typeof showToast !== 'undefined') {
+                showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูลเชิงพื้นที่', 'danger');
+            }
+        }
+    }
+
+    async function deleteAsset(type, id) {
+        if (!confirm('ยืนยันที่จะลบข้อมูลทรัพย์สินระบบน้ำนี้ออกจากบัญชีเชิงพื้นที่หลักหรือไม่? (ข้อมูลเรขาคณิตทั้งหมดจะถูกลบ)')) return;
+        try {
+            await WaterSpatialService.deleteAsset(type, id);
+            if (typeof showToast !== 'undefined') {
+                showToast('ลบข้อมูลเรียบร้อยแล้ว', 'success');
+            }
+            refreshAllData();
+        } catch(e) {
+            if (typeof showToast !== 'undefined') {
+                showToast('เกิดข้อผิดพลาดในการลบข้อมูล', 'danger');
+            }
+        }
+    }
+
+    // ==========================================
+    // VIEW INDIVIDUAL GIS DATA MAP MODAL
+    // ==========================================
+    function openViewMapModal(type, id) {
+        const list = activeAssets[type] || [];
+        const item = list.find(x => x.id === id);
+        if (!item || !item.geom) return;
+
+        const title = document.getElementById('viewMapModalTitle');
+        title.innerHTML = `<i class="fa-solid fa-map-location-dot text-indigo-600 me-2"></i> แผนภูมิพิกัดแนวเส้นทาง: ${item.water_name || item.waterway_name || item.asset_id}`;
+
+        const modal = new bootstrap.Modal(document.getElementById('viewWaterMapModal'));
+        modal.show();
+
+        setTimeout(() => {
+            if (viewAssetMapInstance) {
+                viewAssetMapInstance.remove();
+            }
+
+            viewAssetMapInstance = L.map('viewWaterMapContainer').setView([item.latitude || 17.975, item.longitude || 103.472], 15);
+            L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=th&x={x}&y={y}&z={z}', {
+                attribution: '&copy; Google Hybrid Satellite',
+                maxZoom: 20
+            }).addTo(viewAssetMapInstance);
+
+            let renderLayer;
+            if (type === 'res') {
+                renderLayer = L.polygon(item.geom.coordinates[0].map(pt => [pt[1], pt[0]]), {
+                    color: '#0ea5e9', fillColor: '#38bdf8', fillOpacity: 0.5, weight: 3
+                }).addTo(viewAssetMapInstance);
+                viewAssetMapInstance.fitBounds(renderLayer.getBounds(), { padding: [30, 30] });
+            } else if (type === 'way') {
+                renderLayer = L.polyline(item.geom.coordinates.map(pt => [pt[1], pt[0]]), {
+                    color: '#6366f1', weight: 5, opacity: 0.95
+                }).addTo(viewAssetMapInstance);
+                viewAssetMapInstance.fitBounds(renderLayer.getBounds(), { padding: [30, 30] });
+            } else if (type === 'drain') {
+                renderLayer = L.marker([item.geom.coordinates[1], item.geom.coordinates[0]]).addTo(viewAssetMapInstance);
+                viewAssetMapInstance.setView([item.geom.coordinates[1], item.geom.coordinates[0]], 17);
+            }
+        }, 300);
+    }
+
+    // ==========================================
+    // GIS DATA EXPORT TRIGGERS & DOWNLOADING
+    // ==========================================
+    function openExportGISModal() {
+        const modal = new bootstrap.Modal(document.getElementById('exportGISModal'));
+        document.getElementById('exportStatusArea').style.display = 'none';
+        modal.show();
+    }
+
+    async function triggerGISExport(format) {
+        const targetType = document.getElementById('exportTableTarget').value;
+        const statusArea = document.getElementById('exportStatusArea');
+        const statusText = document.getElementById('exportStatusText');
+        statusArea.style.display = 'flex';
+        statusText.textContent = `กำลังโหลดข้อมูล ${targetType.toUpperCase()} และแปลงพิกัดในรูปแบบ ${format.toUpperCase()}...`;
+
+        try {
+            const items = await WaterSpatialService.loadAssets(targetType);
+            if (!items || !items.length) {
+                throw new Error("ไม่พบข้อมูลตามประเภทที่ต้องการส่งออก");
+            }
+
+            let fileData, filename, mimeType;
+            if (format === 'geojson') {
+                const geojsonObj = GISExportService.exportWaterGeoJSON(items, targetType);
+                fileData = JSON.stringify(geojsonObj, null, 2);
+                filename = `water_${targetType}_${Date.now()}.geojson`;
+                mimeType = 'application/json';
+            } else if (format === 'kml') {
+                fileData = GISExportService.exportWaterKML(items, targetType);
+                filename = `water_${targetType}_${Date.now()}.kml`;
+                mimeType = 'application/vnd.google-earth.kml+xml';
+            } else if (format === 'csv') {
+                fileData = GISExportService.exportWaterCSV(items, targetType);
+                filename = `water_${targetType}_${Date.now()}.csv`;
+                mimeType = 'text/csv';
+            } else if (format === 'shp') {
+                statusText.textContent = `กำลังสร้างไฟล์ .shp, .dbf, .shx, .prj และบีบอัดเป็น ZIP...`;
+                const zipBlob = await GISExportService.exportWaterSHP(items, targetType);
+                fileData = zipBlob;
+                filename = `water_${targetType}_${Date.now()}.zip`;
+                mimeType = 'application/zip';
+            }
+
+            // Google Drive Sync emulated
+            statusText.textContent = `กำลังอัปโหลดชุดส่งออกภูมิสารสนเทศไปยัง Cloud Storage & Google Drive...`;
+            const uploadResult = await GISExportService.uploadStorageBackup(filename, fileData, format === 'shp' ? 'zip' : 'text');
+            
+            statusText.textContent = `ดาวน์โหลดพิกัด GIS สำเร็จ!`;
+            const blob = format === 'shp' ? fileData : new Blob([fileData], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = format === 'shp' ? `water_${targetType}.zip` : (format === 'geojson' ? `water_${targetType}.geojson` : `water_${targetType}.${format}`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            setTimeout(() => {
+                bootstrap.Modal.getInstance(document.getElementById('exportGISModal')).hide();
+                if (typeof showToast !== 'undefined') {
+                    showToast(`ส่งออกพิกัด ${format.toUpperCase()} และบันทึก Backup บน G-Drive สำเร็จ!`, 'success');
+                }
+                loadGISUploadHistory();
+            }, 1200);
+
+        } catch (err) {
+            console.error("Export process failed:", err);
+            statusArea.style.display = 'none';
+            alert(`ข้อผิดพลาดในการส่งออกข้อมูล GIS: ${err.message}`);
+        }
+    }
+
+    // ==========================================
+    // GIS FILE IMPORT ENGINE
+    // ==========================================
+    function setupGISUploadEngine() {
+        // Override dynamic execution in shapefile-upload.js specifically for water assets
+        ShapefileUploader.executeImport = async function(mapping, onImported) {
+            if (!this.parsedGeoJSON) return;
+
+            const targetType = document.getElementById('uploadTableTarget').value;
+            const totalFeatures = this.parsedGeoJSON.features.length;
+            const progressPanel = document.getElementById('uploadProgressPanel');
+            const progressBar = document.getElementById('uploadProgressBar');
+            const progressLabel = document.getElementById('uploadPercentLabel');
+            const fileNameLabel = document.getElementById('uploadFileNameLabel');
+            
+            if (progressPanel) {
+                progressPanel.classList.remove('hidden');
+                if (fileNameLabel) fileNameLabel.textContent = `กำลังนำเข้า ${totalFeatures} รายการ...`;
+            }
+
+            if (typeof showToast !== 'undefined') {
+                showToast(`กำลังเริ่มต้นนำเข้าทรัพย์สินระบบน้ำ ${totalFeatures} ชุดพิกัด...`, 'info');
+            }
+
+            try {
+                let savedCount = 0;
+                const features = this.parsedGeoJSON.features || [];
+
+                for (let i = 0; i < features.length; i++) {
+                    const feat = features[i];
+                    const props = feat.properties || {};
+                    const geom = feat.geometry || {};
+                    
+                    let lat = null, lng = null;
+                    if (geom.type === 'Point' && geom.coordinates) {
+                        lng = geom.coordinates[0];
+                        lat = geom.coordinates[1];
+                    } else if (geom.type === 'LineString' && geom.coordinates && geom.coordinates.length) {
+                        lng = geom.coordinates[0][0];
+                        lat = geom.coordinates[0][1];
+                    } else if (geom.type === 'Polygon' && geom.coordinates && geom.coordinates[0] && geom.coordinates[0].length) {
+                        lng = geom.coordinates[0][0][0];
+                        lat = geom.coordinates[0][0][1];
+                    }
+
+                    const payload = {
+                        village_no: String(props[mapping.village_no] || '1'),
+                        latitude: lat || 17.975,
+                        longitude: lng || 103.472,
+                        status: props[mapping.status] || 'normal',
+                        geom: geom
+                    };
+
+                    if (targetType === 'res') {
+                        payload.water_code = props[mapping.water_code] || `WR-${String(activeAssets.res.length + i + 1).padStart(3, '0')}`;
+                        payload.water_name = props[mapping.water_name] || `แหล่งน้ำนำเข้าพิเศษ #${i + 1}`;
+                        payload.water_type = props[mapping.water_type] || 'หนอง';
+                        payload.surface_area_sqm = parseFloat(props[mapping.surface_area_sqm]) || 2000;
+                        payload.depth_m = parseFloat(props[mapping.depth_m]) || 2.0;
+                        payload.capacity_cum = payload.surface_area_sqm * payload.depth_m;
+                    } else if (targetType === 'way') {
+                        payload.waterway_code = props[mapping.waterway_code] || `WW-${String(activeAssets.way.length + i + 1).padStart(3, '0')}`;
+                        payload.waterway_name = props[mapping.waterway_name] || `เส้นทางน้ำนำเข้า #${i + 1}`;
+                        payload.waterway_type = props[mapping.waterway_type] || 'คลองส่งน้ำ';
+                        payload.width_m = parseFloat(props[mapping.width_m]) || 4.0;
+                        payload.depth_m = parseFloat(props[mapping.depth_m]) || 1.5;
+                        payload.length_m = parseFloat(props[mapping.length_m]) || 300;
+                    } else if (targetType === 'drain') {
+                        payload.asset_id = props[mapping.asset_id] || `DN-${String(activeAssets.drain.length + i + 1).padStart(3, '0')}`;
+                        payload.drainage_type = props[mapping.drainage_type] || 'ฝาท่อระบายน้ำ';
+                        payload.material = props[mapping.material] || 'คอนกรีต';
+                        payload.width_m = 0.8;
+                        payload.depth_m = parseFloat(props[mapping.depth_m]) || 1.0;
+                        payload.length_m = parseFloat(props[mapping.length_m]) || 1.0;
+                        payload.road_id = props[mapping.road_id] || '';
+                    }
+
+                    // Save via WaterSpatialService
+                    await WaterSpatialService.saveAsset(targetType, payload);
+                    savedCount++;
+
+                    // Update progress UI
+                    const pct = Math.round(((i + 1) / features.length) * 100);
+                    if (progressBar) progressBar.style.width = pct + '%';
+                    if (progressLabel) progressLabel.textContent = pct + '%';
+                    if (fileNameLabel) fileNameLabel.textContent = `กำลังประมวลผล ${i + 1}/${features.length}...`;
+                }
+
+                if (typeof showToast !== 'undefined') {
+                    showToast(`✅ นำเข้าข้อมูลระบบน้ำสำเร็จ! บันทึกพิกัดเชิงเส้น ${savedCount}/${features.length} รายการลงสู่ฐานข้อมูลเชิงสัมพันธ์แล้ว`, 'success');
+                }
+                
+                if (onImported) onImported();
+            } catch (err) {
+                console.error(err);
+                if (typeof showToast !== 'undefined') {
+                    showToast(`เกิดข้อผิดพลาดในการโหลดนำเข้า: ${err.message}`, 'danger');
+                }
+            }
+        };
+
+        // Initialize drag zone
+        ShapefileUploader.initDropZone('dropZoneContainer', 'fileUploadInput', (geojson) => {
+            document.getElementById('detectedCRS').textContent = ShapefileUploader.detectedCRS;
+            document.getElementById('detectedGeomType').textContent = geojson.features.length ? geojson.features[0].geometry.type : 'LineString';
+            document.getElementById('detectedCount').textContent = geojson.features.length;
+            document.getElementById('detectedFieldsCount').textContent = ShapefileUploader.attributes.length;
+
+            // Generate customized targets based on table select
+            const targetType = document.getElementById('uploadTableTarget').value;
+            let fields;
+            if (targetType === 'res') {
+                fields = [
+                    { key: 'water_code', label: 'รหัสแหล่งน้ำ', icon: 'fa-hashtag', required: true },
+                    { key: 'water_name', label: 'ชื่อแหล่งน้ำ', icon: 'fa-droplet', required: true },
+                    { key: 'water_type', label: 'ประเภทแหล่งน้ำ', icon: 'fa-tags' },
+                    { key: 'surface_area_sqm', label: 'เนื้อที่ผิวน้ำ (ตร.ม.)', icon: 'fa-arrows-left-right' },
+                    { key: 'depth_m', label: 'ความลึกเฉลี่ย (ม.)', icon: 'fa-ruler' },
+                    { key: 'village_no', label: 'หมู่ที่', icon: 'fa-location-dot' },
+                    { key: 'status', label: 'สถานภาพแหล่งน้ำ', icon: 'fa-circle-check' }
+                ];
+            } else if (targetType === 'way') {
+                fields = [
+                    { key: 'waterway_code', label: 'รหัสทางน้ำ', icon: 'fa-hashtag', required: true },
+                    { key: 'waterway_name', label: 'ชื่อทางน้ำ', icon: 'fa-droplet', required: true },
+                    { key: 'waterway_type', label: 'ประเภททางน้ำ', icon: 'fa-tags' },
+                    { key: 'width_m', label: 'ความกว้าง (ม.)', icon: 'fa-arrows-left-right' },
+                    { key: 'depth_m', label: 'ความลึก (ม.)', icon: 'fa-ruler' },
+                    { key: 'length_m', label: 'ความยาวสายน้ำ (ม.)', icon: 'fa-route' },
+                    { key: 'village_no', label: 'หมู่ที่', icon: 'fa-location-dot' },
+                    { key: 'status', label: 'สภาพทางน้ำ', icon: 'fa-circle-check' }
+                ];
+            } else {
+                fields = [
+                    { key: 'asset_id', label: 'รหัสระบบระบายน้ำ', icon: 'fa-hashtag', required: true },
+                    { key: 'drainage_type', label: 'ประเภทระบบระบาย', icon: 'fa-tags' },
+                    { key: 'material', label: 'วัสดุก่อสร้าง', icon: 'fa-hammer' },
+                    { key: 'depth_m', label: 'ความลึก (ม.)', icon: 'fa-ruler' },
+                    { key: 'length_m', label: 'ความยาวท่อ/ราง (ม.)', icon: 'fa-route' },
+                    { key: 'road_id', label: 'รหัสสายทางถนน', icon: 'fa-road' },
+                    { key: 'village_no', label: 'หมู่ที่', icon: 'fa-location-dot' },
+                    { key: 'status', label: 'สภาพฝาท่อ/ท่อ', icon: 'fa-circle-check' }
+                ];
+            }
+
+            ShapefileUploader.buildAttributeMapper('attributeMapperContainer', fields, () => {
+                document.getElementById('tab-list-tab').click();
+                refreshAllData();
+                loadGISUploadHistory();
+            });
+        });
+    }
+
+    async function loadGISUploadHistory() {
+        const tbody = document.getElementById('gisUploadsTableBody');
+        if (!tbody) return;
+        try {
+            if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                const { data, error } = await supabaseClient
+                    .from('infra_gis_uploads')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                if (error) throw error;
+                if (data && data.length > 0) {
+                    tbody.innerHTML = data.map(upload => `
+                        <tr>
+                            <td class="ps-4 fw-bold text-indigo-600">${upload.id.split('-')[0].toUpperCase()}</td>
+                            <td class="font-semibold text-slate-800">${upload.filename}</td>
+                            <td>${upload.crs || 'WGS 84'}</td>
+                            <td class="text-nowrap">${upload.geom_type || 'LineString'}</td>
+                            <td class="fw-bold">${upload.features_count} รายการ</td>
+                            <td>${new Date(upload.created_at).toLocaleString('th-TH')}</td>
+                            <td><span class="badge bg-emerald-600">Sync Active</span></td>
+                            <td class="text-center pe-4">
+                                <a href="${upload.file_url}" target="_blank" class="btn btn-xs btn-indigo text-white bg-indigo-600 font-bold px-2 py-0.5"><i class="fa-solid fa-download"></i> ดาวน์โหลด</a>
+                            </td>
+                        </tr>
+                    `).join('');
+                    return;
+                }
+            }
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">ไม่พบข้อมูลประวัตินำเข้าจากคลาวด์</td></tr>';
+        } catch(e) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">ไม่สามารถติดต่อคลาวด์สเปรดชีตประวัติได้</td></tr>';
+        }
+    }
+</script>
+</body>
+</html>

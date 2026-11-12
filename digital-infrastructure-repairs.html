@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ประวัติและแผนซ่อมบำรุงโครงสร้างพื้นฐาน (DIIS) - กองช่าง</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; }
+        .status-pending { background: #fee2e2; color: #991b1b; }
+        .status-in-progress { background: #fef3c7; color: #92400e; }
+        .status-completed { background: #d1fae5; color: #065f46; }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ระบบบันทึกงานซ่อมบำรุงโครงสร้าง"></div>
+    <div class="page-content p-4">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+                <h1 class="text-xl font-bold text-slate-800 mb-0 d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-wrench text-indigo-600"></i> ประวัติและระบบบันทึกงานซ่อมบำรุง
+                </h1>
+                <p class="text-xs text-slate-500 mb-0">ระบบจ่ายใบสั่งงานซ่อมแซมสิ่งก่อสร้าง ควบคุมความสมบูรณ์และงบดำเนินการ</p>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary" onclick="loadRepairs()"><i class="fa-solid fa-sync me-1"></i>รีเฟรช</button>
+                <button class="btn btn-sm btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 fw-semibold" data-bs-toggle="modal" data-bs-target="#newRepairModal"><i class="fa-solid fa-plus me-1"></i> รับเรื่องแจ้งซ่อมใหม่</button>
+            </div>
+        </div>
+
+        <!-- Repairs Database Table List -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden text-xs font-semibold text-slate-700">
+            <div class="table-responsive">
+                <table class="table table-gov table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4 text-nowrap">เลขอ้างอิงคำขอ</th>
+                            <th class="text-nowrap">ประเภททรัพย์สิน</th>
+                            <th class="text-nowrap">รหัสทรัพย์สินชำรุด</th>
+                            <th class="text-nowrap">รายละเอียดความเสียหาย</th>
+                            <th class="text-nowrap">ผู้แจ้งเรื่อง</th>
+                            <th class="text-nowrap">งบประมาณที่ใช้ (บาท)</th>
+                            <th class="text-nowrap">วันที่ซ่อมเสร็จ</th>
+                            <th class="text-nowrap">ผู้รับจ้าง/ผู้ควบคุม</th>
+                            <th class="text-nowrap">สถานะภาพ</th>
+                            <th class="text-center pe-4 text-nowrap">จัดการ / ดำเนินการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="repairsTableBody">
+                        <tr><td colspan="10" class="text-center py-4 text-muted">กำลังโหลดรายการแจ้งซ่อม...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Add New Infrastructure Repair Request modal -->
+<div class="modal fade" id="newRepairModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i> รับเรื่องแจ้งชำรุดโครงสร้างพื้นฐานใหม่</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-xs font-semibold text-slate-700">
+                <form id="newRepairForm" onsubmit="submitNewRepair(event)">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">ประเภทระบบทรัพย์สิน <span class="text-danger">*</span></label>
+                            <select class="form-select" id="nrAssetType" required>
+                                <option>ถนน</option>
+                                <option>แหล่งน้ำ</option>
+                                <option>เส้นทางน้ำ</option>
+                                <option>ฝาท่อระบายน้ำ</option>
+                                <option>รางระบายน้ำ</option>
+                                <option>ไฟฟ้าส่องสว่าง</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">รหัสสินทรัพย์ชำรุด <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nrAssetId" required placeholder="เช่น ถ.ทถ. 1-0003, DN-002">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">รายละเอียดความชำรุดและอาการที่พบบนหน้างาน <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="nrDamage" rows="3" required placeholder="เช่น ผิวลูกรังเป็นหลุมลึก รถวิ่งผ่านชำรุดอันตราย..."></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ชื่อผู้ส่งเรื่องแจ้ง</label>
+                            <input type="text" class="form-control" id="nrReporter" value="นายสมศักดิ์ รักดี">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">เบอร์ติดต่อกลับ</label>
+                            <input type="text" class="form-control" id="nrPhone" value="085-1122334">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">งบประมาณประมาณการ (บาท)</label>
+                            <input type="number" class="form-control" id="nrBudget" value="50000">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">พิกัด Latitude (Y)</label>
+                            <input type="number" step="0.000001" class="form-control" id="nrLat" value="17.975">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">พิกัด Longitude (X)</label>
+                            <input type="number" step="0.000001" class="form-control" id="nrLng" value="103.472">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 px-4 fw-semibold"><i class="fa-solid fa-save me-1"></i>บันทึกและส่งสืบงานช่าง</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Perform repair and close job modal -->
+<div class="modal fade" id="closeJobModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold text-success"><i class="fa-solid fa-circle-check me-2"></i> รายงานบันทึกงานซ่อมแซมและปิดใบงาน</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-xs font-semibold text-slate-700">
+                <form id="closeJobForm" onsubmit="submitCloseJob(event)">
+                    <input type="hidden" id="cjRepairId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">วันที่ซ่อมดำเนินการเสร็จสิ้น <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="cjDate" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ผู้รับผิดชอบงาน/วิศวกรคุมงาน <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="cjStaff" required value="สมชาย พานดี (วิศวกรโยธาชำนาญการ)">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">บริษัทผู้รับจ้าง/ดำเนินการ</label>
+                            <input type="text" class="form-control" id="cjContractor" placeholder="เช่น หจก. บูรพาการโยธา">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">งบประมาณสรุปรวมดำเนินการจริง (บาท)</label>
+                            <input type="number" class="form-control" id="cjActualBudget" value="45000">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">รายละเอียดขั้นตอนผลการซ่อมและเบิกจ่าย</label>
+                            <textarea class="form-control" id="cjDetail" rows="3" placeholder="ระบุการดำเนินงานและวัสดุที่ใช้..."></textarea>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-success text-white px-4 fw-semibold"><i class="fa-solid fa-check me-1"></i>บันทึกปิดใบงานการซ่อม</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/digital-infrastructure.js"></script>
+<script>
+    let repairsList = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadRepairs();
+    });
+
+    async function loadRepairs() {
+        const tbody = document.getElementById('repairsTableBody');
+        try {
+            repairsList = await DigitalInfraService.getRepairs();
+            if (!repairsList.length) {
+                tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-muted">ไม่พบข้อมูลประวัติแจ้งซ่อมบำรุง</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = repairsList.map(rep => {
+                let statusBadge = 'diis-badge diis-badge-warning';
+                let statusText = 'รอดำเนินการ';
+                let actionBtn = `<button class="btn btn-xs btn-primary text-nowrap me-1" onclick="openCloseJobModal('${rep.id}')"><i class="fa-solid fa-screwdriver-wrench me-1"></i>ดำเนินการซ่อม</button>`;
+                
+                if (rep.status === 'completed') {
+                    statusBadge = 'diis-badge diis-badge-success';
+                    statusText = 'เสร็จสมบูรณ์';
+                    actionBtn = `<span class="text-success text-xs font-bold text-nowrap"><i class="fa-solid fa-check-circle me-1"></i> ปิดใบงานแล้ว</span>`;
+                }
+
+                return `
+                    <tr>
+                        <td class="ps-4 fw-bold text-indigo-600 text-nowrap">${rep.repair_code || rep.id.slice(-6)}</td>
+                        <td class="text-nowrap">${rep.asset_type}</td>
+                        <td class="text-indigo-600 font-semibold text-nowrap">${rep.asset_id}</td>
+                        <td><p class="mb-0 font-normal line-clamp-1">${rep.damage_detail}</p></td>
+                        <td class="text-nowrap">${rep.reporter_name || '-'}</td>
+                        <td class="text-nowrap">${(rep.budget || 0).toLocaleString()}</td>
+                        <td class="text-nowrap">${rep.repair_date ? new Date(rep.repair_date).toLocaleDateString('th-TH') : '-'}</td>
+                        <td class="text-nowrap">${rep.staff_name || rep.contractor || '-'}</td>
+                        <td class="text-nowrap"><span class="${statusBadge}">${statusText}</span></td>
+                        <td class="text-center pe-4 text-nowrap">${actionBtn}</td>
+                    </tr>
+                `;
+            }).join('');
+        } catch(e) { tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-danger">เกิดข้อผิดพลาดในการโหลดรายการ</td></tr>'; }
+    }
+
+    async function submitNewRepair(e) {
+        e.preventDefault();
+        const payload = {
+            asset_type: document.getElementById('nrAssetType').value,
+            asset_id: document.getElementById('nrAssetId').value,
+            damage_detail: document.getElementById('nrDamage').value,
+            reporter_name: document.getElementById('nrReporter').value,
+            reporter_phone: document.getElementById('nrPhone').value,
+            budget: parseFloat(document.getElementById('nrBudget').value) || 30000,
+            latitude: parseFloat(document.getElementById('nrLat').value) || 17.975,
+            longitude: parseFloat(document.getElementById('nrLng').value) || 103.472,
+            status: 'pending'
+        };
+
+        try {
+            await DigitalInfraService.saveRepair(payload);
+            bootstrap.Modal.getInstance(document.getElementById('newRepairModal')).hide();
+            if(typeof showToast !== 'undefined') showToast('รับเรื่องแจ้งชำรุดเข้าสู่ระบบเรียบร้อยแล้ว', 'success');
+            loadRepairs();
+        } catch(err) {
+            if(typeof showToast !== 'undefined') showToast('เกิดข้อผิดพลาด', 'danger');
+        }
+    }
+
+    function openCloseJobModal(id) {
+        document.getElementById('cjRepairId').value = id;
+        document.getElementById('cjDate').value = new Date().toISOString().split('T')[0];
+        new bootstrap.Modal(document.getElementById('closeJobModal')).show();
+    }
+
+    async function submitCloseJob(e) {
+        e.preventDefault();
+        const id = document.getElementById('cjRepairId').value;
+        const updatePayload = {
+            id: id,
+            repair_date: document.getElementById('cjDate').value,
+            staff_name: document.getElementById('cjStaff').value,
+            contractor: document.getElementById('cjContractor').value || 'ดำเนินการเองโดยงานช่าง',
+            budget: parseFloat(document.getElementById('cjActualBudget').value) || 40000,
+            status: 'completed'
+        };
+
+        try {
+            await DigitalInfraService.saveRepair(updatePayload);
+            bootstrap.Modal.getInstance(document.getElementById('closeJobModal')).hide();
+            if(typeof showToast !== 'undefined') showToast('ดำเนินการซ่อมและปิดใบงานช่างสำเร็จ', 'success');
+            loadRepairs();
+        } catch(err) {
+            if(typeof showToast !== 'undefined') showToast('ไม่สามารถบันทึกการปิดใบงานได้', 'danger');
+        }
+    }
+</script>
+</body>
+</html>

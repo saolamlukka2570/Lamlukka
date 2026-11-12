@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ปราชญ์ชุมชน - Digital Data Center</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ทะเบียนปราชญ์ชุมชน"></div>
+    <div class="page-content">
+        <div class="mb-3"><a href="digital-data-dashboard.html" class="btn btn-light shadow-sm border fw-bold" style="border-radius:10px;"><i class="fa-solid fa-arrow-left me-2"></i>ย้อนกลับ (Digital Data Center)</a></div>
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div><h4 class="fw-bold mb-1"><i class="fa-solid fa-graduation-cap text-info me-2"></i>ทะเบียนปราชญ์ชุมชน</h4>
+            <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;"><li class="breadcrumb-item"><a href="digital-data-dashboard.html" class="text-decoration-none">Digital Data Center</a></li><li class="breadcrumb-item active">ปราชญ์ชุมชน</li></ol></nav></div>
+            <div class="d-flex gap-2"><button class="btn btn-sm btn-info text-white" onclick="showToast('กำลังพัฒนา','info')"><i class="fa-solid fa-plus me-1"></i>เพิ่มข้อมูล</button><button class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-file-excel me-1"></i>Export</button></div>
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-4"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ปราชญ์ชุมชนรวม</div><div class="kpi-value" id="k1">—</div></div><div class="kpi-icon bg-info bg-opacity-10 text-info"><i class="fa-solid fa-graduation-cap"></i></div></div></div></div>
+            <div class="col-6 col-lg-4"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">สาขาความเชี่ยวชาญ</div><div class="kpi-value text-success" id="k2">—</div></div><div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-layer-group"></i></div></div></div></div>
+            <div class="col-6 col-lg-4"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">หมู่บ้านที่ครอบคลุม</div><div class="kpi-value text-primary" id="k3">—</div></div><div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-map-pin"></i></div></div></div></div>
+        </div>
+        <div class="card mb-3"><div class="card-body py-2"><div class="row g-2 align-items-center">
+            <div class="col-md-8"><div class="input-group input-group-sm"><span class="input-group-text bg-light"><i class="fa-solid fa-search text-muted"></i></span><input type="text" class="form-control" id="sI" placeholder="ค้นหาชื่อ / ความเชี่ยวชาญ..." onkeyup="ft()"></div></div>
+            <div class="col-md-4 text-end"><span class="text-xs text-muted" id="rc">—</span></div>
+        </div></div></div>
+        <div class="card"><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0">
+            <thead><tr><th class="ps-4">ชื่อ-สกุล</th><th>อายุ</th><th>ความเชี่ยวชาญ</th><th>ติดต่อ</th><th>บ้านเลขที่</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
+            <tbody id="tB"><tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody>
+        </table></div></div></div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script><script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/digital-data-service.js"></script><script src="assets/js/household-service.js"></script><script src="assets/js/responsive.js"></script>
+<script>
+let ad=[];
+const mk=[
+    {id:'s1',expertise:'สมุนไพรพื้นบ้าน / การแพทย์แผนไทย',contact:'089-xxx-xxxx',dd_household_members:{prefix:'นาย',first_name:'ทองคำ',last_name:'สุขสวัสดิ์',age:72,gender:'ชาย',dd_households:{house_number:'12',village_no:1,village_name:'บ้านท่าสะอาด'}}},
+    {id:'s2',expertise:'จักสาน / หัตถกรรมพื้นบ้าน',contact:'087-xxx-xxxx',dd_household_members:{prefix:'นาง',first_name:'สมจิตร',last_name:'ศรีสุข',age:68,gender:'หญิง',dd_households:{house_number:'45',village_no:4,village_name:'บ้านโนนสวาท'}}},
+    {id:'s3',expertise:'เกษตรอินทรีย์ / ทำนาข้าว',contact:'093-xxx-xxxx',dd_household_members:{prefix:'นาย',first_name:'บุญมี',last_name:'แก้วมณี',age:65,gender:'ชาย',dd_households:{house_number:'78/1',village_no:6,village_name:'บ้านหนองผือ'}}},
+    {id:'s4',expertise:'ดนตรีพื้นบ้าน / หมอลำ',contact:'081-xxx-xxxx',dd_household_members:{prefix:'นาย',first_name:'สมศักดิ์',last_name:'ทองดี',age:60,gender:'ชาย',dd_households:{house_number:'34',village_no:10,village_name:'บ้านหนองแก้ว'}}},
+];
+document.addEventListener('DOMContentLoaded',async()=>{
+    let d=await HouseholdService.getScholarList(); if(!d.length) d=mk; ad=d; rn(d);
+    document.getElementById('k1').textContent=d.length;
+    document.getElementById('k2').textContent=new Set(d.map(x=>(x.expertise||'').split('/')[0].trim())).size;
+    document.getElementById('k3').textContent=new Set(d.map(x=>(x.dd_household_members?.dd_households?.village_no))).size;
+});
+function rn(d){
+    const tb=document.getElementById('tB');document.getElementById('rc').textContent=d.length+' ท่าน';
+    if(!d.length){tb.innerHTML='<tr><td colspan="6" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';return;}
+    tb.innerHTML=d.map(x=>{const m=x.dd_household_members||{};const h=m.dd_households||{};return `<tr>
+        <td class="ps-4 fw-semibold">${m.prefix||''} ${m.first_name||''} ${m.last_name||''}</td><td>${m.age||'-'} ปี</td>
+        <td><span class="badge bg-info bg-opacity-10 text-info">${x.expertise||'-'}</span></td>
+        <td class="text-xs">${x.contact||'-'}</td><td>${h.house_number||'-'} ม.${h.village_no||'-'}</td>
+        <td class="pe-4 text-center"><button class="btn btn-xs btn-outline-primary"><i class="fa-solid fa-eye"></i></button></td>
+    </tr>`;}).join('');
+}
+function ft(){const q=document.getElementById('sI').value.toLowerCase();let d=ad;if(q)d=d.filter(x=>{const m=x.dd_household_members||{};return(m.first_name||'').toLowerCase().includes(q)||(x.expertise||'').toLowerCase().includes(q);});rn(d);}
+</script>
+</body>
+</html>

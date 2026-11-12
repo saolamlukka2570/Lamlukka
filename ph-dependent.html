@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ผู้ที่มีภาวะพึ่งพิง - กองสาธารณสุขฯ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="bg-light">
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ฐานข้อมูลผู้ที่มีภาวะพึ่งพิง"></div>
+    <div class="page-content">
+        <div class="mb-3"><a href="healthcare-dashboard.html" class="btn btn-light shadow-sm border fw-bold" style="border-radius:10px;"><i class="fa-solid fa-arrow-left me-2"></i>ย้อนกลับ (หน้าหลักสาธารณสุข)</a></div>
+        
+        <!-- Header -->
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div><h4 class="fw-bold mb-1"><i class="fa-solid fa-hospital-user text-warning me-2"></i>ฐานข้อมูลผู้ที่มีภาวะพึ่งพิง</h4>
+            <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;"><li class="breadcrumb-item"><a href="healthcare-dashboard.html" class="text-decoration-none">กองสาธารณสุขฯ</a></li><li class="breadcrumb-item active">ผู้ที่มีภาวะพึ่งพิง</li></ol></nav></div>
+            <div class="d-flex gap-2">
+                <input type="file" id="importExcel" accept=".xlsx, .xls" style="display:none;" onchange="handleImportExcel(event)">
+                <button class="btn btn-sm btn-outline-success shadow-sm" onclick="document.getElementById('importExcel').click()"><i class="fa-solid fa-file-import me-1"></i>นำเข้า Excel</button>
+                <button class="btn btn-sm btn-outline-secondary shadow-sm" onclick="exportExcel()"><i class="fa-solid fa-file-export me-1"></i>ส่งออก Excel</button>
+                <button class="btn btn-sm btn-warning text-dark fw-bold shadow-sm" onclick="showAddDependent()"><i class="fa-solid fa-plus me-1"></i>เพิ่มผู้มีภาวะพึ่งพิง</button>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up border-0 shadow-sm"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1 text-muted">ผู้ที่มีภาวะพึ่งพิงรวม</div><div class="kpi-value text-dark" id="k1">—</div></div><div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-users"></i></div></div></div></div>
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up border-0 shadow-sm"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1 text-muted">กลุ่มติดสังคม</div><div class="kpi-value text-success" id="k2">—</div></div><div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-person-walking"></i></div></div></div></div>
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up border-0 shadow-sm"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1 text-muted">กลุ่มติดบ้าน</div><div class="kpi-value text-info" id="k3">—</div></div><div class="kpi-icon bg-info bg-opacity-10 text-info"><i class="fa-solid fa-house-chimney-medical"></i></div></div></div></div>
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up border-0 shadow-sm"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1 text-muted">กลุ่มติดเตียง</div><div class="kpi-value text-danger" id="k4">—</div></div><div class="kpi-icon bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-bed-pulse"></i></div></div></div></div>
+        </div>
+
+        <!-- Search & Filter -->
+        <div class="card mb-3 border-0 shadow-sm"><div class="card-body py-2 px-3"><div class="row g-2 align-items-center">
+            <div class="col-md-6"><div class="input-group input-group-sm"><span class="input-group-text bg-white"><i class="fa-solid fa-search text-muted"></i></span><input type="text" class="form-control border-start-0 ps-0" id="sI" placeholder="ค้นหาด้วย ชื่อ หรือ นามสกุล..." onkeyup="ft()"></div></div>
+            <div class="col-md-3"><select class="form-select form-select-sm" id="fC" onchange="ft()"><option value="">ทุกกลุ่ม ADL</option><option>ติดสังคม</option><option>ติดบ้าน</option><option>ติดเตียง</option></select></div>
+            <div class="col-md-3 text-end"><span class="text-xs text-muted fw-bold" id="rc">0 ราย</span></div>
+        </div></div></div>
+
+        <!-- Table Data -->
+        <div class="card border-0 shadow-sm"><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+            <thead class="table-light"><tr><th class="ps-4">ชื่อ-สกุล</th><th>อายุ</th><th>รพ.สต.</th><th>กลุ่ม ADL</th><th>ค่า ADL</th><th>CG ที่ดูแล</th><th>ความต้องการ</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
+            <tbody id="tB"><tr><td colspan="8" class="text-center py-4 text-muted"><i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังโหลด...</td></tr></tbody>
+        </table></div></div></div>
+    </div>
+</div>
+
+<!-- Dependent Person Modal (Based on User Requirements) -->
+<div class="modal fade" id="dependentModal" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+    <div class="modal-header border-0 bg-warning bg-opacity-10 py-3">
+        <h5 class="modal-title fw-bold text-dark"><i class="fa-solid fa-hospital-user text-warning me-2"></i>ข้อมูลผู้ที่มีภาวะพึ่งพิง</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body p-4 bg-light">
+        <form id="dependentForm">
+            <!-- Section 1: Personal Info -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white fw-bold text-primary py-2"><i class="fa-solid fa-user me-2"></i>ข้อมูลส่วนบุคคล</div>
+                <div class="card-body p-3">
+                    <div class="row g-3">
+                        <div class="col-md-2"><label class="form-label text-muted text-xs fw-bold mb-1">คำนำหน้า</label><select class="form-select form-select-sm"><option>นาย</option><option>นาง</option><option>นางสาว</option></select></div>
+                        <div class="col-md-3"><label class="form-label text-muted text-xs fw-bold mb-1">ชื่อ</label><input type="text" class="form-control form-control-sm" value="หวาน"></div>
+                        <div class="col-md-3"><label class="form-label text-muted text-xs fw-bold mb-1">สกุล</label><input type="text" class="form-control form-control-sm" value="สะราคำ"></div>
+                        <div class="col-md-4"><label class="form-label text-muted text-xs fw-bold mb-1">เลขบัตรประชาชน</label><input type="text" class="form-control form-control-sm" value="3720200588930"></div>
+                        
+                        <div class="col-md-2"><label class="form-label text-muted text-xs fw-bold mb-1">วันเกิด (ว/ด/ป)</label><input type="text" class="form-control form-control-sm" value="30 พฤศจิกายน 2487"></div>
+                        <div class="col-md-2"><label class="form-label text-muted text-xs fw-bold mb-1">อายุ</label><input type="number" class="form-control form-control-sm" value="78"></div>
+                        <div class="col-md-2"><label class="form-label text-muted text-xs fw-bold mb-1">เพศ</label><select class="form-select form-select-sm"><option selected>ชาย</option><option>หญิง</option></select></div>
+                        <div class="col-md-3"><label class="form-label text-muted text-xs fw-bold mb-1">สถานภาพสมรส</label><select class="form-select form-select-sm"><option>โสด</option><option>สมรส</option><option selected>หม้าย</option><option>หย่าร้าง</option></select></div>
+                        <div class="col-md-3"><label class="form-label text-muted text-xs fw-bold mb-1">เบอร์โทร</label><input type="text" class="form-control form-control-sm" value="0635147482"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Address Info -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white fw-bold text-success py-2"><i class="fa-solid fa-location-dot me-2"></i>ข้อมูลที่พักอาศัย</div>
+                <div class="card-body p-3">
+                    <div class="row g-3">
+                        <div class="col-md-2"><label class="form-label text-muted text-xs fw-bold mb-1">บ้านเลขที่</label><input type="text" class="form-control form-control-sm" value="145/1"></div>
+                        <div class="col-md-2"><label class="form-label text-muted text-xs fw-bold mb-1">หมู่ที่</label><input type="text" class="form-control form-control-sm" value="1"></div>
+                        <div class="col-md-3"><label class="form-label text-muted text-xs fw-bold mb-1">ตำบล</label><input type="text" class="form-control form-control-sm" value="ป่าสะแก" disabled></div>
+                        <div class="col-md-5"><label class="form-label text-muted text-xs fw-bold mb-1">ลักษณะการอยู่อาศัย</label><select class="form-select form-select-sm"><option selected>มีชื่อในทะเบียนบ้าน และอยู่อาศัยจริง</option><option>มีชื่อในทะเบียนบ้าน แต่ไม่ได้อยู่อาศัย</option><option>ไม่มีชื่อในทะเบียนบ้าน แต่อยู่อาศัยจริง</option></select></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Health & Care Info -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white fw-bold text-danger py-2"><i class="fa-solid fa-notes-medical me-2"></i>ข้อมูลสุขภาพและภาวะพึ่งพิง</div>
+                <div class="card-body p-3">
+                    <div class="row g-3">
+                        <div class="col-md-3"><label class="form-label text-muted text-xs fw-bold mb-1">รพ.สต.</label><input type="text" class="form-control form-control-sm border-danger-subtle" value="รพ.สต.ทดสอบ"></div>
+                        <div class="col-md-3"><label class="form-label text-muted text-xs fw-bold mb-1">ประเภทสิทธิ์การรักษา</label><input type="text" class="form-control form-control-sm" value="บัตรทอง"></div>
+                        <div class="col-md-3"><label class="form-label text-muted text-xs fw-bold mb-1">ปีที่เข้าร่วม</label><input type="text" class="form-control form-control-sm" value="2567"></div>
+                        <div class="col-md-3"><label class="form-label text-muted text-xs fw-bold mb-1">สถานะการดูแล</label><select class="form-select form-select-sm bg-success text-white fw-bold border-0"><option selected>ได้รับการดูแล</option><option>รอรับการดูแล</option><option>ยุติการดูแล</option></select></div>
+                        
+                        <div class="col-md-3"><label class="form-label text-muted text-xs fw-bold mb-1">กลุ่มคัดกรอง ADL</label><select class="form-select form-select-sm"><option>ติดสังคม</option><option selected>ติดบ้าน</option><option>ติดเตียง</option></select></div>
+                        <div class="col-md-2"><label class="form-label text-muted text-xs fw-bold mb-1">กลุ่ม ADL</label><input type="text" class="form-control form-control-sm fw-bold text-primary" value="2"></div>
+                        <div class="col-md-2"><label class="form-label text-muted text-xs fw-bold mb-1">ค่า ADL (0-20)</label><input type="number" class="form-control form-control-sm fw-bold text-danger" value="8"></div>
+                        <div class="col-md-5"><label class="form-label text-muted text-xs fw-bold mb-1">คำอธิบายกลุ่ม</label><input type="text" class="form-control form-control-sm text-muted" value="ผู้สูงอายุกลุ่มที่ 2 ผู้สูงอายุที่ดูแลตนเองได้บ้าง (กลุ่มติดบ้าน)"></div>
+
+                        <div class="col-md-2"><label class="form-label text-muted text-xs fw-bold mb-1">TAI</label><input type="text" class="form-control form-control-sm" value="B3"></div>
+                        <div class="col-md-2"><label class="form-label text-muted text-xs fw-bold mb-1">กลุ่ม TAI</label><input type="text" class="form-control form-control-sm" value="1(B3)"></div>
+                        <div class="col-md-8"><label class="form-label text-muted text-xs fw-bold mb-1">ประเภท</label><input type="text" class="form-control form-control-sm" value="ผู้สูงอายุ , ผู้ที่มีภาวะพึ่งพิง"></div>
+
+                        <div class="col-md-6"><label class="form-label text-muted text-xs fw-bold mb-1">โรคประจำตัว</label><input type="text" class="form-control form-control-sm" value="โรคความดัน"></div>
+                        <div class="col-md-6"><label class="form-label text-muted text-xs fw-bold mb-1">ประวัติการแพ้ยา/แพ้อาหาร</label><input type="text" class="form-control form-control-sm text-success" value="ปฏิเสธการแพ้ยา"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Need & Caregiver Info -->
+            <div class="card border-0 shadow-sm mb-2">
+                <div class="card-header bg-white fw-bold text-info py-2"><i class="fa-solid fa-hands-holding-child me-2"></i>ความต้องการและผู้ดูแล</div>
+                <div class="card-body p-3">
+                    <div class="row g-3">
+                        <div class="col-md-5"><label class="form-label text-muted text-xs fw-bold mb-1">ประเด็นปัญหา/ความต้องการ</label><input type="text" class="form-control form-control-sm border-info-subtle" value="รถเข็น ผ้าอ้อมผู้ใหญ่ เตียงนอน"></div>
+                        <div class="col-md-2"><label class="form-label text-muted text-xs fw-bold mb-1">ไซส์</label><input type="text" class="form-control form-control-sm" value="L"></div>
+                        <div class="col-md-5"><label class="form-label text-muted text-xs fw-bold mb-1">ข้อควรระวัง</label><input type="text" class="form-control form-control-sm border-warning-subtle text-danger" value="อุบัติเหตุพลัดตกหกล้ม"></div>
+
+                        <div class="col-md-4"><label class="form-label text-muted text-xs fw-bold mb-1">ชื่อ-นามสกุล ญาติที่ดูแล</label><input type="text" class="form-control form-control-sm" value="นางสาววิยะดา สะราคำ"></div>
+                        <div class="col-md-2"><label class="form-label text-muted text-xs fw-bold mb-1">เบอร์โทรญาติ</label><input type="text" class="form-control form-control-sm" value="0635147482"></div>
+                        
+                        <div class="col-md-6"></div> <!-- spacer -->
+
+                        <div class="col-md-4"><label class="form-label text-muted text-xs fw-bold mb-1"><i class="fa-solid fa-user-nurse me-1 text-primary"></i>CG ที่ดูแล</label><input type="text" class="form-control form-control-sm bg-white" value="นางสาวดวงกมล สิงห์ทอง" readonly></div>
+                        <div class="col-md-4"><label class="form-label text-muted text-xs fw-bold mb-1"><i class="fa-solid fa-user-doctor me-1 text-success"></i>CM ที่ดูแล</label><input type="text" class="form-control form-control-sm bg-white" value="นางสาวอัษฎาภรณ์ พันธุวงษ์" readonly></div>
+                        <div class="col-md-4"><label class="form-label text-muted text-xs fw-bold mb-1"><i class="fa-solid fa-user-shield me-1 text-info"></i>อสม. ที่ดูแล</label><input type="text" class="form-control form-control-sm bg-white" value="นายนิวัช ระหา" readonly></div>
+                    </div>
+                </div>
+            </div>
+
+        </form>
+    </div>
+    <div class="modal-footer border-0 bg-white">
+        <button type="button" class="btn btn-light border fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn btn-warning text-dark fw-bold px-4" onclick="saveDependent()"><i class="fa-solid fa-save me-1"></i>บันทึกข้อมูล</button>
+    </div>
+</div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script>
+// Mock data based on provided requirements
+let mockData = [
+    { name: "นายหวาน สะราคำ", age: 78, hospital: "รพ.สต.ทดสอบ", adlGroup: "ติดบ้าน", adlScore: 8, cg: "นางสาวดวงกมล สิงห์ทอง", needs: "รถเข็น ผ้าอ้อมผู้ใหญ่ เตียงนอน" },
+    { name: "นางสมศรี ดีใจ", age: 82, hospital: "รพ.สต.ทดสอบ", adlGroup: "ติดเตียง", adlScore: 3, cg: "นายสมชาย ใจดี", needs: "แผ่นรองซับ, สายยางให้อาหาร" },
+    { name: "นายบุญมี ศรีสุข", age: 65, hospital: "รพ.สต.ทดสอบ", adlGroup: "ติดสังคม", adlScore: 14, cg: "-", needs: "ไม้เท้าช่วยเดิน" },
+    { name: "นางสาวจันทร์ เพ็ญ", age: 71, hospital: "รพ.สต.ทดสอบ", adlGroup: "ติดบ้าน", adlScore: 9, cg: "นางสมหญิง รักดี", needs: "รถเข็น, แว่นสายตา" },
+    { name: "นายมงคล คงดี", age: 88, hospital: "รพ.สต.ทดสอบ", adlGroup: "ติดเตียง", adlScore: 0, cg: "นายสมชาย ใจดี", needs: "เตียงลม, เครื่องดูดเสมหะ" }
+];
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Generate Sidebar Menu (assume app.js handles this)
+    if(typeof renderSidebar === 'function') renderSidebar('ph-dependent');
+    
+    // Simulate loading
+    setTimeout(() => {
+        renderTable(mockData);
+        updateKPIs(mockData);
+    }, 500);
+});
+
+function renderTable(data) {
+    const tb = document.getElementById('tB');
+    document.getElementById('rc').textContent = data.length + ' ราย';
+    if (!data.length) { tb.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>'; return; }
+    
+    const colors = { "ติดสังคม": "bg-success", "ติดบ้าน": "bg-info", "ติดเตียง": "bg-danger" };
+    
+    tb.innerHTML = data.map(x => `
+        <tr>
+            <td class="ps-4 fw-bold text-dark">${x.name}</td>
+            <td>${x.age} ปี</td>
+            <td class="text-muted">${x.hospital}</td>
+            <td><span class="badge ${colors[x.adlGroup] || 'bg-secondary'} px-2 py-1">${x.adlGroup}</span></td>
+            <td class="fw-bold ${x.adlScore <= 4 ? 'text-danger' : (x.adlScore <= 11 ? 'text-info' : 'text-success')}">${x.adlScore}</td>
+            <td class="text-xs text-muted"><i class="fa-solid fa-user-nurse me-1"></i>${x.cg}</td>
+            <td class="text-xs text-truncate" style="max-width:200px;" title="${x.needs}">${x.needs}</td>
+            <td class="pe-4 text-center">
+                <button class="btn btn-sm btn-light border shadow-sm text-primary" onclick="showEditDependent()" title="ดู/แก้ไขข้อมูล"><i class="fa-solid fa-pen-to-square"></i></button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function updateKPIs(data) {
+    document.getElementById('k1').textContent = data.length;
+    document.getElementById('k2').textContent = data.filter(x => x.adlGroup === 'ติดสังคม').length;
+    document.getElementById('k3').textContent = data.filter(x => x.adlGroup === 'ติดบ้าน').length;
+    document.getElementById('k4').textContent = data.filter(x => x.adlGroup === 'ติดเตียง').length;
+}
+
+function ft() {
+    const q = document.getElementById('sI').value.toLowerCase();
+    const c = document.getElementById('fC').value;
+    let d = mockData;
+    if (q) d = d.filter(x => x.name.toLowerCase().includes(q));
+    if (c) d = d.filter(x => x.adlGroup === c);
+    renderTable(d);
+}
+
+function showAddDependent() {
+    document.getElementById('dependentForm').reset();
+    new bootstrap.Modal(document.getElementById('dependentModal')).show();
+}
+
+function showEditDependent() {
+    new bootstrap.Modal(document.getElementById('dependentModal')).show();
+}
+
+function saveDependent() {
+    Swal.fire({
+        icon: 'success',
+        title: 'บันทึกข้อมูลสำเร็จ',
+        text: 'ระบบได้อัปเดตข้อมูลผู้ที่มีภาวะพึ่งพิงเรียบร้อยแล้ว',
+        showConfirmButton: false,
+        timer: 1500
+    });
+    bootstrap.Modal.getInstance(document.getElementById('dependentModal')).hide();
+}
+
+function exportExcel() {
+    Swal.fire('กำลังส่งออก...', 'ระบบกำลังสร้างไฟล์ Excel', 'info');
+}
+
+function handleImportExcel(event) {
+    if(event.target.files.length > 0) {
+        Swal.fire('นำเข้าสำเร็จ', 'นำเข้าข้อมูลเรียบร้อยแล้ว', 'success');
+        event.target.value = '';
+    }
+}
+</script>
+</body>
+</html>

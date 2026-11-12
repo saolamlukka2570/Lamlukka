@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบแดชบอร์ดโครงสร้างพื้นฐานดิจิทัล (DIIS) - กองช่าง</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; }
+        .kpi-dark-card {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border-left: 5px solid #eab308;
+        }
+        .ai-glow {
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ระบบจัดการโครงสร้างพื้นฐานดิจิทัล (DIIS)"></div>
+    <div class="page-content p-4">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <a href="publicworks.html" class="btn btn-light rounded-circle shadow-sm border w-10 h-10 d-flex align-items-center justify-content-center">
+                    <i class="fa-solid fa-arrow-left text-slate-600"></i>
+                </a>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-800 mb-1"><i class="fa-solid fa-server text-indigo-600 me-2"></i>ระบบวิเคราะห์โครงสร้างพื้นฐานดิจิทัล</h1>
+                    <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                        <li class="breadcrumb-item"><a href="dashboard.html">แดชบอร์ด</a></li>
+                        <li class="breadcrumb-item"><a href="publicworks.html">กองช่าง</a></li>
+                        <li class="breadcrumb-item active">Digital Infrastructure</li>
+                    </ol></nav>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn btn-sm btn-outline-primary" onclick="location.reload()"><i class="fa-solid fa-refresh me-1"></i>อัปเดตข้อมูล</button>
+                <a href="digital-infrastructure-map.html" class="btn btn-sm btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 fw-semibold"><i class="fa-solid fa-map-location-dot me-1"></i>เปิดแผนที่บูรณาการ GIS</a>
+            </div>
+        </div>
+
+        <!-- Executive Summary KPI Row -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <!-- Roads KPI -->
+            <div class="kpi-dark-card p-4 rounded-2xl shadow-sm text-white flex justify-between items-center relative overflow-hidden group">
+                <div>
+                    <span class="text-xs text-slate-400 font-medium d-block mb-1">ความยาวถนนสายทางรวม</span>
+                    <h3 class="text-2xl font-bold text-yellow-500 mb-0 text-nowrap" id="statRoadLength">4.00 กม.</h3>
+                    <small class="text-xs text-slate-300 mt-1 d-block" id="statRoadCount">รวม 3 เส้นทางหลวงท้องถิ่น</small>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-white/10 d-flex align-items-center justify-content-center text-yellow-500"><i class="fa-solid fa-road text-xl"></i></div>
+            </div>
+
+            <!-- Water KPI -->
+            <div class="kpi-dark-card p-4 rounded-2xl shadow-sm text-white flex justify-between items-center relative overflow-hidden" style="border-left-color: #0ea5e9;">
+                <div>
+                    <span class="text-xs text-slate-400 font-medium d-block mb-1">แหล่งน้ำ & เส้นทางน้ำ</span>
+                    <h3 class="text-2xl font-bold text-sky-400 mb-0" id="statWaterCount">3 แห่ง</h3>
+                    <small class="text-xs text-slate-300 mt-1 d-block">หนอง 1 · สระ 1 · คลอง 1</small>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-white/10 d-flex align-items-center justify-content-center text-sky-400"><i class="fa-solid fa-droplet text-xl"></i></div>
+            </div>
+
+            <!-- Drainage KPI -->
+            <div class="kpi-dark-card p-4 rounded-2xl shadow-sm text-white flex justify-between items-center relative overflow-hidden" style="border-left-color: #22c55e;">
+                <div>
+                    <span class="text-xs text-slate-400 font-medium d-block mb-1">ระบบระบายน้ำสาธารณะ</span>
+                    <h3 class="text-2xl font-bold text-emerald-400 mb-0" id="statDrainageCount">2 รายการ</h3>
+                    <small class="text-xs text-slate-300 mt-1 d-block">ฝาท่อ 1 · รางระบายน้ำ 1</small>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-white/10 d-flex align-items-center justify-content-center text-emerald-400"><i class="fa-solid fa-wind text-xl"></i></div>
+            </div>
+
+            <!-- Public Land & Lights -->
+            <div class="kpi-dark-card p-4 rounded-2xl shadow-sm text-white flex justify-between items-center relative overflow-hidden" style="border-left-color: #a855f7;">
+                <div>
+                    <span class="text-xs text-slate-400 font-medium d-block mb-1">ที่สาธารณะ & เสาไฟส่องสว่าง</span>
+                    <h3 class="text-2xl font-bold text-purple-400 mb-0" id="statAssetsCount">125 แห่ง</h3>
+                    <small class="text-xs text-slate-300 mt-1 d-block">เสาไฟ 124 · แปลง นสล. 1</small>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-white/10 d-flex align-items-center justify-content-center text-purple-400"><i class="fa-solid fa-map-pin text-xl"></i></div>
+            </div>
+        </div>
+
+        <!-- Analytical Charts Row 1 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- 1. Road surface distribution -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-column justify-between h-96">
+                <div class="flex items-center justify-between mb-3">
+                    <h5 class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-road text-yellow-500 me-2"></i>สัดส่วนประเภทผิวจราจรในพื้นที่</h5>
+                    <span class="text-xs text-slate-500 font-medium">GIS Coverage</span>
+                </div>
+                <div class="flex-grow d-flex justify-content-center align-items-center" style="max-height: 250px;">
+                    <canvas id="roadSurfaceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 2. Road length statistics -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-column justify-between h-96">
+                <div class="flex items-center justify-between mb-3">
+                    <h5 class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-chart-column text-sky-500 me-2"></i>ความยาวถนนจำแนกตามหมู่บ้าน</h5>
+                    <span class="text-xs text-slate-500 font-medium">เมตร (m)</span>
+                </div>
+                <div class="flex-grow d-flex justify-content-center align-items-center" style="max-height: 250px;">
+                    <canvas id="roadLengthChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 3. Infrastructure budget -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-column justify-between h-96">
+                <div class="flex items-center justify-between mb-3">
+                    <h5 class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-coins text-emerald-500 me-2"></i>วิเคราะห์งบประมาณและ E-Permit</h5>
+                    <span class="text-xs text-slate-500 font-medium">เปรียบเทียบคำร้อง</span>
+                </div>
+                <div class="flex-grow d-flex justify-content-center align-items-center" style="max-height: 250px;">
+                    <canvas id="budgetPermitChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Assistant & Project grants planner -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+            <!-- AI Panel -->
+            <div class="col-span-1 lg:col-span-5 bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-900 text-white p-5 rounded-2xl shadow-lg border border-indigo-500/30 relative overflow-hidden ai-glow">
+                <div class="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl"></div>
+                <div class="flex justify-between items-start mb-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-indigo-500/20 d-flex align-items-center justify-content-center text-indigo-400">
+                            <i class="fa-solid fa-robot"></i>
+                        </div>
+                        <h4 class="font-bold text-white text-sm mb-0">AI Engineering Assistant</h4>
+                    </div>
+                    <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">โมดูลอัจฉริยะ</span>
+                </div>
+
+                <p class="text-xs text-indigo-200/80 mb-4 leading-relaxed">ผู้ช่วย AI ปัญญาประดิษฐ์เพื่อกองช่างท้องถิ่น ระบบสามารถให้คำแนะนำสภาพโครงข่ายถนน วางสัดส่วนความเร่งด่วนการบำรุงรักษา และการพยากรณ์ขีดงบประมาณเฉพาะกิจ</p>
+                
+                <!-- Interaction Select -->
+                <div class="mb-4">
+                    <label class="form-label text-indigo-300 text-xs fw-semibold mb-1">เลือกฟังก์ชันการวิเคราะห์</label>
+                    <select class="form-select bg-slate-900 border-indigo-500/40 text-white text-xs py-2" id="aiSelectTask" onchange="runAIAssistance()">
+                        <option value="predict_roads">⚙️ ทำนายสภาพและวิเคราะห์อายุถนน (Road Aging Prediction)</option>
+                        <option value="budget_optimize">💰 แนะนำจัดสัดส่วนงบอุดหนุนเฉพาะกิจ (Grant Optimization)</option>
+                        <option value="risk_analysis">🚨 ประเมินความเสี่ยงอุทกภัยเชิงพื้นที่ (GIS Hydrology Risk)</option>
+                    </select>
+                </div>
+
+                <!-- AI Output box -->
+                <div class="bg-slate-950/60 border border-indigo-500/20 rounded-xl p-3 text-xs min-h-[140px] flex flex-column justify-between">
+                    <div id="aiOutputContent" class="text-slate-300 leading-relaxed font-mono">
+                        [รอเลือกหัวข้อการประเมินสภาพเพื่อประมวลผล...]
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-t border-indigo-500/10">
+                        <small class="text-indigo-400 text-[10px]" id="aiTimeLabel">พร้อมประมวลผล</small>
+                        <button class="btn btn-xs btn-indigo bg-indigo-600 hover:bg-indigo-700 text-white" onclick="triggerAIPrediction()"><i class="fa-solid fa-brain me-1"></i>รันการจำลองวิศวกรรม</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Executive Quick links and logs -->
+            <div class="col-span-1 lg:col-span-7 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex items-center justify-between mb-4 border-b pb-3">
+                    <h5 class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-link text-indigo-500 me-2"></i>เครื่องมือด่วนและแฟ้มงานระบบ (Infrastructure Tools)</h5>
+                    <span class="badge bg-slate-100 text-slate-600">7 ระบบเชื่อมต่อ</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center mb-4">
+                    <a href="digital-infrastructure-roads.html" class="p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-indigo-400 transition text-decoration-none group">
+                        <i class="fa-solid fa-road text-yellow-500 text-lg mb-2 group-hover:scale-110 transition-transform"></i>
+                        <span class="d-block text-xs font-bold text-slate-700">ระบบคุมถนน</span>
+                    </a>
+                    <a href="digital-infrastructure-water.html" class="p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-indigo-400 transition text-decoration-none group">
+                        <i class="fa-solid fa-droplet text-sky-500 text-lg mb-2 group-hover:scale-110 transition-transform"></i>
+                        <span class="d-block text-xs font-bold text-slate-700">แหล่งน้ำ & ท่อ</span>
+                    </a>
+                    <a href="digital-infrastructure-water-meter.html" class="p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-indigo-400 transition text-decoration-none group">
+                        <i class="fa-solid fa-faucet-drip text-blue-500 text-lg mb-2 group-hover:scale-110 transition-transform"></i>
+                        <span class="d-block text-xs font-bold text-slate-700">มาตรน้ำประปา</span>
+                    </a>
+                    <a href="digital-infrastructure-boundary.html" class="p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-indigo-400 transition text-decoration-none group">
+                        <i class="fa-solid fa-draw-polygon text-purple-500 text-lg mb-2 group-hover:scale-110 transition-transform"></i>
+                        <span class="d-block text-xs font-bold text-slate-700">แนวเขต & หมุด</span>
+                    </a>
+                    <a href="digital-infrastructure-repairs.html" class="p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-indigo-400 transition text-decoration-none group">
+                        <i class="fa-solid fa-wrench text-emerald-500 text-lg mb-2 group-hover:scale-110 transition-transform"></i>
+                        <span class="d-block text-xs font-bold text-slate-700">ประวัติซ่อมบำรุง</span>
+                    </a>
+                </div>
+                <!-- QGIS Live connection quick preview -->
+                <div class="p-3 bg-slate-900 rounded-xl border border-slate-800 text-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-slate-800 d-flex align-items-center justify-content-center text-yellow-500 border border-slate-700">
+                            <i class="fa-solid fa-network-wired"></i>
+                        </div>
+                        <div>
+                            <span class="fw-semibold text-xs d-block text-yellow-500">QGIS Live Synchronization Architecture</span>
+                            <small class="text-slate-400 text-[10px]">สถานะการดึงพิกัด PostGIS: เชื่อมต่อฐานข้อมูล Supabase แผนที่อัปเดตแบบเรียลไทม์</small>
+                        </div>
+                    </div>
+                    <a href="digital-infrastructure-permits.html" class="btn btn-xs btn-outline-warning text-yellow-500 hover:bg-yellow-500 hover:text-slate-950">
+                        <i class="fa-solid fa-gear me-1"></i> เชื่อม QGIS / โอนทุน
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/digital-infrastructure.js"></script>
+<script>
+    let roadsData = [];
+    let waterData = [];
+    let repairsData = [];
+    let proposalsData = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadDashboardData();
+        renderCharts();
+        runAIAssistance();
+    });
+
+    async function loadDashboardData() {
+        try {
+            roadsData = await DigitalInfraService.getRoads();
+            waterData = await DigitalInfraService.getWater();
+            const waterways = await DigitalInfraService.getWaterways();
+            const drainage = await DigitalInfraService.getDrainage();
+            repairsData = await DigitalInfraService.getRepairs();
+            proposalsData = await DigitalInfraService.getProposals();
+
+            // คำนวณความยาวถนนและสถิติต่างๆ
+            const totalLengthM = roadsData.reduce((acc,curr) => acc + (curr.length_m || 0), 0);
+            document.getElementById('statRoadLength').textContent = (totalLengthM / 1000).toFixed(2) + ' กม.';
+            document.getElementById('statRoadCount').textContent = `รวม ${roadsData.length} เส้นทางหลวงท้องถิ่น`;
+            document.getElementById('statWaterCount').textContent = `${waterData.length + waterways.length} แห่ง`;
+            document.getElementById('statDrainageCount').textContent = `${drainage.length} รายการ`;
+        } catch(e) {
+            console.error("Dashboard calculation error:", e);
+        }
+    }
+
+    function renderCharts() {
+        // 1. Chart ผิวทาง (Doughnut)
+        const surfaces = {};
+        roadsData.forEach(r => {
+            surfaces[r.surface_type] = (surfaces[r.surface_type] || 0) + (r.length_m || 0);
+        });
+
+        new Chart(document.getElementById('roadSurfaceChart'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(surfaces),
+                datasets: [{
+                    data: Object.values(surfaces),
+                    backgroundColor: ['#1e3a8a', '#0284c7', '#d97706', '#94a3b8'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Prompt', size: 11 } } }
+                }
+            }
+        });
+
+        // 2. Chart ความยาวถนนแต่ละหมู่บ้าน (Bar)
+        const villages = {};
+        roadsData.forEach(r => {
+            villages['หมู่ ' + r.village_no] = (villages['หมู่ ' + r.village_no] || 0) + (r.length_m || 0);
+        });
+
+        new Chart(document.getElementById('roadLengthChart'), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(villages),
+                datasets: [{
+                    label: 'ความยาวถนนรวม',
+                    data: Object.values(villages),
+                    backgroundColor: '#4f46e5',
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Prompt', size: 10 } } },
+                    x: { ticks: { font: { family: 'Prompt', size: 10 } } }
+                }
+            }
+        });
+
+        // 3. Chart งบประมาณคำร้องขอทุน & ซ่อม (Line + Bar)
+        const repairCostByMonth = [45000, 120000, 320000, 15000, 180000, 95000];
+        new Chart(document.getElementById('budgetPermitChart'), {
+            type: 'line',
+            data: {
+                labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.'],
+                datasets: [
+                    {
+                        label: 'สถิติการยื่นคำขอ E-Permit',
+                        data: [12, 19, 3, 5, 2, 3],
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34,197,94,0.1)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'งบประมาณซ่อมบำรุงถนน (x1000 บาท)',
+                        data: repairCostByMonth.map(c => c / 1000),
+                        borderColor: '#eab308',
+                        backgroundColor: '#eab308',
+                        type: 'bar',
+                        borderRadius: 5
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'Prompt', size: 10 } } }
+                },
+                scales: {
+                    y: { grid: { color: '#f1f5f9' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    function runAIAssistance() {
+        const select = document.getElementById('aiSelectTask').value;
+        const out = document.getElementById('aiOutputContent');
+        const time = document.getElementById('aiTimeLabel');
+
+        if (select === 'predict_roads') {
+            out.innerHTML = `
+                <div class="space-y-1">
+                    <span class="text-yellow-500 font-bold d-block">🚘 สรุปการตรวจสภาพโครงข่ายทางหลวงท้องถิ่น:</span>
+                    <span class="d-block">• <b>ถ.ทถ. 1-0003 (ถนนนาดี-โคกเจริญ):</b> มีอายุงานก่อสร้าง 6 ปี สภาพเป็นลูกรัง/หินคลุก ชำรุดหนักในระดับ A-D เหลือสภาพการใช้งานเพียง 25% เสี่ยงชำรุดสิ้นสภาพถาวรในช่วงฤดูฝนนี้</span>
+                    <span class="d-block">• <b>ถ.ทถ. 1-0002 (ซอยสุขใจ 4):</b> เป็นลาดยาง สภาพมีรอยชำรุดแตกลายงาปานกลาง ควรบำรุงรักษาแบบปูผิวหน้ายางหนา 4 ซม. (Overlay) ภายในปี พ.ศ. 2571</span>
+                </div>
+            `;
+            time.textContent = `วิเคราะห์สำเร็จเมื่อ ${new Date().toLocaleTimeString()}`;
+        } else if (select === 'budget_optimize') {
+            out.innerHTML = `
+                <div class="space-y-1">
+                    <span class="text-emerald-400 font-bold d-block">💰 ลำดับสิทธิ์ความเร่งด่วนจัดตั้งงบประมาณขอเงินอุดหนุน:</span>
+                    <span class="d-block"><b>1. โครงการระบบระบายน้ำ ซอยสุขใจ 4 หมู่ 3 (Rank A - 85 คะแนน)</b></span>
+                    <span class="text-slate-400 d-block">  - เหตุผลหลัก: ป้องกันปัญหาน้ำท่วมขังฉับพลันของชุมชนหนาแน่น และโครงการระบุความจำเป็น BOQ ชัดเจน</span>
+                    <span class="d-block"><b>2. โครงการยกระดับผิวจราจรหินคลุก นาดี-โคกเจริญ (Rank B - 70 คะแนน)</b></span>
+                    <span class="text-slate-400 d-block">  - เหตุผลหลัก: ความเสียหายผิวทางระดับโครงสร้าง ส่งผลต่อการสัญจรหมู่บ้าน</span>
+                </div>
+            `;
+            time.textContent = `วิเคราะห์สำเร็จเมื่อ ${new Date().toLocaleTimeString()}`;
+        } else {
+            out.innerHTML = `
+                <div class="space-y-1">
+                    <span class="text-sky-400 font-bold d-block">🌊 ดัชนีความเสี่ยงเชิงอุทกวิทยา (GIS Hydrology Risk):</span>
+                    <span class="d-block">• <b>พื้นที่เสี่ยงท่วมขัง:</b> หมู่ที่ 3 (ซอยสุขใจ 4) จัดเป็นพื้นที่แอ่งกระทะ ความสูงต่างระดับต่ำกว่าถนนสายหลักบูรพาพัฒนา 0.8 เมตร และโครงสร้างฝาท่อระบายน้ำอุดตันร้อยละ 50</span>
+                    <span class="d-block">• <b>ข้อเสนอวิศวกรรม:</b> ควรทำการเปิดช่องระบายน้ำเพิ่ม 2 จุดบริเวณสระน้ำหลังโรงเรียนเพื่อผันน้ำเข้าแก้มลิงสาธารณะ</span>
+                </div>
+            `;
+            time.textContent = `วิเคราะห์สำเร็จเมื่อ ${new Date().toLocaleTimeString()}`;
+        }
+    }
+
+    function triggerAIPrediction() {
+        if (typeof showToast !== 'undefined') {
+            showToast('🧠 กำลังประมวลผลโมเดลโครงสร้างพื้นฐานเชิงพื้นที่...', 'info');
+        }
+        setTimeout(() => {
+            runAIAssistance();
+            if (typeof showToast !== 'undefined') {
+                showToast('🧠 AI ประมวลผลและอัปเดตข้อมูลเสร็จสิ้นแล้ว', 'success');
+            }
+        }, 800);
+    }
+</script>
+</body>
+</html>

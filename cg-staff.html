@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ข้อมูลเจ้าหน้าที่ CG - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ข้อมูลเจ้าหน้าที่ CG"></div>
+    <div class="page-content">
+        <div class="mb-3"><a href="cg-dashboard.html" class="btn btn-light shadow-sm border fw-bold" style="border-radius:10px;"><i class="fa-solid fa-arrow-left me-2"></i>ย้อนกลับ</a></div>
+
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-users text-success me-2"></i>บุคลากร Care Giver (CG)</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="healthcare-dashboard.html" class="text-decoration-none">กองสาธารณสุขฯ</a></li>
+                    <li class="breadcrumb-item"><a href="cg-dashboard.html" class="text-decoration-none">CG Dashboard</a></li>
+                    <li class="breadcrumb-item active">ข้อมูลเจ้าหน้าที่</li>
+                </ol></nav>
+            </div>
+            <div>
+                <button class="btn btn-success shadow-sm"><i class="fa-solid fa-plus me-2"></i>เพิ่มเจ้าหน้าที่ CG</button>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">ชื่อ - นามสกุล</th>
+                                <th>หน่วยงาน</th>
+                                <th>เบอร์โทรศัพท์</th>
+                                <th>พื้นที่รับผิดชอบ</th>
+                                <th>สถานะ</th>
+                                <th class="text-center pe-4">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cgBody">
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">ส</div>
+                                        <div><div class="fw-bold">สมหญิง ใจดี</div><div class="text-xs text-muted">Care Giver</div></div>
+                                    </div>
+                                </td>
+                                <td>กองสาธารณสุขฯ</td>
+                                <td>081-234-5678</td>
+                                <td>หมู่ 1, หมู่ 2</td>
+                                <td><span class="badge bg-success">ปฏิบัติงาน</span></td>
+                                <td class="text-center pe-4">
+                                    <button class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-pen"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">ม</div>
+                                        <div><div class="fw-bold">มานะ ขยัน</div><div class="text-xs text-muted">Care Giver</div></div>
+                                    </div>
+                                </td>
+                                <td>รพ.สต.</td>
+                                <td>089-876-5432</td>
+                                <td>หมู่ 3, หมู่ 4</td>
+                                <td><span class="badge bg-success">ปฏิบัติงาน</span></td>
+                                <td class="text-center pe-4">
+                                    <button class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-pen"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

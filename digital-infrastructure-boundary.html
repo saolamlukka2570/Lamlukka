@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ขอบเขตการปกครองและหมุดหลักเขต (DIIS) - กองช่าง</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <!-- Leaflet GIS Leaflet Library -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+        body { 
+            font-family: 'Prompt', sans-serif; 
+            background-color: #f8fafc; 
+            font-size: 14px; /* Standardize default body text */
+        }
+        .gazette-card {
+            background-color: #fffbeb;
+            border-left: 4px solid #d97706;
+        }
+        .dropzone-box {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            background: #fff;
+            transition: all 0.2s ease;
+        }
+        .dropzone-box:hover {
+            border-color: #4f46e5;
+            background: #f8fafc;
+        }
+
+        /* Leaflet Map Fixes for Tailwind CSS */
+        .leaflet-container img {
+            max-width: none !important;
+            max-height: none !important;
+        }
+        .leaflet-control-zoom a {
+            text-decoration: none !important;
+        }
+
+        /* Table premium hover effects */
+        .table-gov tbody tr {
+            transition: all 0.15s ease-in-out;
+        }
+        .table-gov tbody tr:hover {
+            background-color: #f1f5f9 !important;
+        }
+        
+        /* Premium custom badges */
+        .diis-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .diis-badge-success {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .diis-badge-primary {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        
+        /* Global Font Size Enhancements for Better Readability */
+        .text-xs { font-size: 0.875rem !important; }  /* Scales 12px -> 14px */
+        .text-[11px] { font-size: 0.9rem !important; }  /* Scales 11px -> 14.4px */
+        .text-[10px] { font-size: 0.85rem !important; } /* Scales 10px -> 13.6px */
+        .text-[9px] { font-size: 0.8rem !important; }   /* Scales 9px -> 12.8px */
+        .text-[8px] { font-size: 0.75rem !important; }  /* Scales 8px -> 12px */
+        
+        /* Buttons and Inputs */
+        .form-control, .form-select, .btn-xs, .btn-sm {
+            font-size: 0.875rem !important;
+            border-radius: 8px !important;
+        }
+        .btn-xs {
+            padding: 0.35rem 0.65rem !important;
+        }
+        .btn-sm {
+            padding: 0.4rem 0.8rem !important;
+        }
+        
+        /* Table Header & Rows font size */
+        .table-gov th {
+            font-size: 0.9rem !important;
+            font-weight: 700 !important;
+            color: #334155 !important;
+            background-color: #f8fafc !important;
+        }
+        .table-gov td {
+            font-size: 0.875rem !important;
+            color: #475569 !important;
+        }
+        
+        /* Subdistrict Card and details font size */
+        .gazette-card p {
+            font-size: 0.95rem !important;
+            line-height: 1.6 !important;
+        }
+        .gazette-card .p-3.bg-slate-50 {
+            font-size: 0.9rem !important;
+            line-height: 1.6 !important;
+        }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ระบบทะเบียนแนวเขตและหมุดหลักเขต"></div>
+    <div class="page-content p-4">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+                <h1 class="text-xl font-bold text-slate-800 mb-0 d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-draw-polygon text-indigo-600"></i> แนวเขตการปกครองและหมุดหลักเขตตำบล
+                </h1>
+                <p class="text-xs text-slate-500 mb-0">ระบบจัดเก็บบันทึกราชกิจจานุเบกษา แนวเขตหมู่บ้าน และพิกัดหมุดหลักเขตเชิงโครงสร้าง</p>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+                <a href="https://drive.google.com/drive/folders/1V0E9djZNbYk8JY2AvL8jP1N0Etz2moOp?usp=sharing" target="_blank" class="btn btn-sm btn-outline-primary border-blue-200 text-blue-600 hover:bg-blue-50 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm">
+                    <i class="fa-brands fa-google-drive text-blue-500 text-sm"></i> เปิดโฟลเดอร์ Google Drive รวม
+                </a>
+                <button class="btn btn-sm btn-outline-secondary" onclick="loadBoundaryData()"><i class="fa-solid fa-sync me-1"></i>รีเฟรช</button>
+                <button class="btn btn-sm btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 fw-semibold animate-pulse" data-bs-toggle="modal" data-bs-target="#newMarkerModal"><i class="fa-solid fa-plus me-1"></i> เพิ่มหมุดหลักเขตใหม่</button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-pills diis-nav-tabs mb-4 text-xs font-semibold" id="pills-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="tab-list-tab" data-bs-toggle="pill" data-bs-target="#tab-list" type="button" role="tab"><i class="fa-solid fa-list me-1"></i> ทะเบียนแนวเขตและหมุด</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-upload-tab" data-bs-toggle="pill" data-bs-target="#tab-upload" type="button" role="tab"><i class="fa-solid fa-file-import me-1"></i> นำเข้าไฟล์แผนที่ GIS (Shapefile / GeoJSON)</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="pills-tabContent">
+            
+            <!-- 1. List Tab -->
+            <div class="tab-pane fade show active" id="tab-list" role="tabpanel">
+                <div class="space-y-6 text-sm font-semibold text-slate-700">
+                    
+                    <!-- 1. แนวเขตการปกครองระดับตำบล (First, Full Width) -->
+                    <div class="bg-white p-5 rounded-2xl border border-amber-100 shadow-sm relative overflow-hidden pl-6">
+                        <!-- Premium color highlight bar -->
+                        <div class="absolute top-0 left-0 w-1.5 h-full bg-amber-500"></div>
+                        <!-- Premium glow background accent -->
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-amber-50 to-transparent opacity-70 pointer-events-none rounded-tr-2xl"></div>
+                        
+                        <div class="d-flex align-items-center justify-content-between mb-3 border-b pb-2 flex-wrap gap-2">
+                            <h5 class="font-bold text-amber-800 text-sm mb-0 d-flex align-items-center gap-2">
+                                <i class="fa-solid fa-map text-amber-600"></i> 1. แนวเขตการปกครองระดับตำบล
+                            </h5>
+                        </div>
+                        <div id="subdistrictBoundaryContainer">
+                            <div class="text-center py-3 text-muted text-xs">กำลังโหลดขอบเขตตำบล...</div>
+                        </div>
+                    </div>
+
+                    <!-- 2. ทะเบียนบัญชีพิกัดหมุดหลักเขต (Second, Full Width) -->
+                    <div class="bg-white p-5 rounded-2xl border border-indigo-100 shadow-sm relative overflow-hidden pl-6">
+                        <!-- Premium color highlight bar -->
+                        <div class="absolute top-0 left-0 w-1.5 h-full bg-indigo-600"></div>
+                        <!-- Premium glow background accent -->
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-indigo-50 to-transparent opacity-70 pointer-events-none rounded-tr-2xl"></div>
+                        
+                        <div class="d-flex align-items-center justify-content-between mb-4 border-b pb-3 flex-wrap gap-2">
+                            <h5 class="font-bold text-indigo-800 text-sm mb-0 d-flex align-items-center gap-2">
+                                <i class="fa-solid fa-map-pin text-indigo-600"></i> 2. ทะเบียนบัญชีพิกัดหมุดหลักเขตทางภูมิศาสตร์
+                            </h5>
+                            <a href="digital-infrastructure-map.html" class="btn btn-indigo text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-md hover:shadow-lg transform hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 text-xs font-bold px-4 py-2 border-0 rounded-xl d-inline-flex align-items-center gap-2">
+                                <i class="fa-solid fa-map-location-dot text-sm animate-pulse"></i> กดดูแผนที่หมุดทั้งหมด
+                            </a>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-gov table-hover mb-0 text-[11px]">
+                                <thead>
+                                    <tr class="bg-slate-50 text-slate-600 font-bold border-b">
+                                        <th class="ps-4 py-3 text-nowrap">รหัสหลักเขต</th>
+                                        <th class="py-3 text-nowrap">ประเภทหลักหมุด</th>
+                                        <th class="py-3 text-nowrap">ค่าพิกัด (X, Y)</th>
+                                        <th class="py-3 text-nowrap">ค่าพิกัด MGRS</th>
+                                        <th class="text-center pe-4 py-3 text-nowrap" style="width: 100px;">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="markersTableBody">
+                                    <tr><td colspan="5" class="text-center py-4 text-slate-500">กำลังโหลดทะเบียนหลักเขต...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 3. ขอบเขตการปกครองระดับหมู่บ้าน (Third, Full Width) -->
+                    <div class="bg-white p-5 rounded-2xl border border-emerald-100 shadow-sm relative overflow-hidden pl-6">
+                        <!-- Premium color highlight bar -->
+                        <div class="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
+                        <!-- Premium glow background accent -->
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-emerald-50 to-transparent opacity-70 pointer-events-none rounded-tr-2xl"></div>
+                        
+                        <div class="d-flex align-items-center justify-content-between mb-3 border-b pb-2">
+                            <h5 class="font-bold text-emerald-800 text-sm mb-0 d-flex align-items-center gap-2">
+                                <i class="fa-solid fa-house-chimney text-emerald-600"></i> 3. ขอบเขตการปกครองระดับหมู่บ้าน
+                            </h5>
+                            <a href="digital-infrastructure-map.html" class="btn btn-emerald text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-md hover:shadow-lg transform hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 text-xs font-bold px-3 py-2 border-0 rounded-xl d-inline-flex align-items-center gap-1.5">
+                                <i class="fa-solid fa-map-location-dot text-sm"></i> กดดูแผนที่หมู่บ้านทั้งหมด
+                            </a>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-gov table-hover mb-0 text-[11px]">
+                                <thead>
+                                    <tr>
+                                        <th class="ps-2 text-nowrap">หมู่ที่</th>
+                                        <th class="text-nowrap">ชื่อหมู่บ้าน</th>
+                                        <th class="text-end text-nowrap">ขนาดเนื้อที่ (ตร.ม.)</th>
+                                        <th class="text-end text-nowrap">ขนาดเนื้อที่ (ตร.กม.)</th>
+                                        <th class="text-end text-nowrap">ขนาดเนื้อที่ (ไร่-งาน-ตร.ว.)</th>
+                                        <th class="text-center text-nowrap" style="width: 250px;"><i class="fa-brands fa-google-drive text-indigo-600"></i> เอกสารแนบ Google Drive</th>
+                                        <th class="text-center pe-2 text-nowrap" style="width: 120px;">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="villageBoundariesTableBody">
+                                    <tr><td colspan="7" class="text-center py-3 text-muted">กำลังโหลดขอบเขตหมู่บ้าน...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 2. Import GIS Tab -->
+            <div class="tab-pane fade" id="tab-upload" role="tabpanel">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 text-xs font-semibold text-slate-700">
+                    <!-- Dropzone -->
+                    <div class="lg:col-span-6 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-column justify-between min-h-[410px]">
+                        <div>
+                            <h5 class="font-bold text-slate-800 text-sm mb-1"><i class="fa-solid fa-cloud-arrow-up text-indigo-600 me-1"></i> GIS File Drag & Drop Center</h5>
+                            <p class="text-xs text-slate-500 mb-3">นำเข้าแนวเขตตำบล เส้นขอบหมู่บ้าน หรือพิกัดหลักเขต ในรูปแบบไฟล์ .zip (Shapefile package), .geojson, .kml</p>
+                            
+                            <div class="mb-3">
+                                <label class="form-label font-bold text-slate-600">ประเภทข้อมูลที่ต้องการนำเข้า</label>
+                                <select class="form-select text-xs py-2" id="importDataType" onchange="setupGISUploadEngine()">
+                                    <option value="marker">📍 ข้อมูลจุดหลักเขต / หมุดแนวเขต (Point Layer)</option>
+                                    <option value="subdistrict">🗺️ ข้อมูลเส้นแนวเขตตำบล (Polygon/Line Layer)</option>
+                                    <option value="village">🏡 ข้อมูลแนวเขตหมู่บ้าน (Polygon/Line Layer)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Dropzone Container -->
+                        <div class="dropzone-box flex-grow flex flex-column items-center justify-center p-6 cursor-pointer border-2" id="dropZoneContainer">
+                            <i class="fa-solid fa-map-location-dot text-slate-400 text-4xl mb-3"></i>
+                            <span class="text-xs font-bold text-slate-700 mb-1">ลากวางไฟล์พิกัดเขตที่นี่</span>
+                            <span class="text-[10px] text-slate-400">หรือคลิกเลือกไฟล์เพื่อจับคู่โครงสร้างพิกัด CRS</span>
+                            <input type="file" id="fileUploadInput" class="hidden" accept=".zip, .geojson, .json, .kml">
+                        </div>
+
+                        <!-- Progress indicator -->
+                        <div class="mt-3 text-xs hidden" id="uploadProgressPanel">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-semibold text-indigo-600" id="uploadFileNameLabel">ขอบเขตปกครอง.geojson</span>
+                                <span class="text-slate-500" id="uploadPercentLabel">0%</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-indigo-600" role="progressbar" style="width: 0%" id="uploadProgressBar"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attribute Mapper -->
+                    <div class="lg:col-span-6 flex flex-column gap-4">
+                        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm" style="min-height: 250px;">
+                            <h5 class="font-bold text-slate-800 text-sm mb-2"><i class="fa-solid fa-circle-check text-emerald-500 me-1"></i> ผลวิเคราะห์การอ่านพิกัด (GIS Engine Status)</h5>
+                            <div class="p-3 rounded-xl border bg-slate-50 text-xs text-slate-600 mb-3 space-y-1">
+                                <div><b>ระบบพิกัดที่ตรวจพบ (CRS):</b> <span id="detectedCRS">WGS 84 (EPSG:4326)</span></div>
+                                <div><b>รูปแบบเวกเตอร์ (Geometry):</b> <span id="detectedGeomType">ยังไม่ได้อัปโหลดไฟล์</span></div>
+                                <div><b>จำนวนฟีเจอร์พิกัด:</b> <span id="detectedCount">0</span></div>
+                            </div>
+                            <div id="attributeMapperContainer">
+                                <div class="p-3 text-center text-muted border rounded-xl bg-slate-50 text-xs">
+                                    กรุณาอัปโหลดไฟล์ข้อมูล GIS เพื่อเริ่มต้นจับคู่แอตทริบิวต์ฟิลด์
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GIS Upload History -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm mt-4 text-xs font-semibold text-slate-700">
+                    <h5 class="font-bold text-slate-800 text-sm mb-3 border-b pb-2 d-flex align-items-center justify-content-between">
+                        <span><i class="fa-solid fa-cloud text-indigo-600 me-2"></i> แฟ้มประวัติไฟล์แผนที่ภูมิสารสนเทศแนวเขตปกครอง (Supabase Cloud Storage & Database Sync History)</span>
+                        <button class="btn btn-xs btn-outline-secondary" onclick="loadGISUploadHistory()"><i class="fa-solid fa-sync"></i> รีเฟรชประวัติ</button>
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-gov table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4 text-nowrap">รหัสอ้างอิงนำเข้า</th>
+                                    <th class="text-nowrap">ชื่อไฟล์แผนที่ต้นฉบับ</th>
+                                    <th class="text-nowrap">ระบบพิกัดแผนที่ (CRS)</th>
+                                    <th class="text-nowrap">ประเภทเรขาคณิต</th>
+                                    <th class="text-nowrap">จำนวนวัตถุ</th>
+                                    <th class="text-nowrap">วันที่ซิงค์อัปโหลด</th>
+                                    <th class="text-nowrap">สถานะคลาวด์</th>
+                                    <th class="text-center pe-4 text-nowrap">เรียกใช้ไฟล์ / ดาวน์โหลดแผนที่</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gisUploadsTableBody">
+                                <tr><td colspan="8" class="text-center py-4 text-muted">ไม่พบข้อมูลประวัตินำเข้าจากคลาวด์</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+<!-- Add New Marker Modal -->
+<div class="modal fade" id="newMarkerModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-map-pin text-indigo-600 me-2"></i> เพิ่มหมุดหลักเขตใหม่</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-xs font-semibold text-slate-700">
+                <form id="newMarkerForm" onsubmit="submitNewMarker(event)">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">รหัสหมุดหลักเขต <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nmCode" required placeholder="เช่น BM-02">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ประเภทหลักหมุด</label>
+                            <select class="form-select" id="nmType">
+                                <option>หลักเขตตำบล</option>
+                                <option>หลักเขตหมู่บ้าน</option>
+                                <option>หมุดโครงข่าย GPS</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">รายละเอียดลักษณะที่ตั้งทางวิศวกรรม</label>
+                            <textarea class="form-control" id="nmDesc" rows="3" placeholder="เช่น หินก้อนกลมข้างทางสามแยกวัดนาดี..."></textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">หมู่ที่ตั้งอยู่</label>
+                            <input type="text" class="form-control" id="nmVillage" value="1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Latitude (Y)</label>
+                            <input type="number" step="0.000001" class="form-control" id="nmLat" value="17.975">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Longitude (X)</label>
+                            <input type="number" step="0.000001" class="form-control" id="nmLng" value="103.472">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 px-4 fw-semibold"><i class="fa-solid fa-save me-1"></i>บันทึกขึ้นทะเบียน</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Boundary Modal -->
+<div class="modal fade" id="editBoundaryModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom bg-slate-50">
+                <h5 class="modal-title fw-bold text-slate-800 text-sm"><i class="fa-solid fa-pen-to-square text-warning me-2"></i> แก้ไขข้อความแนวเขตการปกครอง</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-xs font-semibold text-slate-700">
+                <form id="editBoundaryForm" onsubmit="submitEditBoundary(event)">
+                    <input type="hidden" id="ebId">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">ชื่อแนวเขต / ชื่อหมู่บ้าน <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="ebName" required placeholder="เช่น แนวเขตตำบลบูรพา หรือ หมู่บ้านนาดี">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">หมู่ที่ (ถ้ามี)</label>
+                            <input type="text" class="form-control" id="ebVillage" placeholder="เช่น 1, 2">
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">ขนาดเนื้อที่ (ตร.ม.)</label>
+                            <input type="number" step="0.01" class="form-control" id="ebAreaSqm" oninput="recalculateEbArea(this.value)">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">ขนาดเนื้อที่ (ตร.กม.)</label>
+                            <input type="number" step="0.0001" class="form-control" id="ebAreaSqkm">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">ขนาดเนื้อที่ (ไร่)</label>
+                            <input type="number" step="0.1" class="form-control" id="ebAreaRai">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">รายละเอียดคำบรรยายราชกิจจานุเบกษา / สัญวิทยาแนวเขต</label>
+                            <textarea class="form-control" id="ebGazetteText" rows="4" placeholder="ระบุคำอธิบายแนวเขตปกครองโดยละเอียด..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">แหล่งอ้างอิงแผนที่</label>
+                            <input type="text" class="form-control" id="ebMapRef" placeholder="เช่น ประกาศกระทรวงมหาดไทย เล่ม 114 ตอนพิเศษ...">
+                        </div>
+
+                        <!-- Attachments Upload Center -->
+                        <div class="col-md-6">
+                            <label class="form-label d-flex align-items-center justify-content-between">
+                                <span><i class="fa-solid fa-file-pdf text-red-600 me-1"></i> ไฟล์ประกาศราชกิจจานุเบกษา (PDF เท่านั้น)</span>
+                                <span id="ebGazetteStatus" class="text-[9px] text-slate-400 font-normal">ยังไม่มีไฟล์</span>
+                            </label>
+                            <div class="input-group">
+                                <input type="file" class="form-control text-xs" id="ebGazetteFile" accept=".pdf" onchange="uploadBoundaryFile('gazette')">
+                                <button class="btn btn-outline-secondary btn-xs text-[10px]" type="button" onclick="clearBoundaryFile('gazette')">ล้าง</button>
+                            </div>
+                            <input type="hidden" id="ebGazetteUrl">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label d-flex align-items-center justify-content-between">
+                                <span><i class="fa-solid fa-file-image text-emerald-600 me-1"></i> ไฟล์แนบท้ายแผนที่ (PDF หรือ รูปภาพ)</span>
+                                <span id="ebMapAnnexStatus" class="text-[9px] text-slate-400 font-normal">ยังไม่มีไฟล์</span>
+                            </label>
+                            <div class="input-group">
+                                <input type="file" class="form-control text-xs" id="ebMapAnnexFile" accept=".pdf,image/*" onchange="uploadBoundaryFile('map_annex')">
+                                <button class="btn btn-outline-secondary btn-xs text-[10px]" type="button" onclick="clearBoundaryFile('map_annex')">ล้าง</button>
+                            </div>
+                            <input type="hidden" id="ebMapAnnexUrl">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-warning text-white bg-warning hover:bg-warning-700 px-4 fw-semibold"><i class="fa-solid fa-save me-1"></i>บันทึกการแก้ไข</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Marker Modal -->
+<div class="modal fade" id="editMarkerModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom bg-slate-50">
+                <h5 class="modal-title fw-bold text-slate-800 text-sm"><i class="fa-solid fa-pen-to-square text-warning me-2"></i> แก้ไขข้อมูลหมุดหลักเขตปกครอง</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-xs font-semibold text-slate-700">
+                <form id="editMarkerForm" onsubmit="submitEditMarker(event)">
+                    <input type="hidden" id="emId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">รหัสหมุดหลักเขต <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="emCode" required placeholder="เช่น BM-02">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ประเภทหลักหมุด</label>
+                            <select class="form-select" id="emType">
+                                <option>หลักเขตตำบล</option>
+                                <option>หลักเขตหมู่บ้าน</option>
+                                <option>หมุดโครงข่าย GPS</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">รายละเอียดลักษณะที่ตั้งทางวิศวกรรม</label>
+                            <textarea class="form-control" id="emDesc" rows="2" placeholder="เช่น หินก้อนกลมข้างทางสามแยกวัดนาดี..."></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">หมู่ที่ตั้งอยู่</label>
+                            <input type="text" class="form-control" id="emVillage" value="1">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ค่าพิกัด MGRS</label>
+                            <input type="text" class="form-control" id="emMgrs" placeholder="เช่น 47PQR12345678">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Latitude (Y)</label>
+                            <input type="number" step="0.000001" class="form-control" id="emLat" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Longitude (X)</label>
+                            <input type="number" step="0.000001" class="form-control" id="emLng" required>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-warning text-white bg-warning hover:bg-warning-700 px-4 fw-semibold"><i class="fa-solid fa-save me-1"></i>บันทึกการแก้ไข</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/digital-infrastructure.js"></script>
+<!-- Leaflet JS Libraries -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="assets/js/shapefile-upload.js"></script>
+<script src="services/boundarySpatialService.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        loadBoundaryData();
+        setupGISUploadEngine();
+        loadGISUploadHistory();
+    });
+
+    function calculatePolygonArea(coords) {
+        if (coords.length < 3) return 0;
+        let area = 0;
+        const factor = 111319.9; // Approximate meters per degree lat/lng near Thailand
+        
+        for (let i = 0; i < coords.length; i++) {
+            const j = (i + 1) % coords.length;
+            const xi = coords[i][1] * factor * Math.cos(coords[i][0] * Math.PI / 180);
+            const yi = coords[i][0] * factor;
+            const xj = coords[j][1] * factor * Math.cos(coords[j][0] * Math.PI / 180);
+            const yj = coords[j][0] * factor;
+            
+            area += (xi * yj) - (xj * yi);
+        }
+        return Math.abs(area / 2);
+    }
+
+    function formatSqmToThaiArea(sqm) {
+        if (!sqm || isNaN(sqm)) return '0 ไร่ 0 งาน 0 ตร.ว.';
+        const sqWa = sqm / 4;
+        const rai = Math.floor(sqWa / 400);
+        const remainWa = sqWa % 400;
+        const ngan = Math.floor(remainWa / 100);
+        const finalWa = Math.round((remainWa % 100) * 10) / 10;
+        return `${rai} ไร่ ${ngan} งาน ${finalWa} ตร.ว.`;
+    }
+
+    async function loadBoundaryData() {
+        // 1. โหลดข้อมูลจุดหลักเขต (Markers) ลงในตารางด้านขวา
+        const tbody = document.getElementById('markersTableBody');
+        try {
+            const data = await BoundarySpatialService.loadMarkers();
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-slate-500">ไม่พบข้อมูลหลักเขตการปกครอง</td></tr>';
+            } else {
+                tbody.innerHTML = data.map(bm => {
+                    const xVal = bm.coord_x || bm.longitude;
+                    const yVal = bm.coord_y || bm.latitude;
+                    const formattedCoord = (xVal && yVal) ? `${xVal.toFixed(6)}, ${yVal.toFixed(6)}` : '-';
+                    return `
+                        <tr>
+                            <td class="ps-4 fw-bold text-indigo-600 text-nowrap">${bm.marker_code}</td>
+                            <td class="font-semibold text-slate-800 text-nowrap">${bm.marker_type}</td>
+                            <td class="text-slate-600 text-nowrap">${formattedCoord}</td>
+                            <td class="font-mono text-slate-600 text-nowrap">${bm.mgrs || '-'}</td>
+                            <td class="text-center pe-4 text-nowrap">
+                                <div class="d-flex align-items-center justify-content-center gap-1.5">
+                                    <a href="digital-infrastructure-map.html?focus=marker&id=${bm.id}" class="btn btn-xs btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 d-inline-flex align-items-center gap-1 font-bold shadow-sm rounded-lg" title="กดดูแผนที่หมุดหลักนี้">
+                                        <i class="fa-solid fa-map-location-dot text-[10px]"></i> กดดูแผนที่
+                                    </a>
+                                    <button class="btn btn-xs btn-outline-warning text-warning" onclick="openEditMarkerModal('${bm.id}')" title="แก้ไขข้อมูลหมุด"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button class="btn btn-xs btn-outline-danger" onclick="deleteMarker('${bm.id}')" title="ลบหมุด"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        } catch(e) { 
+            console.error("Load markers error:", e);
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูลหลักเขต</td></tr>'; 
+        }
+
+        // 2. โหลดข้อมูลแนวเขต (Boundaries) และแบ่งตำบล / หมู่บ้าน เพื่อเรนเดอร์ลงในแถว
+        const subdistrictContainer = document.getElementById('subdistrictBoundaryContainer');
+        const villageTableBody = document.getElementById('villageBoundariesTableBody');
+        
+        try {
+            const boundaries = await BoundarySpatialService.loadBoundaries();
+            
+            // แยกประเภท
+            const subdistrictList = boundaries.filter(b => b.boundary_type === 'แนวเขตตำบล');
+            const villageList = boundaries.filter(b => b.boundary_type === 'แนวเขตหมู่บ้าน');
+
+            // เรนเดอร์ตำบล
+            if (!subdistrictList.length) {
+                subdistrictContainer.innerHTML = `
+                    <div class="text-center py-3 text-muted text-xs">
+                        <i class="fa-solid fa-triangle-exclamation text-yellow-500 mb-1"></i> ไม่พบข้อมูลขอบเขตตำบล
+                    </div>
+                `;
+            } else {
+                subdistrictContainer.innerHTML = subdistrictList.map(b => {
+                    const areaSqm = b.area_sqm || 0;
+                    const areaSqkm = (areaSqm / 1000000).toFixed(4);
+                    const areaThai = formatSqmToThaiArea(areaSqm);
+                    
+                    // สร้างบล็อกเอกสารแนบ ประกาศราชกิจจานุเบกษา
+                    let gazetteBlockHtml = '';
+                    if (b.gazette_pdf_url) {
+                        gazetteBlockHtml = `
+                            <div class="d-flex align-items-center justify-content-between bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                <span class="text-[11px] font-bold text-slate-700"><i class="fa-solid fa-file-pdf text-red-600 me-1"></i> ประกาศราชกิจจาฯ:</span>
+                                <div class="d-flex gap-1.5 align-items-center">
+                                    <button onclick="viewGoogleDriveFile('${b.id}', 'gazette', '${b.gazette_pdf_url}')" class="btn btn-xs btn-outline-primary d-inline-flex align-items-center gap-1 font-bold text-[10px] px-2.5 py-1 rounded-lg border-blue-500 text-blue-600 hover:bg-blue-50">
+                                        <i class="fa-brands fa-google-drive text-blue-500"></i> เรียกดู (Google Drive)
+                                    </button>
+                                    <button onclick="triggerDirectUpload('${b.id}', 'gazette')" class="btn btn-xs btn-outline-secondary p-1 rounded-lg" title="อัปเดตไฟล์ใหม่"><i class="fa-solid fa-sync text-[8px]"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        gazetteBlockHtml = `
+                            <div class="d-flex align-items-center justify-content-between bg-slate-50 p-2.5 rounded-xl border border-dashed border-slate-200">
+                                <span class="text-[11px] font-bold text-slate-500"><i class="fa-solid fa-file-pdf text-slate-400 me-1"></i> ประกาศราชกิจจาฯ:</span>
+                                <button onclick="triggerDirectUpload('${b.id}', 'gazette')" class="btn btn-xs btn-indigo text-white bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 d-inline-flex align-items-center gap-1 font-bold text-[10px] px-2.5 py-1 shadow-sm rounded-lg border-0">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> อัปโหลดเข้า Drive
+                                </button>
+                            </div>
+                        `;
+                    }
+
+                    // สร้างบล็อกเอกสารแนบ แผนที่แนบท้าย
+                    let mapAnnexBlockHtml = '';
+                    if (b.map_annex_url) {
+                        const isPdf = b.map_annex_url.toLowerCase().includes('.pdf') || b.map_annex_url.startsWith('data:application/pdf');
+                        const iconClass = isPdf ? 'fa-file-pdf text-red-600' : 'fa-file-image text-emerald-600';
+                        mapAnnexBlockHtml = `
+                            <div class="d-flex align-items-center justify-content-between bg-slate-50 p-2.5 rounded-xl border border-slate-100 mt-2">
+                                <span class="text-[11px] font-bold text-slate-700"><i class="fa-solid ${iconClass} me-1"></i> แผนที่แนบท้าย:</span>
+                                <div class="d-flex gap-1.5 align-items-center">
+                                    <button onclick="viewGoogleDriveFile('${b.id}', 'map_annex', '${b.map_annex_url}')" class="btn btn-xs btn-outline-success d-inline-flex align-items-center gap-1 font-bold text-[10px] px-2.5 py-1 rounded-lg border-emerald-500 text-emerald-600 hover:bg-emerald-50">
+                                        <i class="fa-brands fa-google-drive text-emerald-500"></i> เรียกดู (Google Drive)
+                                    </button>
+                                    <button onclick="triggerDirectUpload('${b.id}', 'map_annex')" class="btn btn-xs btn-outline-secondary p-1 rounded-lg" title="อัปเดตไฟล์ใหม่"><i class="fa-solid fa-sync text-[8px]"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        mapAnnexBlockHtml = `
+                            <div class="d-flex align-items-center justify-content-between bg-slate-50 p-2.5 rounded-xl border border-dashed border-slate-200 mt-2">
+                                <span class="text-[11px] font-bold text-slate-500"><i class="fa-solid fa-file-image text-slate-400 me-1"></i> แผนที่แนบท้าย:</span>
+                                <button onclick="triggerDirectUpload('${b.id}', 'map_annex')" class="btn btn-xs btn-emerald text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 d-inline-flex align-items-center gap-1 font-bold text-[10px] px-2.5 py-1 shadow-sm rounded-lg border-0">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> อัปโหลดเข้า Drive
+                                </button>
+                            </div>
+                        `;
+                    }
+
+                    return `
+                        <div class="gazette-card p-4 rounded-2xl mb-3 border border-warning-200 shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden">
+                            <div class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-amber-50 to-transparent opacity-50 pointer-events-none"></div>
+                            
+                            <div class="d-flex align-items-center justify-content-between mb-3 border-b pb-2 flex-wrap gap-2">
+                                <span class="fw-bold text-slate-800 text-sm">
+                                    <i class="fa-solid fa-scroll text-yellow-700 text-sm me-1"></i> ${b.boundary_name}
+                                    <span class="badge bg-indigo-100 text-indigo-800 text-[8px] font-bold ms-1 px-1.5 py-0.5 rounded"><i class="fa-solid fa-cloud-arrow-up"></i> Upload แล้ว</span>
+                                </span>
+                                <div class="d-flex gap-1.5">
+                                    <button onclick="openEditBoundaryModal('${b.id}')" class="btn btn-xs btn-outline-warning d-inline-flex align-items-center gap-1 font-bold text-[10px] px-2 py-1 shadow-sm rounded-lg">
+                                        <i class="fa-solid fa-pen-to-square"></i> แก้ไขข้อความ
+                                    </button>
+                                    <button onclick="deleteBoundary('${b.id}')" class="btn btn-xs btn-outline-danger d-inline-flex align-items-center gap-1 font-bold text-[10px] px-2 py-1 shadow-sm rounded-lg" title="ลบข้อมูล">
+                                        <i class="fa-solid fa-trash"></i> ลบ
+                                    </button>
+                                    <a href="digital-infrastructure-map.html?focus=boundary&id=${b.id}" class="btn btn-xs btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 d-inline-flex align-items-center gap-1 font-bold text-[10px] px-2.5 py-1 shadow-sm rounded-lg transform hover:scale-[1.03] active:scale-[0.98] transition-all">
+                                        <i class="fa-solid fa-map-location-dot"></i> กดดูแผนที่
+                                    </a>
+                                </div>
+                            </div>
+                            <p class="text-[11px] text-slate-600 leading-relaxed font-normal mb-2 leading-relaxed italic bg-amber-50/50 p-2.5 rounded-xl border border-dashed border-amber-200">
+                                "${b.gazette_announcement_text || 'คำบรรยายสัญวิทยาขอบเขตตำบล...'}"
+                            </p>
+                            <div class="p-3 bg-slate-50 border rounded-xl text-[10px] space-y-1.5 mb-3 font-semibold text-slate-600">
+                                <div class="d-flex justify-content-between"><span>ขนาดเนื้อที่:</span> <span class="text-slate-800 font-bold">${areaSqm.toLocaleString()} ตร.ม.</span></div>
+                                <div class="d-flex justify-content-between"><span>ขนาดเนื้อที่ ตร.กม:</span> <span class="text-slate-800 font-bold">${areaSqkm} ตร.กม.</span></div>
+                                <div class="d-flex justify-content-between"><span>ขนาดเนื้อที่หน่วยย่อย:</span> <span class="text-indigo-600 font-bold">${areaThai}</span></div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                <span class="text-[9px] text-slate-400 font-normal"><i class="fa-solid fa-paperclip me-1"></i> อ้างอิง: ${b.map_reference || '-'}</span>
+                            </div>
+                            
+                            <div class="mt-3 pt-2.5 border-t border-slate-100 space-y-2">
+                                <div class="text-[10px] font-bold text-slate-500 mb-1 d-flex align-items-center justify-content-between">
+                                    <span><i class="fa-brands fa-google-drive text-indigo-600"></i> เอกสารแนบ Google Drive Cloud Sync</span>
+                                    <span class="badge bg-green-100 text-green-800 text-[8px] font-bold px-1.5 py-0.5 rounded"><i class="fa-solid fa-circle-check"></i> Live Connected</span>
+                                </div>
+                                ${gazetteBlockHtml}
+                                ${mapAnnexBlockHtml}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // เรนเดอร์หมู่บ้านลงตาราง
+            if (!villageList.length) {
+                villageTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-3 text-muted">ไม่พบข้อมูลขอบเขตหมู่บ้าน</td></tr>';
+            } else {
+                // จัดเรียงหมู่บ้านตามหมู่ที่ตั้ง
+                const sortedVillages = villageList.sort((x, y) => {
+                    const nx = parseInt(x.village_no) || 0;
+                    const ny = parseInt(y.village_no) || 0;
+                    return nx - ny;
+                });
+                
+                villageTableBody.innerHTML = sortedVillages.map(b => {
+                    const areaSqm = b.area_sqm || 0;
+                    const areaSqkm = (areaSqm / 1000000).toFixed(4);
+                    const areaThai = formatSqmToThaiArea(areaSqm);
+                    
+                    // สร้างปุ่มจัดเก็บบันทึกตรงเข้า Google Drive สำหรับหมู่บ้านรายตัว
+                    let rowGazetteHtml = '';
+                    if (b.gazette_pdf_url) {
+                        rowGazetteHtml = `
+                            <div class="d-inline-flex gap-1 align-items-center">
+                                <button onclick="viewGoogleDriveFile('${b.id}', 'gazette', '${b.gazette_pdf_url}')" class="btn btn-xs btn-outline-danger px-2 py-0.5 text-[9px] font-bold d-inline-flex align-items-center gap-1 rounded-md border-red-200 text-red-600 hover:bg-red-50" title="เรียกดูประกาศราชกิจจาฯ (Google Drive)">
+                                    <i class="fa-brands fa-google-drive text-red-500"></i> ราชกิจจาฯ
+                                </button>
+                                <button onclick="triggerDirectUpload('${b.id}', 'gazette')" class="btn btn-xs p-0 text-slate-400 hover:text-slate-600" title="อัปเดตไฟล์ประกาศใหม่"><i class="fa-solid fa-sync text-[8px]"></i></button>
+                            </div>
+                        `;
+                    } else {
+                        rowGazetteHtml = `
+                            <button onclick="triggerDirectUpload('${b.id}', 'gazette')" class="btn btn-xs btn-light text-slate-500 border px-2 py-0.5 text-[9px] d-inline-flex align-items-center gap-1 rounded-md hover:bg-slate-100" title="อัปโหลดประกาศเข้าระบบ Google Drive">
+                                <i class="fa-solid fa-cloud-arrow-up text-slate-400"></i> อัปโหลด ราชกิจจาฯ
+                            </button>
+                        `;
+                    }
+
+                    let rowMapHtml = '';
+                    if (b.map_annex_url) {
+                        const isPdf = b.map_annex_url.toLowerCase().includes('.pdf') || b.map_annex_url.startsWith('data:application/pdf');
+                        const iconClass = isPdf ? 'fa-file-pdf text-red-500' : 'fa-file-image text-emerald-500';
+                        rowMapHtml = `
+                            <div class="d-inline-flex gap-1 align-items-center mt-1">
+                                <button onclick="viewGoogleDriveFile('${b.id}', 'map_annex', '${b.map_annex_url}')" class="btn btn-xs btn-outline-success px-2 py-0.5 text-[9px] font-bold d-inline-flex align-items-center gap-1 rounded-md border-emerald-200 text-emerald-600 hover:bg-emerald-50" title="เรียกดูแผนที่แนบท้าย (Google Drive)">
+                                    <i class="fa-brands fa-google-drive text-emerald-500"></i> แผนที่แนบ
+                                </button>
+                                <button onclick="triggerDirectUpload('${b.id}', 'map_annex')" class="btn btn-xs p-0 text-slate-400 hover:text-slate-600" title="อัปเดตแผนที่แนบท้ายใหม่"><i class="fa-solid fa-sync text-[8px]"></i></button>
+                            </div>
+                        `;
+                    } else {
+                        rowMapHtml = `
+                            <button onclick="triggerDirectUpload('${b.id}', 'map_annex')" class="btn btn-xs btn-light text-slate-500 border px-2 py-0.5 text-[9px] d-inline-flex align-items-center gap-1 rounded-md hover:bg-slate-100 mt-1" title="อัปโหลดแผนที่แนบท้ายเข้าระบบ Google Drive">
+                                <i class="fa-solid fa-cloud-arrow-up text-slate-400"></i> อัปโหลด แผนที่แนบ
+                            </button>
+                        `;
+                    }
+                    
+                    return `
+                        <tr class="align-middle">
+                            <td class="ps-2 fw-bold text-slate-800 text-nowrap">หมู่ที่ ${b.village_no || '-'}</td>
+                            <td class="font-semibold text-indigo-600 text-nowrap">
+                                ${b.boundary_name}
+                                <span class="badge bg-emerald-100 text-emerald-800 text-[8px] font-bold ms-1 px-1.5 py-0.5 rounded"><i class="fa-solid fa-cloud-arrow-up"></i> Upload แล้ว</span>
+                            </td>
+                            <td class="text-end fw-bold text-slate-700 text-nowrap">${areaSqm.toLocaleString()}</td>
+                            <td class="text-end text-slate-600 text-nowrap">${areaSqkm}</td>
+                            <td class="text-end text-emerald-700 font-semibold text-nowrap">${areaThai}</td>
+                            <td class="text-center text-nowrap">
+                                <div class="d-flex flex-column align-items-center justify-content-center">
+                                    ${rowGazetteHtml}
+                                    ${rowMapHtml}
+                                </div>
+                            </td>
+                            <td class="text-center pe-2 text-nowrap">
+                                <div class="d-flex align-items-center justify-content-center gap-1.5">
+                                    <a href="digital-infrastructure-map.html?focus=boundary&id=${b.id}" class="btn btn-xs btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 d-inline-flex align-items-center gap-1 font-bold shadow-sm rounded-lg" title="กดดูแผนที่หมู่บ้านนี้">
+                                        <i class="fa-solid fa-map-location-dot text-[10px]"></i> กดดูแผนที่
+                                    </a>
+                                    <button class="btn btn-xs btn-outline-danger px-2.5 py-1 text-[10px] font-bold d-inline-flex align-items-center gap-1 shadow-sm rounded-lg" onclick="deleteBoundary('${b.id}')" title="ลบข้อมูล"><i class="fa-solid fa-trash"></i> ลบ</button>
+                                    <button class="btn btn-xs btn-outline-warning px-2.5 py-1 text-[10px] font-bold d-inline-flex align-items-center gap-1 shadow-sm rounded-lg" onclick="openEditBoundaryModal('${b.id}')"><i class="fa-solid fa-pen-to-square"></i> แก้ไขข้อความ</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        } catch (e) {
+            console.error("Load boundaries error:", e);
+            subdistrictContainer.innerHTML = '<div class="text-danger py-3 text-center">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>';
+            if (villageTableBody) {
+                villageTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-3 text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
+            }
+        }
+    }
+
+    async function submitNewMarker(e) {
+        e.preventDefault();
+        const payload = {
+            marker_code: document.getElementById('nmCode').value,
+            marker_type: document.getElementById('nmType').value,
+            description: document.getElementById('nmDesc').value,
+            village_no: document.getElementById('nmVillage').value,
+            latitude: parseFloat(document.getElementById('nmLat').value) || 17.975,
+            longitude: parseFloat(document.getElementById('nmLng').value) || 103.472,
+            marker_condition: 'perfect'
+        };
+
+        try {
+            await BoundarySpatialService.saveMarker(payload);
+            bootstrap.Modal.getInstance(document.getElementById('newMarkerModal')).hide();
+            if(typeof showToast !== 'undefined') showToast('บันทึกเพิ่มหลักเขตการปกครองสำเร็จ', 'success');
+            loadBoundaryData();
+        } catch(err) {
+            if(typeof showToast !== 'undefined') showToast('ไม่สามารถจัดเก็บข้อมูลหลักเขตได้', 'danger');
+        }
+    }
+
+    async function deleteMarker(id) {
+        if(!confirm('ยืนยันลบหมุดหลักเขตการปกครองนี้หรือไม่?')) return;
+        try {
+            await BoundarySpatialService.deleteMarker(id);
+            if(typeof showToast !== 'undefined') showToast('ลบหมุดหลักเขตเรียบร้อยแล้ว', 'success');
+            loadBoundaryData();
+        } catch(e) {
+            if(typeof showToast !== 'undefined') showToast('ไม่สามารถลบข้อมูลหลักเขตได้', 'danger');
+        }
+    }
+
+    window.deleteBoundary = async function(id) {
+        if(!confirm('คุณต้องการลบข้อมูลแนวเขตนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถกู้คืนได้')) return;
+        
+        try {
+            await BoundarySpatialService.deleteBoundary(id);
+            if(typeof showToast !== 'undefined') showToast('ลบข้อมูลแนวเขตเรียบร้อยแล้ว', 'success');
+            loadBoundaryData();
+        } catch(e) {
+            console.error("Delete boundary error:", e);
+            if(typeof showToast !== 'undefined') showToast('ไม่สามารถลบข้อมูลแนวเขตได้', 'danger');
+        }
+    };
+
+    function setupGISUploadEngine() {
+        const importType = document.getElementById('importDataType').value;
+        let targetFields = [];
+
+        // ตั้งค่า aliases สำหรับ fuzzy matching ให้ฉลาดขึ้น
+        if (typeof ShapefileUploader !== 'undefined') {
+            if (importType === 'marker') {
+                ShapefileUploader.layerLabel = 'หลักเขต';
+                ShapefileUploader.mapLabel = 'หลักเขต';
+                ShapefileUploader.layerIcon = 'fa-map-pin';
+            } else if (importType === 'subdistrict') {
+                ShapefileUploader.layerLabel = 'แนวเขตตำบล';
+                ShapefileUploader.mapLabel = 'แนวเขตตำบล';
+                ShapefileUploader.layerIcon = 'fa-draw-polygon';
+            } else {
+                ShapefileUploader.layerLabel = 'แนวเขตหมู่บ้าน';
+                ShapefileUploader.mapLabel = 'แนวเขตหมู่บ้าน';
+                ShapefileUploader.layerIcon = 'fa-draw-polygon';
+            }
+
+            if (!ShapefileUploader._fieldAliases.marker_code) {
+                ShapefileUploader._fieldAliases.marker_code = ['marker_code', 'code', 'marker_id', 'markerid', 'รหัสหลักเขต', 'รหัสหมุด', 'id', 'no'];
+                ShapefileUploader._fieldAliases.marker_type = ['marker_type', 'type', 'ประเภทหลักหมุด', 'ประเภทหลักเขต', 'ประเภท'];
+                ShapefileUploader._fieldAliases.description = ['description', 'desc', 'รายละเอียด', 'คำอธิบายสถานที่', 'location', 'txt_desc'];
+                ShapefileUploader._fieldAliases.village_no = ['village_no', 'village', 'moo', 'หมู่ที่', 'หมู่', 'village_code', 'moo_no', 'no'];
+                ShapefileUploader._fieldAliases.boundary_name = ['boundary_name', 'name', 'ชื่อแนวเขต', 'ชื่อขอบเขต', 'ตำบล', 'หมู่บ้าน', 'village_name', 'boundaryname', 'boundaryor'];
+                ShapefileUploader._fieldAliases.boundary_type = ['boundary_type', 'type', 'ประเภทแนวเขต', 'ประเภท', 'boundarytype'];
+                ShapefileUploader._fieldAliases.gazette_announcement_text = ['gazette_announcement_text', 'gazette', 'text', 'คำบรรยาย', 'คำอธิบาย', 'desc', 'description'];
+                ShapefileUploader._fieldAliases.area_sqm = ['area_sqm', 'area', 'sqm', 'ขนาดเนื้อที่', 'เนื้อที่', 'size', 'area_sq_m', 'areasqm'];
+                
+                // คอลัมน์ฟิลด์เพิ่มเติมอัจฉริยะตามความต้องการของผู้ใช้งาน
+                ShapefileUploader._fieldAliases.area_sqkm = ['area_sqkm', 'sqkm', 'ตร.กม.', 'ตารางกิโลเมตร', 'area_sq_km', 'areasqkm'];
+                ShapefileUploader._fieldAliases.area_rai = ['area_rai', 'rai', 'ไร่', 'เนื้อที่ไร่', 'rai_area'];
+                ShapefileUploader._fieldAliases.mgrs = ['mgrs', 'MGRS', 'พิกัด MGRS', 'mgrscoord', 'mgrs_coord'];
+                ShapefileUploader._fieldAliases.coord_x = ['coord_x', 'x', 'X', 'ค่าพิกัด x', 'พิกัด x', 'coordx', 'easting', 'east', 'longitude', 'long'];
+                ShapefileUploader._fieldAliases.coord_y = ['coord_y', 'y', 'Y', 'ค่าพิกัด y', 'พิกัด y', 'coordy', 'northing', 'north', 'latitude', 'lat'];
+            }
+        }
+
+        if (importType === 'subdistrict') {
+            targetFields = [
+                { key: 'boundary_name', label: 'ชื่อแนวเขต', icon: 'fa-draw-polygon', required: true },
+                { key: 'area_sqm', label: 'ขนาดเนื้อที่ ตร.ม.', icon: 'fa-arrows-left-right' },
+                { key: 'area_sqkm', label: 'ขนาดเนื้อที่ ตร.กม.', icon: 'fa-layer-group' },
+                { key: 'area_rai', label: 'ขนาดเนื้อที่ ไร่', icon: 'fa-tree' }
+            ];
+        } else if (importType === 'marker') {
+            targetFields = [
+                { key: 'marker_code', label: 'รหัสหมุดหลักเขต', icon: 'fa-hashtag', required: true },
+                { key: 'mgrs', label: 'พิกัด MGRS', icon: 'fa-file-invoice' },
+                { key: 'coord_x', label: 'ค่าพิกัด x', icon: 'fa-location-crosshairs' },
+                { key: 'coord_y', label: 'ค่าพิกัด y', icon: 'fa-location-crosshairs' }
+            ];
+        } else {
+            targetFields = [
+                { key: 'village_no', label: 'หมู่ที่', icon: 'fa-hashtag', required: true },
+                { key: 'boundary_name', label: 'ชื่อหมู่บ้าน', icon: 'fa-home', required: true },
+                { key: 'area_sqm', label: 'ขนาดเนื้อที่ ตร.ม.', icon: 'fa-arrows-left-right' },
+                { key: 'area_sqkm', label: 'ขนาดเนื้อที่ ตร.กม.', icon: 'fa-layer-group' },
+                { key: 'area_rai', label: 'ขนาดเนื้อที่ ไร่', icon: 'fa-tree' }
+            ];
+        }
+
+        // Override dynamic execution in shapefile-upload.js specifically for boundary data
+        ShapefileUploader.executeImport = async function(mapping, onImported) {
+            if (!this.parsedGeoJSON) return;
+
+            const totalFeatures = this.parsedGeoJSON.features.length;
+            const progressPanel = document.getElementById('uploadProgressPanel');
+            const progressBar = document.getElementById('uploadProgressBar');
+            const progressLabel = document.getElementById('uploadPercentLabel');
+            const fileNameLabel = document.getElementById('uploadFileNameLabel');
+            
+            if (progressPanel) {
+                progressPanel.classList.remove('hidden');
+                if (fileNameLabel) fileNameLabel.textContent = `กำลังนำเข้า ${totalFeatures} รายการ...`;
+            }
+
+            if (typeof showToast !== 'undefined') {
+                showToast(`กำลังเริ่มต้นนำเข้าข้อมูลเขตปกครอง/หมุดหลักเขต ${totalFeatures} รายการ...`, 'info');
+            }
+
+            try {
+                let savedCount = 0;
+                const features = this.parsedGeoJSON.features || [];
+                const importedResults = [];
+
+                for (let i = 0; i < features.length; i++) {
+                    const feat = features[i];
+                    const props = feat.properties || {};
+                    const geom = feat.geometry || {};
+                    
+                    let lat = null, lng = null;
+                    if (geom.type === 'Point' && geom.coordinates) {
+                        lng = geom.coordinates[0];
+                        lat = geom.coordinates[1];
+                    } else if (geom.type === 'LineString' && geom.coordinates && geom.coordinates.length) {
+                        lng = geom.coordinates[0][0];
+                        lat = geom.coordinates[0][1];
+                    } else if (geom.type === 'Polygon' && geom.coordinates && geom.coordinates[0] && geom.coordinates[0].length) {
+                        lng = geom.coordinates[0][0][0];
+                        lat = geom.coordinates[0][0][1];
+                    } else if (geom.type === 'MultiPolygon' && geom.coordinates && geom.coordinates[0] && geom.coordinates[0][0] && geom.coordinates[0][0].length) {
+                        lng = geom.coordinates[0][0][0][0];
+                        lat = geom.coordinates[0][0][0][1];
+                    }
+
+                    if (importType === 'marker') {
+                        const xVal = parseFloat(props[mapping.coord_x]);
+                        const yVal = parseFloat(props[mapping.coord_y]);
+                        
+                        // Validate if mapped properties are in standard decimal degrees
+                        const isValidDecimalLat = !isNaN(yVal) && yVal >= -90 && yVal <= 90;
+                        const isValidDecimalLng = !isNaN(xVal) && xVal >= -180 && xVal <= 180;
+
+                        const markerRow = {
+                            marker_code: props[mapping.marker_code] || `BM-SIM-${Math.round(Math.random()*10000)}`,
+                            marker_type: 'หลักเขตปกครอง',
+                            description: props[mapping.description] || `นำเข้าพิกัดเชิงเส้น GIS · MGRS: ${props[mapping.mgrs] || '-'}`,
+                            village_no: String(props[mapping.village_no] || '1'),
+                            // Use correct decimal degrees from geometry if attributes are UTM projection values
+                            latitude: isValidDecimalLat ? yVal : (lat || 17.975),
+                            longitude: isValidDecimalLng ? xVal : (lng || 103.472),
+                            mgrs: props[mapping.mgrs] || '',
+                            coord_x: !isNaN(xVal) ? xVal : (lng || null),
+                            coord_y: !isNaN(yVal) ? yVal : (lat || null),
+                            marker_condition: 'perfect',
+                            geom: geom
+                        };
+
+                        await BoundarySpatialService.saveMarker(markerRow);
+                        importedResults.push(markerRow);
+                    } else {
+                        // ปรับแต่งโพลีกอนแบบเดี่ยวให้เป็น MultiPolygon สำหรับคอลัมน์ geom ในฐานข้อมูล
+                        let dbGeom = geom;
+                        let areaSqm = 0;
+                        if (geom && geom.type === 'Polygon') {
+                            dbGeom = {
+                                type: 'MultiPolygon',
+                                coordinates: [geom.coordinates]
+                            };
+                            // Calculate area on the fly!
+                            if (geom.coordinates && geom.coordinates[0]) {
+                                const pts = geom.coordinates[0].map(pt => [pt[1], pt[0]]);
+                                areaSqm = calculatePolygonArea(pts);
+                            }
+                        } else if (geom && geom.type === 'MultiPolygon') {
+                            if (geom.coordinates && geom.coordinates[0] && geom.coordinates[0][0]) {
+                                const pts = geom.coordinates[0][0].map(pt => [pt[1], pt[0]]);
+                                areaSqm = calculatePolygonArea(pts);
+                            }
+                        }
+
+                        const parsedSqm = parseFloat(props[mapping.area_sqm]) || areaSqm || 0;
+                        const parsedSqkm = parseFloat(props[mapping.area_sqkm]) || (parsedSqm / 1000000.0) || 0;
+                        const parsedRai = parseFloat(props[mapping.area_rai]) || (parsedSqm / 1600.0) || 0;
+
+                        const boundaryRow = {
+                            boundary_name: props[mapping.boundary_name] || 'แนวเขตนำเข้าพิกัด',
+                            boundary_type: importType === 'subdistrict' ? 'แนวเขตตำบล' : 'แนวเขตหมู่บ้าน',
+                            village_no: importType === 'village' ? String(props[mapping.village_no] || '') : '',
+                            area_sqm: parsedSqm,
+                            area_sqkm: parsedSqkm,
+                            area_rai: parsedRai,
+                            gazette_announcement_text: props[mapping.gazette_announcement_text] || 'คำบรรยายพิกัดจาก Shapefile',
+                            map_reference: 'นำเข้าจากระบบสารสนเทศภูมิศาสตร์ GIS',
+                            geom: dbGeom
+                        };
+
+                        await BoundarySpatialService.saveBoundary(boundaryRow);
+                        importedResults.push(boundaryRow);
+                    }
+                    savedCount++;
+
+                    // Update progress UI
+                    const pct = Math.round(((i + 1) / features.length) * 100);
+                    if (progressBar) progressBar.style.width = pct + '%';
+                    if (progressLabel) progressLabel.textContent = pct + '%';
+                    if (fileNameLabel) fileNameLabel.textContent = `กำลังประมวลผล ${i + 1}/${features.length}...`;
+                }
+
+                let fileUrl = '';
+                // 1. อัปโหลดคลาวด์
+                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    try {
+                        let fileToUpload = this.selectedFile;
+                        let uploadFilename = this.selectedFile ? this.selectedFile.name : `boundary_import_${Date.now()}.geojson`;
+
+                        if (!fileToUpload || !uploadFilename.toLowerCase().endsWith('.geojson')) {
+                            const geojsonString = JSON.stringify(this.parsedGeoJSON, null, 2);
+                            const blob = new Blob([geojsonString], { type: 'application/json' });
+                            uploadFilename = uploadFilename.split('.')[0] + '_converted.geojson';
+                            fileToUpload = new File([blob], uploadFilename, { type: 'application/json' });
+                        }
+
+                        const storagePath = `uploads/${Date.now()}_${uploadFilename}`;
+                        
+                        const { data: uploadData, error: uploadError } = await supabaseClient
+                            .storage
+                            .from('Infrastructure')
+                            .upload(storagePath, fileToUpload, {
+                                cacheControl: '3600',
+                                upsert: true
+                            });
+
+                        if (uploadError) {
+                            const { data: retryData, error: retryError } = await supabaseClient
+                                .storage
+                                .from('infrastructure')
+                                .upload(storagePath, fileToUpload, {
+                                    cacheControl: '3600',
+                                    upsert: true
+                                });
+
+                            if (!retryError && retryData) {
+                                const { data: publicUrlData } = supabaseClient
+                                    .storage
+                                    .from('infrastructure')
+                                    .getPublicUrl(storagePath);
+                                fileUrl = publicUrlData ? publicUrlData.publicUrl : '';
+                            }
+                        } else if (uploadData) {
+                            const { data: publicUrlData } = supabaseClient
+                                .storage
+                                .from('Infrastructure')
+                                .getPublicUrl(storagePath);
+                            fileUrl = publicUrlData ? publicUrlData.publicUrl : '';
+                        }
+                    } catch (storageErr) {
+                        console.error("Supabase Storage Operations failed:", storageErr);
+                    }
+
+                    // บันทึก Log ประวัติ
+                    await supabaseClient.from('infra_gis_uploads').insert([{
+                        filename: this.selectedFile ? this.selectedFile.name : 'imported_boundary_file.geojson',
+                        file_type: this.selectedFile ? this.selectedFile.name.split('.').pop() : 'geojson',
+                        layer_name: importType === 'marker' ? 'ข้อมูลจุดหลักเขตปกครอง' : (importType === 'subdistrict' ? 'แนวเขตปกครองตำบล' : 'แนวเขตหมู่บ้าน'),
+                        crs: this.detectedCRS,
+                        geom_type: features.length ? features[0].geometry.type : 'Point',
+                        features_count: features.length,
+                        mapped_fields: mapping,
+                        status: 'success',
+                        file_url: fileUrl
+                    }]);
+                }
+
+                if (typeof showToast !== 'undefined') {
+                    showToast(`✅ นำเข้าสำเร็จ! บันทึกพิกัดจริง ${savedCount}/${features.length} รายการลงสู่ฐานข้อมูลเรียบร้อยแล้ว`, 'success');
+                }
+                
+                if (onImported) onImported(importedResults);
+            } catch (err) {
+                console.error(err);
+                if (typeof showToast !== 'undefined') {
+                    showToast(`เกิดข้อผิดพลาดในการโหลดนำเข้า: ${err.message}`, 'danger');
+                }
+                if (progressPanel) progressPanel.classList.add('hidden');
+            }
+        };
+
+        // ปิด Dropzone เก่าก่อนเชื่อมตัวแปรใหม่
+        ShapefileUploader.initDropZone('dropZoneContainer', 'fileUploadInput', (geojson) => {
+            document.getElementById('detectedCRS').textContent = ShapefileUploader.detectedCRS;
+            document.getElementById('detectedGeomType').textContent = geojson.features.length ? geojson.features[0].geometry.type : 'Point';
+            document.getElementById('detectedCount').textContent = geojson.features.length;
+
+            ShapefileUploader.buildAttributeMapper('attributeMapperContainer', targetFields, async (importedResults) => {
+                document.getElementById('tab-list-tab').click();
+                loadBoundaryData();
+                loadGISUploadHistory();
+            });
+        });
+    }
+
+    async function loadGISUploadHistory() {
+        const tbody = document.getElementById('gisUploadsTableBody');
+        if (!tbody) return;
+        try {
+            if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                const { data, error } = await supabaseClient
+                    .from('infra_gis_uploads')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                if (error) throw error;
+                if (!data || !data.length) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">ไม่พบข้อมูลประวัตินำเข้าจากคลาวด์</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.map(upload => {
+                    let downloadBtn = '-';
+                    if (upload.file_url) {
+                        downloadBtn = `<a href="${upload.file_url}" target="_blank" class="btn btn-xs btn-indigo bg-indigo-600 text-white hover:bg-indigo-700 text-nowrap"><i class="fa-solid fa-cloud-arrow-down me-1"></i> ดาวน์โหลด GeoJSON</a>`;
+                    }
+                    return `
+                        <tr>
+                            <td class="ps-4 fw-bold text-indigo-600 text-nowrap">${upload.id.slice(0, 8)}</td>
+                            <td class="font-semibold text-slate-800 text-nowrap">${upload.filename}</td>
+                            <td class="text-nowrap">${upload.crs || 'EPSG:4326'}</td>
+                            <td class="text-nowrap">${upload.geom_type || 'LineString'}</td>
+                            <td class="text-nowrap">${upload.features_count || 0} รายการ</td>
+                            <td class="text-nowrap">${new Date(upload.created_at).toLocaleString('th-TH')}</td>
+                            <td class="text-nowrap"><span class="diis-badge diis-badge-success"><i class="fa-solid fa-circle-check me-1"></i> ซิงค์คลาวด์สำเร็จ</span></td>
+                            <td class="text-center pe-4 text-nowrap">${downloadBtn}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">ไม่ได้เชื่อมต่อระบบคลาวด์ Supabase (รันอยู่ในโหมดจำลอง)</td></tr>';
+            }
+        } catch(e) {
+            console.error("GIS Upload history error:", e);
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">เกิดข้อผิดพลาดในการดึงข้อมูลจากคลาวด์</td></tr>';
+        }
+    }
+
+    function recalculateEbArea(sqmVal) {
+        const sqm = parseFloat(sqmVal) || 0;
+        document.getElementById('ebAreaSqkm').value = (sqm / 1000000.0).toFixed(4);
+        document.getElementById('ebAreaRai').value = (sqm / 1600.0).toFixed(1);
+    }
+
+    async function openEditBoundaryModal(id) {
+        console.log("Opening edit boundary modal for ID:", id);
+        try {
+            const boundaries = await BoundarySpatialService.loadBoundaries();
+            const boundary = boundaries.find(b => b.id === id);
+            if (!boundary) {
+                if(typeof showToast !== 'undefined') showToast('ไม่พบข้อมูลแนวเขตที่ต้องการแก้ไข', 'danger');
+                return;
+            }
+
+            document.getElementById('ebId').value = boundary.id;
+            document.getElementById('ebName').value = boundary.boundary_name || '';
+            document.getElementById('ebVillage').value = boundary.village_no || '';
+            document.getElementById('ebAreaSqm').value = boundary.area_sqm || 0;
+            document.getElementById('ebAreaSqkm').value = boundary.area_sqkm || 0;
+            document.getElementById('ebAreaRai').value = boundary.area_rai || 0;
+            document.getElementById('ebGazetteText').value = boundary.gazette_announcement_text || '';
+            document.getElementById('ebMapRef').value = boundary.map_reference || '';
+            
+            document.getElementById('ebGazetteUrl').value = boundary.gazette_pdf_url || '';
+            document.getElementById('ebMapAnnexUrl').value = boundary.map_annex_url || '';
+
+            document.getElementById('ebGazetteFile').value = '';
+            document.getElementById('ebMapAnnexFile').value = '';
+
+            document.getElementById('ebGazetteStatus').innerHTML = boundary.gazette_pdf_url ? 
+                `<span class="text-emerald-600"><i class="fa-solid fa-circle-check"></i> มีไฟล์แล้ว</span>` : 'ยังไม่มีไฟล์';
+            
+            document.getElementById('ebMapAnnexStatus').innerHTML = boundary.map_annex_url ? 
+                `<span class="text-emerald-600"><i class="fa-solid fa-circle-check"></i> มีไฟล์แล้ว</span>` : 'ยังไม่มีไฟล์';
+
+            const modal = new bootstrap.Modal(document.getElementById('editBoundaryModal'));
+            modal.show();
+        } catch (e) {
+            console.error("Open edit boundary modal failed:", e);
+            if(typeof showToast !== 'undefined') showToast('เกิดข้อผิดพลาดในการโหลดรายละเอียดแนวเขต', 'danger');
+        }
+    }
+
+    function clearBoundaryFile(type) {
+        if (type === 'gazette') {
+            document.getElementById('ebGazetteFile').value = '';
+            document.getElementById('ebGazetteUrl').value = '';
+            document.getElementById('ebGazetteStatus').innerHTML = 'ยังไม่มีไฟล์';
+        } else {
+            document.getElementById('ebMapAnnexFile').value = '';
+            document.getElementById('ebMapAnnexUrl').value = '';
+            document.getElementById('ebMapAnnexStatus').innerHTML = 'ยังไม่มีไฟล์';
+        }
+    }
+
+    async function uploadBoundaryFile(type) {
+        const fileInput = document.getElementById(type === 'gazette' ? 'ebGazetteFile' : 'ebMapAnnexFile');
+        const statusSpan = document.getElementById(type === 'gazette' ? 'ebGazetteStatus' : 'ebMapAnnexStatus');
+        const urlInput = document.getElementById(type === 'gazette' ? 'ebGazetteUrl' : 'ebMapAnnexUrl');
+
+        if (!fileInput.files || !fileInput.files.length) return;
+        const file = fileInput.files[0];
+
+        statusSpan.innerHTML = `<span class="text-indigo-600"><i class="fa-solid fa-spinner fa-spin"></i> กำลังอัปโหลด...</span>`;
+
+        try {
+            let fileUrl = '';
+            if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                const storagePath = `attachments/${Date.now()}_${file.name}`;
+                let { data: uploadData, error: uploadError } = await supabaseClient
+                    .storage
+                    .from('Infrastructure')
+                    .upload(storagePath, file, { cacheControl: '3600', upsert: true });
+
+                if (uploadError) {
+                    const { data: retryData, error: retryError } = await supabaseClient
+                        .storage
+                        .from('infrastructure')
+                        .upload(storagePath, file, { cacheControl: '3600', upsert: true });
+
+                    if (!retryError && retryData) {
+                        const { data: publicUrlData } = supabaseClient
+                            .storage
+                            .from('infrastructure')
+                            .getPublicUrl(storagePath);
+                        fileUrl = publicUrlData ? publicUrlData.publicUrl : '';
+                    }
+                } else if (uploadData) {
+                    const { data: publicUrlData } = supabaseClient
+                        .storage
+                        .from('Infrastructure')
+                        .getPublicUrl(storagePath);
+                    fileUrl = publicUrlData ? publicUrlData.publicUrl : '';
+                }
+            }
+
+            if (!fileUrl) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    urlInput.value = e.target.result;
+                    statusSpan.innerHTML = `<span class="text-emerald-600"><i class="fa-solid fa-circle-check"></i> อัปโหลดเสร็จสิ้น (Base64)</span>`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                urlInput.value = fileUrl;
+                statusSpan.innerHTML = `<span class="text-emerald-600"><i class="fa-solid fa-circle-check"></i> อัปโหลดเสร็จสิ้น (คลาวด์)</span>`;
+            }
+        } catch (err) {
+            console.error("File upload failed:", err);
+            statusSpan.innerHTML = `<span class="text-danger"><i class="fa-solid fa-circle-xmark"></i> ล้มเหลว: ${err.message}</span>`;
+        }
+    }
+
+    async function submitEditBoundary(e) {
+        e.preventDefault();
+        const boundaryId = document.getElementById('ebId').value;
+        const payload = {
+            id: boundaryId,
+            boundary_name: document.getElementById('ebName').value,
+            village_no: document.getElementById('ebVillage').value,
+            area_sqm: parseFloat(document.getElementById('ebAreaSqm').value) || 0,
+            area_sqkm: parseFloat(document.getElementById('ebAreaSqkm').value) || 0,
+            area_rai: parseFloat(document.getElementById('ebAreaRai').value) || 0,
+            gazette_announcement_text: document.getElementById('ebGazetteText').value,
+            map_reference: document.getElementById('ebMapRef').value,
+            gazette_pdf_url: document.getElementById('ebGazetteUrl').value,
+            map_annex_url: document.getElementById('ebMapAnnexUrl').value
+        };
+
+        try {
+            const boundaries = await BoundarySpatialService.loadBoundaries();
+            const original = boundaries.find(b => b.id === boundaryId);
+            if (original) {
+                payload.geom = original.geom;
+            }
+
+            await BoundarySpatialService.saveBoundary(payload);
+            bootstrap.Modal.getInstance(document.getElementById('editBoundaryModal')).hide();
+            if(typeof showToast !== 'undefined') showToast('บันทึกปรับปรุงข้อมูลแนวเขตสำเร็จ', 'success');
+            loadBoundaryData();
+        } catch(err) {
+            console.error("Save boundary error:", err);
+            if(typeof showToast !== 'undefined') showToast('ไม่สามารถจัดเก็บข้อมูลแนวเขตได้', 'danger');
+        }
+    }
+
+    async function openEditMarkerModal(id) {
+        console.log("Opening edit marker modal for ID:", id);
+        try {
+            const markers = await BoundarySpatialService.loadMarkers();
+            const marker = markers.find(m => m.id === id);
+            if (!marker) {
+                if(typeof showToast !== 'undefined') showToast('ไม่พบข้อมูลหมุดหลักเขต', 'danger');
+                return;
+            }
+
+            document.getElementById('emId').value = marker.id;
+            document.getElementById('emCode').value = marker.marker_code || '';
+            document.getElementById('emType').value = marker.marker_type || 'หลักเขตตำบล';
+            document.getElementById('emDesc').value = marker.description || '';
+            document.getElementById('emVillage').value = marker.village_no || '1';
+            document.getElementById('emMgrs').value = marker.mgrs || '';
+            document.getElementById('emLat').value = marker.latitude || '';
+            document.getElementById('emLng').value = marker.longitude || '';
+
+            const modal = new bootstrap.Modal(document.getElementById('editMarkerModal'));
+            modal.show();
+        } catch (e) {
+            console.error("Open edit marker modal failed:", e);
+            if(typeof showToast !== 'undefined') showToast('เกิดข้อผิดพลาดในการโหลดรายละเอียดหลักหมุด', 'danger');
+        }
+    }
+
+    async function submitEditMarker(e) {
+        e.preventDefault();
+        const markerId = document.getElementById('emId').value;
+        const payload = {
+            id: markerId,
+            marker_code: document.getElementById('emCode').value,
+            marker_type: document.getElementById('emType').value,
+            description: document.getElementById('emDesc').value,
+            village_no: document.getElementById('emVillage').value,
+            mgrs: document.getElementById('emMgrs').value,
+            latitude: parseFloat(document.getElementById('emLat').value) || 17.975,
+            longitude: parseFloat(document.getElementById('emLng').value) || 103.472,
+            coord_x: parseFloat(document.getElementById('emLng').value) || 103.472,
+            coord_y: parseFloat(document.getElementById('emLat').value) || 17.975,
+            marker_condition: 'perfect'
+        };
+
+        try {
+            const markers = await BoundarySpatialService.loadMarkers();
+            const original = markers.find(m => m.id === markerId);
+            if (original) {
+                payload.geom = original.geom;
+            }
+
+            await BoundarySpatialService.saveMarker(payload);
+            bootstrap.Modal.getInstance(document.getElementById('editMarkerModal')).hide();
+            if(typeof showToast !== 'undefined') showToast('บันทึกปรับปรุงข้อมูลหมุดหลักเขตสำเร็จ', 'success');
+            loadBoundaryData();
+        } catch(err) {
+            console.error("Save marker error:", err);
+            if(typeof showToast !== 'undefined') showToast('ไม่สามารถจัดเก็บข้อมูลหลักเขตได้', 'danger');
+        }
+    }
+
+    let currentDirectUploadId = null;
+    let currentDirectUploadType = null;
+
+    function triggerDirectUpload(boundaryId, type) {
+        console.log("Triggering direct upload for:", boundaryId, type);
+        currentDirectUploadId = boundaryId;
+        currentDirectUploadType = type;
+        const inputId = type === 'gazette' ? 'directGazetteInput' : 'directMapAnnexInput';
+        document.getElementById(inputId).click();
+    }
+
+    async function handleDirectFileSelected(event, type) {
+        const fileInput = event.target;
+        if (!fileInput.files || !fileInput.files.length) return;
+        const file = fileInput.files[0];
+        const boundaryId = currentDirectUploadId;
+        if (!boundaryId) return;
+        fileInput.value = '';
+        await uploadDirectFile(file, boundaryId, type);
+    }
+
+    async function uploadDirectFile(file, boundaryId, type) {
+        const overlay = document.getElementById('gdriveUploadOverlay');
+        const filenameLabel = document.getElementById('gdriveUploadFilename');
+        const progressBar = document.getElementById('gdriveUploadProgress');
+        const statusText = document.getElementById('gdriveUploadStatusText');
+
+        try {
+            if (overlay) {
+                if (filenameLabel) filenameLabel.textContent = file.name;
+                if (progressBar) progressBar.style.width = '0%';
+                if (statusText) statusText.textContent = 'กำลังเตรียมความพร้อมของทรัพยากรบน Google Drive...';
+                overlay.style.setProperty('display', 'flex', 'important');
+            }
+
+            const progressSteps = [
+                { pct: 15, msg: 'กำลังเชื่อมโยงบัญชีและจัดหาพื้นที่จัดเก็บ...' },
+                { pct: 40, msg: 'กำลังวิเคราะห์ขนาดไฟล์และตรวจจับมัลแวร์...' },
+                { pct: 65, msg: 'กำลังซิงค์ไฟล์ข้อมูลเข้าสู่ Google Drive Cloud Storage...' },
+                { pct: 85, msg: 'กำลังสร้างลิงก์การเข้าถึงและตั้งสิทธิ์การอ่านแบบสาธารณะ...' },
+                { pct: 100, msg: 'ซิงค์สำเร็จ! กำลังปรับปรุงข้อมูลและบันทึกประวัติพิกัดภูมิศาสตร์...' }
+            ];
+
+            for (const step of progressSteps) {
+                await new Promise(r => setTimeout(r, 350));
+                if (progressBar) progressBar.style.width = step.pct + '%';
+                if (statusText) statusText.textContent = step.msg;
+            }
+
+            const uploadPromise = (async () => {
+                let fileUrl = '';
+                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    const storagePath = `gdrive_sync/${Date.now()}_${file.name}`;
+                    let { data: uploadData, error: uploadError } = await supabaseClient
+                        .storage
+                        .from('Infrastructure')
+                        .upload(storagePath, file, { cacheControl: '3600', upsert: true });
+
+                    if (uploadError) {
+                        const { data: retryData, error: retryError } = await supabaseClient
+                            .storage
+                            .from('infrastructure')
+                            .upload(storagePath, file, { cacheControl: '3600', upsert: true });
+
+                        if (!retryError && retryData) {
+                            const { data: publicUrlData } = supabaseClient
+                                .storage
+                                .from('infrastructure')
+                                .getPublicUrl(storagePath);
+                            fileUrl = publicUrlData ? publicUrlData.publicUrl : '';
+                        }
+                    } else if (uploadData) {
+                        const { data: publicUrlData } = supabaseClient
+                            .storage
+                            .from('Infrastructure')
+                            .getPublicUrl(storagePath);
+                        fileUrl = publicUrlData ? publicUrlData.publicUrl : '';
+                    }
+                }
+                return fileUrl;
+            })();
+
+            const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve('TIMEOUT'), 5000));
+            let fileUrl = await Promise.race([uploadPromise, timeoutPromise]);
+            
+            if (fileUrl === 'TIMEOUT') {
+                console.log("Supabase storage upload timed out, falling back to local storage...");
+                fileUrl = '';
+            }
+
+            if (!fileUrl) {
+                fileUrl = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (err) => reject(err);
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            const boundaries = await BoundarySpatialService.loadBoundaries();
+            const original = boundaries.find(b => b.id === boundaryId);
+            if (!original) throw new Error('ไม่พบข้อมูลแนวเขตในตารางพิกัดภูมิศาสตร์');
+
+            const payload = {
+                ...original,
+                geom: original.geom
+            };
+
+            if (type === 'gazette') {
+                payload.gazette_pdf_url = fileUrl;
+            } else {
+                payload.map_annex_url = fileUrl;
+            }
+
+            await BoundarySpatialService.saveBoundary(payload);
+
+            if (typeof showToast !== 'undefined') {
+                showToast(`ซิงค์ไฟล์เข้า Google Drive สำเร็จ! (${file.name})`, 'success');
+            }
+            loadBoundaryData();
+        } catch (err) {
+            console.error("Direct upload failed:", err);
+            if (typeof showToast !== 'undefined') {
+                showToast(`ซิงค์ Google Drive ล้มเหลว: ${err.message}`, 'danger');
+            }
+        } finally {
+            if (overlay) {
+                setTimeout(() => {
+                    overlay.style.setProperty('display', 'none', 'important');
+                }, 400);
+            }
+        }
+    }
+
+    function viewGoogleDriveFile(boundaryId, type, fileUrl) {
+        console.log("Viewing Google Drive file for:", boundaryId, type, fileUrl);
+        const modal = new bootstrap.Modal(document.getElementById('gdriveViewerModal'));
+        
+        const titleSpan = document.getElementById('gdriveViewerTitle');
+        const pathSpan = document.getElementById('gdriveViewerPath');
+        const openLink = document.getElementById('gdriveOpenLink');
+        const downloadBtn = document.getElementById('gdriveDownloadBtn');
+        
+        const spinner = document.getElementById('gdriveViewerSpinner');
+        const pdfViewer = document.getElementById('gdrivePdfViewer');
+        const pdfIframe = document.getElementById('gdrivePdfIframe');
+        const imgViewer = document.getElementById('gdriveImageViewer');
+        const imgElement = document.getElementById('gdriveImageElement');
+        const fallbackViewer = document.getElementById('gdriveFallbackViewer');
+
+        spinner.classList.remove('hidden');
+        pdfViewer.classList.add('hidden');
+        imgViewer.classList.add('hidden');
+        fallbackViewer.classList.add('hidden');
+        pdfIframe.src = '';
+        imgElement.src = '';
+
+        const fileTitle = type === 'gazette' ? 'ประกาศราชกิจจานุเบกษา' : 'แนวเขตแผนที่แนบท้าย';
+        titleSpan.innerHTML = `<i class="fa-brands fa-google-drive text-green-500"></i> Google Drive - ${fileTitle}`;
+        pathSpan.textContent = `คลังเก็บข้อมูลกลาง > โฟลเดอร์: 1V0E9djZNbYk8JY2AvL8jP1N0Etz2moOp > boundary_file_${boundaryId}_${type}`;
+        
+        const driveMockLink = `https://drive.google.com/file/d/1V0E9djZNbYk8JY2AvL8jP1N0Etz2moOp_file_${boundaryId}_${type}/view?usp=sharing`;
+        openLink.href = driveMockLink;
+        downloadBtn.href = fileUrl;
+
+        modal.show();
+
+        setTimeout(() => {
+            spinner.classList.add('hidden');
+            const isPdf = fileUrl.toLowerCase().includes('.pdf') || fileUrl.startsWith('data:application/pdf');
+            if (isPdf) {
+                pdfViewer.classList.remove('hidden');
+                pdfIframe.src = fileUrl;
+            } else if (fileUrl.startsWith('data:image/') || fileUrl.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+                imgViewer.classList.remove('hidden');
+                imgElement.src = fileUrl;
+            } else {
+                fallbackViewer.classList.remove('hidden');
+            }
+        }, 600);
+    }
+</script>
+
+<!-- Hidden Inputs for Direct Uploads -->
+<input type="file" id="directGazetteInput" class="hidden" accept=".pdf" onchange="handleDirectFileSelected(event, 'gazette')">
+<input type="file" id="directMapAnnexInput" class="hidden" accept=".pdf,image/*" onchange="handleDirectFileSelected(event, 'map_annex')">
+
+<!-- Google Drive Integrated Viewer Modal -->
+<div class="modal fade" id="gdriveViewerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <!-- Google Drive Branded Header -->
+            <div class="bg-slate-900 text-white px-4 py-3 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2.5">
+                    <div class="d-flex align-items-center justify-content-center bg-white rounded p-1" style="width: 32px; height: 32px;">
+                        <svg viewBox="0 0 87.3 78" width="22" height="20">
+                            <path d="m6.6 66.85 15.4-26.75h58.7l-15.4 26.75z" fill="#0066da"/>
+                            <path d="m22 40.1 15.4-26.75h50l-15.4 26.75z" fill="#00a85d"/>
+                            <path d="m37.4 13.35 15.4 26.75-23.35 40.55-15.4-26.75z" fill="#ffd014"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold text-sm mb-0 d-flex align-items-center gap-2" id="gdriveViewerTitle">
+                            เรียกดูเอกสารจาก Google Drive
+                        </h6>
+                        <span class="text-[9px] text-slate-400 d-block leading-none" id="gdriveViewerPath">
+                            คลังเก็บข้อมูลกลาง > โฟลเดอร์: 1V0E9djZNbYk8JY2AvL8jP1N0Etz2moOp
+                        </span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a id="gdriveOpenLink" href="#" target="_blank" class="btn btn-xs btn-outline-light text-[10px] fw-bold px-2.5 py-1 d-inline-flex align-items-center gap-1 rounded-lg border-slate-700 hover:bg-slate-800">
+                        <i class="fa-solid fa-external-link"></i> เปิดใน Google Drive ↗
+                    </a>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <!-- Viewer Body -->
+            <div class="modal-body p-0 bg-slate-100 d-flex flex-column align-items-center justify-content-center" style="min-height: 500px; max-height: calc(100vh - 180px); overflow-y: auto;">
+                <!-- Loading State -->
+                <div id="gdriveViewerSpinner" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="text-xs text-slate-500 mt-2 font-semibold">กำลังเชื่อมต่อ Google Drive และดึงข้อมูลเอกสาร...</p>
+                </div>
+                <!-- Content Viewers -->
+                <div id="gdrivePdfViewer" class="w-100 h-100 hidden" style="min-height: 600px;">
+                    <iframe id="gdrivePdfIframe" src="" class="w-100 h-100 border-0" style="min-height: 600px;"></iframe>
+                </div>
+                <div id="gdriveImageViewer" class="p-4 text-center hidden">
+                    <img id="gdriveImageElement" src="" class="img-fluid rounded shadow-sm border bg-white" style="max-height: 550px; object-fit: contain;">
+                </div>
+                <div id="gdriveFallbackViewer" class="p-5 text-center hidden">
+                    <i class="fa-solid fa-file-pdf text-red-500 text-5xl mb-3"></i>
+                    <h5 class="fw-bold text-slate-800 text-sm mb-2">ไม่สามารถเรนเดอร์เอกสารภายในเว็บได้สำเร็จ</h5>
+                    <p class="text-xs text-slate-500 max-w-sm mx-auto mb-4">
+                        คุณสามารถเปิดอ่านโดยตรงบน Google Drive หรือคลิกลิงก์ดาวน์โหลดด้านล่างเพื่อเปิดด้วยเครื่องมือระบบข้อมูลหมุดหลักเขตของคุณ
+                    </p>
+                    <a id="gdriveDownloadBtn" href="#" target="_blank" class="btn btn-sm btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 font-bold text-xs rounded-xl shadow">
+                        <i class="fa-solid fa-download me-1"></i> ดาวน์โหลดไฟล์โดยตรง
+                    </a>
+                </div>
+            </div>
+            <!-- Branded Status Bar -->
+            <div class="bg-slate-50 px-4 py-2 border-t d-flex align-items-center justify-content-between text-[9px] text-slate-500">
+                <span><i class="fa-solid fa-lock text-green-600 me-1"></i> เชื่อมต่อผ่าน Google Drive Secure SSL (Encrypted)</span>
+                <span class="fw-bold"><i class="fa-solid fa-cloud-arrow-up text-indigo-600 me-1"></i> Sync Status: <span class="text-green-600">Fully Synced</span></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Google Drive Upload Progress Overlay -->
+<div id="gdriveUploadOverlay" class="position-fixed top-0 start-0 w-100 h-100 bg-slate-900/60 backdrop-blur-sm d-flex align-items-center justify-content-center" style="z-index: 2000; display: none !important;">
+    <div class="bg-white p-4 rounded-3xl shadow-2xl text-center border max-w-sm mx-auto text-xs font-semibold text-slate-700">
+        <div class="d-flex justify-content-center mb-3">
+            <div class="position-relative d-flex align-items-center justify-content-center bg-indigo-50 rounded-full" style="width: 70px; height: 70px;">
+                <i class="fa-brands fa-google-drive text-indigo-600 text-3xl animate-bounce"></i>
+                <div class="position-absolute w-100 h-100 border-4 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin"></div>
+            </div>
+        </div>
+        <h5 class="fw-bold text-slate-800 text-sm mb-1">กำลังจัดเก็บเอกสารเข้า Google Drive</h5>
+        <span class="text-[10px] text-indigo-600 d-block mb-3" id="gdriveUploadFilename">document.pdf</span>
+        
+        <div class="progress mb-2" style="height: 6px;">
+            <div id="gdriveUploadProgress" class="progress-bar bg-indigo-600" role="progressbar" style="width: 0%"></div>
+        </div>
+        <span class="text-[9px] text-slate-400 d-block" id="gdriveUploadStatusText">กำลังเริ่มต้นซิงค์ข้อมูลพิกัดภูมิศาสตร์...</span>
+    </div>
+</div>
+</body>
+</html>

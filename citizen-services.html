@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บริการสาธารณะ/แจ้งซ่อม/ร้องทุกข์ - Smart Governance</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet CSS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- SweetAlert2 -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+
+        /* Navbar */
+        .navbar { background: #fff; box-shadow: 0 2px 15px rgba(0,0,0,0.05); }
+        .navbar-brand { font-weight: 700; color: #1a56db; }
+
+        /* Hero */
+        .page-hero {
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            color: #fff;
+            padding: 3rem 0;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .category-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e5e7eb;
+            color: #374151;
+            display: flex;
+            align-items: center;
+        }
+
+        .service-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 1.25rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            height: 100%;
+        }
+
+        .service-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            border-color: #93c5fd;
+        }
+
+        .service-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .icon-blue { background: #eff6ff; color: #3b82f6; }
+        .icon-yellow { background: #fefce8; color: #eab308; }
+        .icon-red { background: #fef2f2; color: #ef4444; }
+
+        .service-info { flex-grow: 1; }
+        .service-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.15rem; color: #1f2937; }
+        .service-desc { font-size: 0.75rem; color: #6b7280; }
+
+        .form-control:focus, .form-select:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            border-color: #3b82f6;
+        }
+
+        .readonly-field { background-color: #f9fafb !important; color: #6b7280; }
+
+        /* Map Container */
+        #electricMap {
+            height: 250px;
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            z-index: 1; /* prevent overlapping with modal overlay */
+        }
+    </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="citizen-portal.html">
+                <div style="width:36px;height:36px;background:linear-gradient(135deg,#1a56db,#3b82f6);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;">
+                    <i class="fa-solid fa-building-columns"></i>
+                </div>
+                Smart Municipality
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-none d-md-flex align-items-center gap-2">
+                    <img id="navAvatar" src="https://ui-avatars.com/api/?name=Citizen&background=f3f4f6&color=6b7280" class="rounded-circle" width="32" height="32" style="border:1px solid #e5e7eb;">
+                    <div class="text-sm">
+                        <div class="fw-semibold" style="font-size:0.85rem;" id="navName">ผู้ใช้งาน</div>
+                        <div style="font-size:0.7rem; color:#6b7280;">ประชาชน</div>
+                    </div>
+                </div>
+                <button class="btn btn-light border btn-sm" onclick="LineAuth.logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <div class="page-hero">
+        <div class="container position-relative z-1">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <a href="citizen-portal.html" class="btn btn-sm btn-light rounded-circle" style="width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center;"><i class="fa-solid fa-arrow-left"></i></a>
+                <h3 class="fw-bold mb-0">บริการสาธารณะ / แจ้งซ่อม / ร้องทุกข์</h3>
+            </div>
+            <p class="mb-0" style="opacity:0.85; max-width: 600px;">เลือกหมวดหมู่บริการที่คุณต้องการแจ้งเรื่องหรือขอรับบริการ ระบบจะส่งข้อมูลไปยังหน่วยงานที่เกี่ยวข้องทันที</p>
+        </div>
+        <div style="position:absolute; top:-50px; right:-50px; width:200px; height:200px; background:rgba(255,255,255,0.1); border-radius:50%; filter:blur(20px);"></div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mb-5">
+        
+        <!-- Category 1: งานบริการสาธารณะ -->
+        <div class="mb-5">
+            <h4 class="category-title"><i class="fa-solid fa-leaf text-success me-2"></i> งานบริการสาธารณะ</h4>
+            <div class="row g-3">
+                <div class="col-md-6 col-lg-4">
+                    <div class="service-card" onclick="openServiceForm('บริการตัดกิ่งไม้สาธารณะ', 'public')">
+                        <div class="service-icon icon-blue"><i class="fa-solid fa-tree"></i></div>
+                        <div class="service-info">
+                            <div class="service-title">บริการตัดกิ่งไม้สาธารณะ</div>
+                            <div class="service-desc">กิ่งไม้พาดสายไฟ, กีดขวางจราจร</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="service-card" onclick="openServiceForm('บริการขอน้ำเพื่ออุปโภคบริโภค', 'public')">
+                        <div class="service-icon icon-blue"><i class="fa-solid fa-glass-water"></i></div>
+                        <div class="service-info">
+                            <div class="service-title">บริการขอน้ำเพื่ออุปโภคบริโภค</div>
+                            <div class="service-desc">ขอรถน้ำสนับสนุนในกรณีขาดแคลน</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category 2: แจ้งซ่อม -->
+        <div class="mb-5">
+            <h4 class="category-title"><i class="fa-solid fa-screwdriver-wrench text-warning me-2"></i> แจ้งซ่อม</h4>
+            <div class="row g-3">
+                <div class="col-md-6 col-lg-4">
+                    <div class="service-card" onclick="openElectricRepairForm()">
+                        <div class="service-icon icon-yellow"><i class="fa-solid fa-bolt"></i></div>
+                        <div class="service-info">
+                            <div class="service-title">ไฟฟ้า</div>
+                            <div class="service-desc">ไฟถนนดับ, เสาไฟชำรุด, สายไฟขาด</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="service-card" onclick="openServiceForm('แจ้งซ่อม: น้ำประปา', 'maintenance')">
+                        <div class="service-icon icon-yellow"><i class="fa-solid fa-faucet-drip"></i></div>
+                        <div class="service-info">
+                            <div class="service-title">น้ำประปา</div>
+                            <div class="service-desc">ท่อประปาแตก, น้ำไม่ไหล, น้ำขุ่น</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="service-card" onclick="openServiceForm('แจ้งซ่อม: ถนน', 'maintenance')">
+                        <div class="service-icon icon-yellow"><i class="fa-solid fa-road"></i></div>
+                        <div class="service-info">
+                            <div class="service-title">ถนน</div>
+                            <div class="service-desc">ถนนเป็นหลุมบ่อ, ทรุดตัว, ชำรุด</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="service-card" onclick="openServiceForm('แจ้งซ่อม: ฝาท่อระบายน้ำ', 'maintenance')">
+                        <div class="service-icon icon-yellow"><i class="fa-solid fa-mound"></i></div>
+                        <div class="service-info">
+                            <div class="service-title">ฝาท่อระบายน้ำ</div>
+                            <div class="service-desc">ฝาท่อสูญหาย, ชำรุด, น้ำท่วมขัง</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category 3: ร้องเรียนร้องทุกข์ -->
+        <div class="mb-5">
+            <h4 class="category-title"><i class="fa-solid fa-bullhorn text-danger me-2"></i> ร้องเรียนร้องทุกข์</h4>
+            <div class="row g-3">
+                <div class="col-md-6 col-lg-4">
+                    <div class="service-card" onclick="openServiceForm('ร้องเรียนเกี่ยวกับการทิ้งขยะ', 'complaint')">
+                        <div class="service-icon icon-red"><i class="fa-solid fa-trash-can"></i></div>
+                        <div class="service-info">
+                            <div class="service-title">ร้องเรียนเกี่ยวกับการทิ้งขยะ</div>
+                            <div class="service-desc">ทิ้งขยะผิดที่, รถขยะไม่มาเก็บ</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="service-card" onclick="openServiceForm('ร้องเรียนส่งเสียงดัง', 'complaint')">
+                        <div class="service-icon icon-red"><i class="fa-solid fa-volume-high"></i></div>
+                        <div class="service-info">
+                            <div class="service-title">ร้องเรียนส่งเสียงดัง</div>
+                            <div class="service-desc">ก่อสร้าง, สถานบันเทิง, ก่อความรำคาญ</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="service-card" onclick="openServiceForm('ร้องเรียนร้องทุกข์อื่นๆ', 'complaint')">
+                        <div class="service-icon icon-red"><i class="fa-solid fa-comment-dots"></i></div>
+                        <div class="service-info">
+                            <div class="service-title">ร้องเรียนร้องทุกข์อื่นๆ</div>
+                            <div class="service-desc">เรื่องอื่นๆ นอกเหนือจากที่ระบุ</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="py-4 mt-4" style="background:#1f2937; color:rgba(255,255,255,0.5);">
+        <div class="container text-center text-sm">
+            <div class="fw-semibold text-white mb-1">เทศบาลตำบลตัวอย่างอัจฉริยะ</div>
+            Smart Governance Municipality Platform &copy; 2026 · Powered by Supabase
+        </div>
+    </footer>
+
+    <!-- Service Request Modal Form -->
+    <div class="modal fade" id="serviceFormModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold" id="serviceModalTitle">แบบฟอร์มรับเรื่อง</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    
+                    <form id="serviceRequestForm" onsubmit="submitServiceForm(event)">
+                        <input type="hidden" id="frmServiceType" name="serviceType">
+                        <input type="hidden" id="frmCategory" name="category">
+                        
+                        <!-- Section: ข้อมูลผู้แจ้ง (Auto-filled) -->
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-user-check me-2"></i> ข้อมูลผู้แจ้ง (อัตโนมัติ)</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-xs fw-semibold mb-1">ชื่อ-สกุล</label>
+                                    <input type="text" class="form-control readonly-field" id="frmFullName" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-xs fw-semibold mb-1">เบอร์โทรศัพท์</label>
+                                    <input type="text" class="form-control readonly-field" id="frmPhone" readonly>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label text-xs fw-semibold mb-1">ที่อยู่ตามทะเบียนบ้าน</label>
+                                    <input type="text" class="form-control readonly-field" id="frmAddress" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" style="border-color:#e5e7eb;">
+
+                        <!-- Section: รายละเอียดการแจ้ง -->
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-pen-to-square me-2"></i> รายละเอียดการแจ้งเรื่อง</h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-sm">รายละเอียดปัญหา / ความต้องการ <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="frmDescription" rows="4" required placeholder="อธิบายรายละเอียดสิ่งที่ต้องการให้ช่วยเหลือ หรือปัญหาที่พบ..."></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-sm">สถานที่เกิดเหตุ / จุดที่ต้องการรับบริการ <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted"><i class="fa-solid fa-location-dot"></i></span>
+                                    <input type="text" class="form-control" id="frmLocation" required placeholder="ระบุสถานที่ให้ชัดเจน เช่น หน้าซอยสุขเจริญ 5">
+                                </div>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="useMyAddress" onchange="toggleMyAddress(this)">
+                                    <label class="form-check-label text-sm text-muted" for="useMyAddress">
+                                        ใช้ที่อยู่ตามทะเบียนบ้านของฉันเป็นสถานที่รับบริการ
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-sm">แนบรูปภาพประกอบ <span class="text-muted fw-normal" style="font-size:0.75rem;">(ไม่บังคับ, สูงสุด 3 รูป)</span></label>
+                                <input type="file" class="form-control" id="frmImages" accept="image/*" multiple>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                            <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                            <button type="submit" class="btn btn-primary px-4 fw-semibold" id="btnSubmitForm">
+                                <i class="fa-solid fa-paper-plane me-2"></i> ยืนยันการส่งข้อมูล
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Specialized Electric Repair Modal -->
+    <div class="modal fade" id="electricRepairModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-bolt text-warning me-2"></i> แบบฟอร์มแจ้งซ่อมไฟฟ้า</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    
+                    <form id="electricRepairForm" onsubmit="submitElectricRepairToSupabase(event)">
+                        
+                        <!-- Section: ข้อมูลผู้แจ้ง (Auto-filled) -->
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-user-check me-2"></i> 1. ข้อมูลผู้แจ้ง (อัตโนมัติ)</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-xs fw-semibold mb-1">ชื่อ-สกุล</label>
+                                    <input type="text" class="form-control readonly-field" id="elecFullName" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-xs fw-semibold mb-1">เบอร์โทรศัพท์</label>
+                                    <input type="text" class="form-control readonly-field" id="elecPhone" readonly>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label text-xs fw-semibold mb-1">ที่อยู่ตามทะเบียนบ้าน</label>
+                                    <input type="text" class="form-control readonly-field" id="elecAddress" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" style="border-color:#e5e7eb;">
+
+                        <!-- Section: ข้อมูลการแจ้ง -->
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-warning mb-3"><i class="fa-solid fa-triangle-exclamation me-2"></i> 2. ข้อมูลการแจ้งซ่อม</h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-sm">เลขรหัสเสาไฟฟ้า <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="elecPoleId" list="poleList" required placeholder="พิมพ์หรือเลือกเลขเสาไฟฟ้า (เช่น PEA-12345)">
+                                <datalist id="poleList">
+                                    <!-- Options will be populated by JS -->
+                                </datalist>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-sm">สาเหตุที่ชำรุด <span class="text-danger">*</span></label>
+                                <select class="form-select" id="elecDamageCause" onchange="toggleDamageCause(this.value)" required>
+                                    <option value="" disabled selected>-- เลือกสาเหตุที่ชำรุด --</option>
+                                    <option value="ไฟดับ">1. ไฟดับ</option>
+                                    <option value="ไฟกระพริบ">2. ไฟกระพริบ</option>
+                                    <option value="ไฟดับทั้งเส้น">3. ไฟดับทั้งเส้น</option>
+                                    <option value="หลอดไฟ/โครมไฟ ชำรุด">4. หลอดไฟ/โครมไฟ ชำรุด</option>
+                                    <option value="อื่นๆ">5. อื่นๆ</option>
+                                </select>
+                                <input type="text" class="form-control mt-2 d-none" id="elecDamageCauseOther" placeholder="โปรดระบุสาเหตุอื่นๆ">
+                            </div>
+
+                            <!-- Map Section -->
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-sm d-flex justify-content-between align-items-center">
+                                    <span>ตำแหน่งเสาไฟฟ้า <span class="text-danger">*</span></span>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="requestUserLocation()">
+                                        <i class="fa-solid fa-location-crosshairs me-1"></i> ดึงตำแหน่งปัจจุบัน
+                                    </button>
+                                </label>
+                                <div class="text-xs text-muted mb-2">ระบบจะดึงตำแหน่ง GPS ของคุณอัตโนมัติ คุณสามารถลากหมุด (Marker) บนแผนที่เพื่อระบุจุดให้แม่นยำขึ้นได้</div>
+                                
+                                <div id="electricMap"></div>
+                                
+                                <!-- Hidden inputs to store coordinates -->
+                                <input type="hidden" id="elecLat" required>
+                                <input type="hidden" id="elecLng" required>
+                                
+                                <div class="mt-2 text-sm text-primary fw-semibold" id="coordsDisplay">พิกัด: (ยังไม่ได้ระบุ)</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-sm">แนบรูปภาพประกอบ <span class="text-muted fw-normal" style="font-size:0.75rem;">(ไม่บังคับ)</span></label>
+                                <input type="file" class="form-control" id="elecImages" accept="image/*">
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                            <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                            <button type="submit" class="btn btn-primary px-4 fw-semibold" id="btnSubmitElectric">
+                                <i class="fa-solid fa-paper-plane me-2"></i> ยืนยันการแจ้งซ่อม
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Toast -->
+    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3">
+        <div id="successToast" class="toast align-items-center text-bg-success border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+            <div class="d-flex">
+                <div class="toast-body fw-semibold px-4 py-3">
+                    <i class="fa-solid fa-circle-check me-2 fa-lg"></i> ส่งข้อมูลรับเรื่องเรียบร้อยแล้ว ระบบจะดำเนินการในลำดับต่อไป
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/line-auth.js"></script>
+    <script src="assets/js/supabase-client.js"></script>
+    <script>
+        // URL ของ Web App สำหรับแจ้งซ่อมไฟฟ้า
+        const GOOGLE_APP_SCRIPT_REPAIR_URL = 'https://script.google.com/macros/s/AKfycbya6XuddPnY1MkkzKvpFhF5ESAqzhdL0U0hHaaY9h82SNzJVrSGbbBW5CDTP0OigM2H/exec';
+        const GOOGLE_APP_SCRIPT_PDF_URL = 'https://script.google.com/macros/s/AKfycbx8rTiEz0R4OC8T_3xi6i9NWe_T9-_FEGhn-Us3Z1pSYf5HhnaigzkD7wLzrhxE6CQV/exec';
+
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check auth
+            if (!LineAuth.isLoggedIn()) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Load user data
+            currentUser = LineAuth.getSession();
+            
+            // Update Navbar Profile
+            if (currentUser) {
+                if (currentUser.lineAvatar) document.getElementById('navAvatar').src = currentUser.lineAvatar;
+                if (currentUser.fullName) document.getElementById('navName').textContent = currentUser.fullName;
+            }
+
+            // Check autoOpen parameter
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('autoOpen') === 'electric') {
+                const poleCode = params.get('poleCode');
+                // Add slight delay to ensure everything is rendered
+                setTimeout(() => {
+                    openElectricRepairForm(poleCode);
+                }, 300);
+            }
+        });
+
+        // Open Form Modal and auto-fill data
+        function openServiceForm(serviceTitle, category) {
+            // Set modal metadata
+            document.getElementById('serviceModalTitle').innerHTML = `<i class="fa-solid fa-file-pen text-primary me-2"></i> ${serviceTitle}`;
+            document.getElementById('frmServiceType').value = serviceTitle;
+            document.getElementById('frmCategory').value = category;
+
+            // Reset dynamic fields
+            document.getElementById('frmDescription').value = '';
+            document.getElementById('frmLocation').value = '';
+            document.getElementById('frmImages').value = '';
+            document.getElementById('useMyAddress').checked = false;
+
+            // Auto-fill user data
+            if (currentUser) {
+                document.getElementById('frmFullName').value = currentUser.fullName || '';
+                document.getElementById('frmPhone').value = currentUser.phone || '';
+                document.getElementById('frmAddress').value = currentUser.address || '';
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('serviceFormModal'));
+            modal.show();
+        }
+
+        // Toggle auto-fill location with user's home address
+        function toggleMyAddress(checkbox) {
+            const locInput = document.getElementById('frmLocation');
+            if (checkbox.checked && currentUser && currentUser.address) {
+                locInput.value = currentUser.address;
+                locInput.setAttribute('readonly', true);
+                locInput.classList.add('readonly-field');
+            } else {
+                locInput.value = '';
+                locInput.removeAttribute('readonly');
+                locInput.classList.remove('readonly-field');
+            }
+        }
+
+        // Submit form
+        function submitServiceForm(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitForm');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>กำลังส่งข้อมูล...';
+
+            // Simulate API request
+            setTimeout(() => {
+                // Show success toast
+                const toastEl = document.getElementById('successToast');
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
+
+                // Close modal
+                const modalEl = document.getElementById('serviceFormModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+
+                // Reset button
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane me-2"></i> ยืนยันการส่งข้อมูล';
+            }, 1000);
+        }
+
+        // ==========================================
+        // Electric Repair Specific Logic (Supabase + Leaflet)
+        // ==========================================
+        let map = null;
+        let marker = null;
+        const DEFAULT_LAT = 13.7563; // Bangkok fallback
+        const DEFAULT_LNG = 100.5018;
+
+        function openElectricRepairForm(poleCode = '') {
+            // Auto-fill user data
+            if (currentUser) {
+                document.getElementById('elecFullName').value = currentUser.fullName || '';
+                document.getElementById('elecPhone').value = currentUser.phone || '';
+                document.getElementById('elecAddress').value = currentUser.address || '';
+            }
+
+            // Reset fields
+            document.getElementById('elecPoleId').value = poleCode || '';
+            document.getElementById('elecDamageCause').value = '';
+            document.getElementById('elecDamageCauseOther').value = '';
+            document.getElementById('elecDamageCauseOther').classList.add('d-none');
+            document.getElementById('elecDamageCauseOther').removeAttribute('required');
+            document.getElementById('elecImages').value = '';
+            document.getElementById('elecLat').value = '';
+            document.getElementById('elecLng').value = '';
+            document.getElementById('coordsDisplay').innerText = 'พิกัด: (กำลังดึงข้อมูล...)';
+
+            const modal = new bootstrap.Modal(document.getElementById('electricRepairModal'));
+            modal.show();
+
+            // Fetch poles data for datalist
+            loadElectricPoles();
+
+            // Initialize map after modal is fully shown to prevent tile rendering issues
+            document.getElementById('electricRepairModal').addEventListener('shown.bs.modal', function () {
+                initElectricMap();
+                requestUserLocation();
+            }, { once: true });
+        }
+
+        function initElectricMap() {
+            if (map !== null) {
+                map.invalidateSize();
+                return;
+            }
+            
+            // Init leaflet map with Google Satellite Hybrid
+            map = L.map('electricMap').setView([DEFAULT_LAT, DEFAULT_LNG], 16);
+            L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                attribution: '&copy; Google'
+            }).addTo(map);
+
+            // Add draggable marker
+            marker = L.marker([DEFAULT_LAT, DEFAULT_LNG], { draggable: true }).addTo(map);
+
+            // Update hidden inputs when marker is dragged
+            marker.on('dragend', function (e) {
+                const pos = marker.getLatLng();
+                updateCoordinates(pos.lat, pos.lng);
+            });
+        }
+
+        function requestUserLocation() {
+            if (navigator.geolocation) {
+                document.getElementById('coordsDisplay').innerText = 'พิกัด: กำลังค้นหาตำแหน่งของคุณ...';
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        updateMapLocation(lat, lng);
+                    },
+                    (error) => {
+                        console.warn("Geolocation error:", error);
+                        document.getElementById('coordsDisplay').innerText = 'พิกัด: ไม่สามารถดึงตำแหน่งได้ (กรุณาเลื่อนหมุดเอง)';
+                        updateMapLocation(DEFAULT_LAT, DEFAULT_LNG); // Fallback
+                    },
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                );
+            } else {
+                document.getElementById('coordsDisplay').innerText = 'พิกัด: เบราว์เซอร์ของคุณไม่รองรับ GPS';
+            }
+        }
+
+        function updateMapLocation(lat, lng) {
+            if(map && marker) {
+                map.setView([lat, lng], 16);
+                marker.setLatLng([lat, lng]);
+                updateCoordinates(lat, lng);
+            }
+        }
+
+        function updateCoordinates(lat, lng) {
+            document.getElementById('elecLat').value = lat;
+            document.getElementById('elecLng').value = lng;
+            document.getElementById('coordsDisplay').innerText = `พิกัด: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        }
+
+        // Load electric poles into datalist
+        async function loadElectricPoles() {
+            const poleList = document.getElementById('poleList');
+            if (poleList.options.length > 0) return; // Already loaded
+
+            try {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
+                    const { data, error } = await supabaseClient
+                        .from('electric_poles')
+                        .select('pole_code')
+                        .order('pole_code');
+                    
+                    if (!error && data) {
+                        poleList.innerHTML = data.map(p => `<option value="${p.pole_code}">`).join('');
+                    }
+                }
+            } catch (err) {
+                console.warn('Failed to load electric poles', err);
+            }
+        }
+
+        // Toggle other damage cause input
+        function toggleDamageCause(val) {
+            const otherInput = document.getElementById('elecDamageCauseOther');
+            if (val === 'อื่นๆ') {
+                otherInput.classList.remove('d-none');
+                otherInput.setAttribute('required', 'true');
+                otherInput.focus();
+            } else {
+                otherInput.classList.add('d-none');
+                otherInput.removeAttribute('required');
+            }
+        }
+
+        async function submitElectricRepairToSupabase(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitElectric');
+            
+            const lat = document.getElementById('elecLat').value;
+            const lng = document.getElementById('elecLng').value;
+
+            if (!lat || !lng) {
+                alert('กรุณารอระบบดึงตำแหน่ง หรือปักหมุดบนแผนที่ก่อนส่งข้อมูล');
+                return;
+            }
+
+            btn.disabled = true;
+            const originalBtnHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>กำลังอัปโหลดรูปภาพ...';
+
+            let imageUrl = null;
+            const fileInput = document.getElementById('elecImages');
+            if (fileInput.files && fileInput.files[0]) {
+                try {
+                    const reader = new FileReader();
+                    const base64String = await new Promise(res => {
+                        reader.onload = ev => res(ev.target.result);
+                        reader.readAsDataURL(fileInput.files[0]);
+                    });
+
+                    if (!GOOGLE_APP_SCRIPT_REPAIR_URL) {
+                        alert('กรุณาตั้งค่า GOOGLE_APP_SCRIPT_REPAIR_URL ก่อนเปิดใช้งานอัปโหลดรูป');
+                        throw new Error("Missing GAS URL");
+                    }
+
+                    const response = await fetch(GOOGLE_APP_SCRIPT_REPAIR_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ 
+                            base64: base64String,
+                            filename: `repair_${document.getElementById('elecPoleId').value}_${Date.now()}.jpg`
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.error) throw new Error(result.error);
+                    imageUrl = result.imageUrl;
+                } catch (imgErr) {
+                    console.error("Image upload failed:", imgErr);
+                }
+            }
+
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>กำลังบันทึกข้อมูล...';
+
+            const selectedCause = document.getElementById('elecDamageCause').value;
+            const finalCause = selectedCause === 'อื่นๆ' ? 'อื่นๆ - ' + document.getElementById('elecDamageCauseOther').value.trim() : selectedCause;
+
+            const payload = {
+                reporter_id_card: currentUser ? currentUser.nationalId : null,
+                reporter_name: document.getElementById('elecFullName').value,
+                reporter_phone: document.getElementById('elecPhone').value,
+                reporter_address: document.getElementById('elecAddress').value,
+                pole_id: document.getElementById('elecPoleId').value.trim(),
+                damage_cause: finalCause,
+                latitude: parseFloat(lat),
+                longitude: parseFloat(lng),
+                status: 'pending',
+                created_at: new Date().toISOString()
+            };
+            if (imageUrl) payload.image_url = imageUrl;
+
+            console.log("Submitting to Supabase (electric_repairs):", payload);
+
+            let complaintId = 'กำลังประมวลผล...';
+            let insertedRepairData = null;
+
+            try {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
+                    const { data, error } = await supabaseClient
+                        .from('electric_repairs')
+                        .insert([payload])
+                        .select(); // ขอข้อมูลที่เพิ่ง insert กลับมาเพื่อเอาเลขคำร้อง (complaint_id)
+
+                    if (error) {
+                        console.error('Supabase Error:', error);
+                        throw error;
+                    }
+                    if (data && data.length > 0) {
+                        complaintId = data[0].complaint_id;
+                        insertedRepairData = data[0];
+                    }
+                } else {
+                    console.warn("Supabase client not found. Saving to Local Storage.");
+                    await new Promise(r => setTimeout(r, 800)); // Simulate delay
+                    complaintId = 'REP-' + Date.now().toString().slice(-6); // Fallback mock ID
+                    payload.complaint_id = complaintId;
+                    let localRepairs = JSON.parse(localStorage.getItem('sgov_electric_repairs') || '[]');
+                    localRepairs.push(payload);
+                    localStorage.setItem('sgov_electric_repairs', JSON.stringify(localRepairs));
+                }
+
+                // Close modal
+                const modalEl = document.getElementById('electricRepairModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+
+                // ปรับแต่งข้อความใน Toast
+                const toastEl = document.getElementById('successToast');
+                toastEl.querySelector('.toast-body').innerHTML = `<i class="fa-solid fa-circle-check me-2 fa-lg"></i> แจ้งซ่อมสำเร็จ! เลขคำร้องของคุณคือ <strong>${complaintId}</strong> ระบบจะดำเนินการในลำดับต่อไป`;
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
+
+                // === สร้าง PDF อัตโนมัติ (ทำงานเบื้องหลัง ไม่บล็อก UI) ===
+                if (insertedRepairData && GOOGLE_APP_SCRIPT_PDF_URL) {
+                    const d = new Date(insertedRepairData.created_at || Date.now());
+                    const months = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+                    const formattedDate = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+
+                    fetch(GOOGLE_APP_SCRIPT_PDF_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            complaint_id: insertedRepairData.complaint_id || insertedRepairData.id,
+                            reporter_name: insertedRepairData.reporter_name || '-',
+                            reporter_phone: insertedRepairData.reporter_phone || '-',
+                            reporter_address: insertedRepairData.reporter_address || '-',
+                            pole_id: insertedRepairData.pole_id || '-',
+                            location: insertedRepairData.reporter_address || '-',
+                            damage_cause: insertedRepairData.damage_cause || '-',
+                            latitude: insertedRepairData.latitude ? String(insertedRepairData.latitude) : '-',
+                            longitude: insertedRepairData.longitude ? String(insertedRepairData.longitude) : '-',
+                            date: formattedDate
+                        })
+                    }).then(res => res.json()).then(result => {
+                        if (result.success && result.url && typeof supabaseClient !== 'undefined') {
+                            supabaseClient.from('electric_repairs')
+                                .update({ pdf_url: result.url })
+                                .eq('id', insertedRepairData.id)
+                                .then(() => console.log('PDF URL saved:', result.url));
+                        }
+                    }).catch(err => console.warn('Background PDF generation failed:', err));
+                }
+
+            } catch (err) {
+                console.error("Submission failed:", err);
+                if (err.message !== "Missing GAS URL") {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'ไม่สามารถส่งข้อมูลได้ กรุณาลองใหม่อีกครั้ง',
+                        confirmButtonColor: '#ef4444'
+                    });
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnHtml;
+            }
+        }
+    </script>
+    <script src="assets/js/responsive.js"></script>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คำนวณ BMI - ศูนย์พัฒนาเด็กเล็ก</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="คำนวณ BMI"></div>
+    <div class="page-content">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-weight-scale text-primary me-2"></i>ระบบคำนวณ BMI เด็ก</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="childdev-dashboard.html" class="text-decoration-none">ศูนย์พัฒนาเด็กเล็ก</a></li>
+                    <li class="breadcrumb-item active">คำนวณ BMI</li>
+                </ol></nav>
+            </div>
+            <div class="d-flex gap-2">
+                <select class="form-select form-select-sm" id="filterRoom" style="width:auto;" onchange="renderBMITable()">
+                    <option value="">ทุกห้อง</option>
+                </select>
+                <button class="btn btn-sm btn-outline-success" onclick="exportBMI()"><i class="fa-solid fa-file-excel me-1"></i>Export</button>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-xl-3"><div class="kpi-card"><div class="d-flex justify-content-between"><div><div class="kpi-label">ผอม</div><div class="kpi-value text-warning" id="kpiThin">-</div></div><div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-arrow-down"></i></div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card"><div class="d-flex justify-content-between"><div><div class="kpi-label">ปกติ</div><div class="kpi-value text-success" id="kpiNormal">-</div></div><div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-check"></i></div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card"><div class="d-flex justify-content-between"><div><div class="kpi-label">ท้วม</div><div class="kpi-value" id="kpiChubby" style="color:#f97316;">-</div></div><div class="kpi-icon" style="background:rgba(249,115,22,0.1);color:#f97316;"><i class="fa-solid fa-arrow-up"></i></div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card"><div class="d-flex justify-content-between"><div><div class="kpi-label">อ้วน</div><div class="kpi-value text-danger" id="kpiObese">-</div></div><div class="kpi-icon bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-triangle-exclamation"></i></div></div></div></div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <!-- Quick Calc -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-calculator text-primary me-2"></i>คำนวณ BMI</h6></div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">เลือกนักเรียน</label>
+                            <select class="form-select" id="bmiStudent" onchange="fillStudentData()">
+                                <option value="">-- เลือก --</option>
+                            </select>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6"><label class="form-label">น้ำหนัก (kg)</label><input type="number" class="form-control" id="bmiWeight" step="0.1" oninput="calcBMI()"></div>
+                            <div class="col-6"><label class="form-label">ส่วนสูง (cm)</label><input type="number" class="form-control" id="bmiHeight" step="0.1" oninput="calcBMI()"></div>
+                        </div>
+                        <div class="mb-3"><label class="form-label">อายุ</label><input type="text" class="form-control" id="bmiAge" readonly></div>
+
+                        <!-- Result -->
+                        <div class="childdev-bmi-card" id="bmiResult" style="background:#e5e7eb;color:#6b7280;">
+                            <div class="childdev-bmi-value" id="bmiValue">-</div>
+                            <div class="childdev-bmi-label" id="bmiStatus">กรอกข้อมูลเพื่อคำนวณ</div>
+                        </div>
+                        <button class="btn btn-primary w-100 mt-3" onclick="saveBMI()"><i class="fa-solid fa-save me-1"></i>บันทึกผล BMI</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="col-lg-8">
+                <div class="card h-100">
+                    <div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-chart-bar text-info me-2"></i>ภาวะโภชนาการรายห้อง</h6></div>
+                    <div class="card-body"><canvas id="bmiChart" height="250"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BMI Table -->
+        <div class="card fade-in-up">
+            <div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-table text-muted me-2"></i>ตาราง BMI นักเรียนทั้งหมด</h6></div>
+            <div class="card-body p-0">
+                <div class="table-container">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th class="ps-4">ชื่อ-สกุล</th><th>ห้อง</th><th>น้ำหนัก</th><th>ส่วนสูง</th><th>BMI</th><th>สถานะ</th></tr></thead>
+                        <tbody id="bmiBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/childdev.js"></script>
+<script>
+let bmiChartInstance;
+document.addEventListener('DOMContentLoaded', function() {
+    const students = ChilddevDB.getAll('students');
+    const classrooms = ChilddevDB.getAll('classrooms');
+    const sel = document.getElementById('filterRoom');
+    const sSel = document.getElementById('bmiStudent');
+    classrooms.forEach(r => { sel.innerHTML += `<option value="${r.id}">${r.name}</option>`; });
+    students.forEach(s => { sSel.innerHTML += `<option value="${s.id}">${s.prefix}${s.firstName} ${s.lastName} (${s.classroom})</option>`; });
+    renderBMITable();
+    renderBMIChart();
+});
+
+function fillStudentData() {
+    const id = document.getElementById('bmiStudent').value;
+    if (!id) return;
+    const s = ChilddevDB.getById('students', id);
+    if (!s) return;
+    document.getElementById('bmiWeight').value = s.weight;
+    document.getElementById('bmiHeight').value = s.height;
+    document.getElementById('bmiAge').value = childdevCalcAge(s.birthday);
+    calcBMI();
+}
+
+function calcBMI() {
+    const w = parseFloat(document.getElementById('bmiWeight').value);
+    const h = parseFloat(document.getElementById('bmiHeight').value);
+    const result = childdevCalcBMI(w, h);
+    document.getElementById('bmiValue').textContent = result.bmi || '-';
+    document.getElementById('bmiStatus').textContent = result.status;
+    const el = document.getElementById('bmiResult');
+    el.style.background = result.color || '#e5e7eb';
+    el.style.color = '#fff';
+}
+
+function saveBMI() {
+    const studentId = document.getElementById('bmiStudent').value;
+    if (!studentId) { Swal.fire('กรุณาเลือกนักเรียน','','warning'); return; }
+    const w = parseFloat(document.getElementById('bmiWeight').value);
+    const h = parseFloat(document.getElementById('bmiHeight').value);
+    if (!w || !h) { Swal.fire('กรุณากรอกน้ำหนักและส่วนสูง','','warning'); return; }
+    const result = childdevCalcBMI(w, h);
+    ChilddevDB.update('students', studentId, { weight: w, height: h });
+    ChilddevDB.add('bmi', {
+        id: childdevGenerateId('BMI'), studentId,
+        weight: w, height: h, bmi: parseFloat(result.bmi),
+        status: result.status, date: childdevGetTodayStr(),
+        recordedAt: new Date().toISOString()
+    });
+    Swal.fire({icon:'success',title:'บันทึก BMI สำเร็จ',timer:1500,showConfirmButton:false});
+    renderBMITable();
+    renderBMIChart();
+}
+
+function renderBMITable() {
+    const roomFilter = document.getElementById('filterRoom').value;
+    let students = ChilddevDB.getAll('students').filter(s => s.status === 'กำลังศึกษา');
+    if (roomFilter) students = students.filter(s => s.classroomId === roomFilter);
+    const rooms = ChilddevDB.getAll('classrooms');
+    const counts = { 'ผอม': 0, 'ปกติ': 0, 'ท้วม': 0, 'อ้วน': 0 };
+
+    document.getElementById('bmiBody').innerHTML = students.map(s => {
+        const bmi = childdevCalcBMI(s.weight, s.height);
+        if (bmi.status !== '-') counts[bmi.status] = (counts[bmi.status] || 0) + 1;
+        const rm = rooms.find(r => r.id === s.classroomId);
+        return `<tr>
+            <td class="ps-4 fw-semibold">${s.prefix}${s.firstName} ${s.lastName}</td>
+            <td><span class="childdev-class-tag"><span class="childdev-class-dot" style="background:${rm?.color||'#6b7280'}"></span>${s.classroom}</span></td>
+            <td>${s.weight} kg</td><td>${s.height} cm</td>
+            <td><span class="fw-bold" style="color:${bmi.color};">${bmi.bmi}</span></td>
+            <td><span class="badge" style="background:${bmi.color};">${bmi.status}</span></td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('kpiThin').textContent = counts['ผอม'];
+    document.getElementById('kpiNormal').textContent = counts['ปกติ'];
+    document.getElementById('kpiChubby').textContent = counts['ท้วม'];
+    document.getElementById('kpiObese').textContent = counts['อ้วน'];
+}
+
+function renderBMIChart() {
+    const students = ChilddevDB.getAll('students').filter(s => s.status === 'กำลังศึกษา');
+    const classrooms = ChilddevDB.getAll('classrooms');
+    const labels = classrooms.map(c => c.name);
+    const statuses = ['ผอม','ปกติ','ท้วม','อ้วน'];
+    const colors = ['#f59e0b','#10b981','#f97316','#ef4444'];
+    const datasets = statuses.map((st, i) => ({
+        label: st, backgroundColor: colors[i], borderRadius: 4,
+        data: classrooms.map(c => {
+            return students.filter(s => s.classroomId === c.id && childdevCalcBMI(s.weight, s.height).status === st).length;
+        })
+    }));
+
+    if (bmiChartInstance) bmiChartInstance.destroy();
+    bmiChartInstance = new Chart(document.getElementById('bmiChart'), {
+        type: 'bar',
+        data: { labels, datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { font: { family: 'Prompt', size: 11 } } } },
+            scales: {
+                x: { stacked: true, grid: { display: false }, ticks: { font: { family: 'Prompt', size: 11 } } },
+                y: { stacked: true, beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { font: { family: 'Prompt', size: 11 } } }
+            }
+        }
+    });
+}
+
+function exportBMI() { if(typeof showToast==='function') showToast('เตรียม Export BMI...','info'); }
+</script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

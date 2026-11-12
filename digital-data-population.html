@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ข้อมูลประชากร - Digital Data Center</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ข้อมูลประชากร"></div>
+    <div class="page-content">
+        <div class="mb-3"><a href="digital-data-dashboard.html" class="btn btn-light shadow-sm border fw-bold" style="border-radius:10px;"><i class="fa-solid fa-arrow-left me-2"></i>ย้อนกลับ (Digital Data Center)</a></div>
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-users text-primary me-2"></i>ข้อมูลประชากร</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="digital-data-dashboard.html" class="text-decoration-none">Digital Data Center</a></li>
+                    <li class="breadcrumb-item active">ประชากร</li>
+                </ol></nav>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary" onclick="exportExcel()"><i class="fa-solid fa-file-excel me-1"></i>Export ข้อมูลประชากร</button>
+            </div>
+        </div>
+
+        <!-- Search & Filter -->
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <div class="row g-2 align-items-center mb-2">
+                    <div class="col-md-5"><div class="input-group input-group-sm"><span class="input-group-text bg-light"><i class="fa-solid fa-search text-muted"></i></span><input type="text" class="form-control" id="searchInput" placeholder="ค้นหาบ้านเลขที่ / ชื่อ / นามสกุล / เลขบัตร..." onkeyup="filterTable()"></div></div>
+                    <div class="col-md-3"><select class="form-select form-select-sm" id="filterVillage" onchange="filterTable()"><option value="">ทุกหมู่บ้าน</option><option value="1">หมู่ 1</option><option value="2">หมู่ 2</option><option value="3">หมู่ 3</option><option value="4">หมู่ 4</option><option value="5">หมู่ 5</option><option value="6">หมู่ 6</option><option value="7">หมู่ 7</option><option value="8">หมู่ 8</option><option value="9">หมู่ 9</option><option value="10">หมู่ 10</option><option value="11">หมู่ 11</option></select></div>
+                    <div class="col-md-2"><select class="form-select form-select-sm" id="filterStatus" onchange="filterTable()"><option value="">ทั้งหมด</option><option value="poor">ด้อยโอกาส (ยากจน)</option></select></div>
+                    <div class="col-md-2 text-end"><span class="text-xs text-muted" id="resultCount">—</span></div>
+                </div>
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-5">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light" style="font-size: 0.8rem;"><i class="fa-solid fa-filter text-muted me-1"></i>ช่วงอายุ</span>
+                            <input type="number" class="form-control" id="minAge" placeholder="อายุขั้นต่ำ" min="0" onkeyup="filterTable()" onchange="filterTable()">
+                            <span class="input-group-text bg-light">-</span>
+                            <input type="number" class="form-control" id="maxAge" placeholder="อายุสูงสุด" min="0" onkeyup="filterTable()" onchange="filterTable()">
+                            <span class="input-group-text bg-light" style="font-size: 0.8rem;">ปี</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card border-0 shadow-sm" style="border-radius: 12px; overflow: hidden;">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.95rem;">
+                        <thead class="table-light">
+                            <tr style="border-bottom: 2px solid #dee2e6;">
+                                <th class="ps-4 py-3 text-secondary" style="font-weight: 600;">บ้านเลขที่</th>
+                                <th class="py-3 text-secondary" style="font-weight: 600;">ชื่อ-นามสกุล</th>
+                                <th class="text-center py-3 text-secondary" style="font-weight: 600;">อายุ</th>
+                                <th class="text-center py-3 text-secondary" style="font-weight: 600;">เพศ</th>
+                                <th class="text-center py-3 text-secondary" style="font-weight: 600;">สถานะ(มีชีวิต)</th>
+                                <th class="text-center py-3 text-secondary" style="font-weight: 600;">จำแนกประเภท</th>
+                                <th class="pe-4 text-center py-3 text-secondary" style="font-weight: 600;">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="populationBody"><tr><td colspan="7" class="text-center py-5 text-muted"><div class="spinner-border text-primary spinner-border-sm me-2"></div>กำลังโหลดข้อมูล...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/digital-data-service.js"></script>
+<script src="assets/js/household-service.js"></script>
+<script src="assets/js/responsive.js"></script>
+<script>
+let populationData=[];
+document.addEventListener('DOMContentLoaded',async()=>{ await loadData(); });
+async function loadData(){
+    const mapData = await DigitalDataService.getAllPopulation();
+    populationData = mapData; 
+    renderTable(mapData);
+}
+
+function renderTable(data){
+    const tbody=document.getElementById('populationBody');
+    
+    const q = document.getElementById('searchInput') ? document.getElementById('searchInput').value.trim().toLowerCase() : '';
+    const vEl = document.getElementById('filterVillage');
+    const v = vEl ? vEl.value : '';
+    const vText = vEl ? vEl.options[vEl.selectedIndex].text : '';
+    
+    let summaryText = `ประชากรทั้งหมด ${data.length.toLocaleString('th-TH')} คน`;
+    if (q) {
+        summaryText = `ผลการค้นหา "${q}" พบ ${data.length.toLocaleString('th-TH')} คน`;
+    } else if (v) {
+        summaryText = `${vText} จำนวน ${data.length.toLocaleString('th-TH')} คน`;
+    }
+    document.getElementById('resultCount').innerHTML = `<span class="fw-semibold text-primary" style="font-size: 0.95rem;">${summaryText}</span>`;
+    
+    if(!data.length){tbody.innerHTML='<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';return;}
+    
+    tbody.innerHTML=data.map(m=> {
+        const h = m.dd_households || {};
+        const houseNo = h.house_number || '-';
+        const villageNo = h.village_no ? `หมู่ ${h.village_no}` : '-';
+        const name = `${m.prefix||''}${m.first_name||''} ${m.last_name||''}`;
+        
+        let badges = [];
+        if (m.age >= 60) badges.push('<span class="badge bg-warning text-dark me-1"><i class="fa-solid fa-person-cane me-1"></i>ผู้สูงอายุ</span>');
+        if (m.dd_disabled_persons && m.dd_disabled_persons.length > 0) badges.push('<span class="badge bg-info text-dark me-1"><i class="fa-solid fa-wheelchair me-1"></i>ผู้พิการ</span>');
+        if (m.dd_elderly && m.dd_elderly.length > 0 && m.dd_elderly[0].dependency_level === 'ติดเตียง') badges.push('<span class="badge bg-secondary me-1"><i class="fa-solid fa-bed-pulse me-1"></i>ติดเตียง</span>');
+        if (h.poverty_status) badges.push('<span class="badge bg-danger me-1"><i class="fa-solid fa-hand-holding-heart me-1"></i>ด้อยโอกาส</span>');
+        if (m.age !== null && m.age <= 5) badges.push('<span class="badge bg-primary me-1"><i class="fa-solid fa-baby me-1"></i>แรกเกิด</span>');
+        
+        return `<tr style="border-bottom: 1px solid #f1f5f9; transition: background-color 0.2s;">
+            <td class="ps-4">
+                <div class="fw-bold text-dark">${houseNo} <small class="text-muted fw-normal ms-1">(${villageNo})</small></div>
+            </td>
+            <td>
+                <div class="fw-bold text-dark" style="font-size: 1rem;">${name}</div>
+            </td>
+            <td class="text-center">
+                <span class="badge bg-light text-dark border px-2 py-1 shadow-sm">${m.age !== null ? m.age + ' ปี' : '-'}</span>
+            </td>
+            <td class="text-center">${m.gender||'-'}</td>
+            <td class="text-center"><span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3 py-1 shadow-sm">มีชีวิต</span></td>
+            <td class="text-center">${badges.length > 0 ? badges.join('') : '-'}</td>
+            <td class="pe-4 text-center">
+                <button class="btn btn-sm btn-outline-primary shadow-sm me-1" style="border-radius: 8px;" onclick="viewProfile('${m.household_id||h.id||''}')" title="ไปยังข้อมูลครัวเรือน"><i class="fa-solid fa-house"></i></button>
+                <button class="btn btn-sm btn-outline-secondary shadow-sm" style="border-radius: 8px;" onclick="editMemberModal('${m.household_id||h.id||''}')" title="แก้ไขที่หน้าครัวเรือน"><i class="fa-solid fa-pen"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+function filterTable(){
+    const q=document.getElementById('searchInput').value.toLowerCase();
+    const v=document.getElementById('filterVillage').value;
+    const s=document.getElementById('filterStatus').value;
+    const minAgeStr = document.getElementById('minAge').value;
+    const maxAgeStr = document.getElementById('maxAge').value;
+    
+    let d=populationData;
+    if(q) d=d.filter(m=>{
+        const name = `${m.prefix||''}${m.first_name||''} ${m.last_name||''}`.toLowerCase();
+        const h = m.dd_households || {};
+        return name.includes(q) || (h.house_number||'').toLowerCase().includes(q) || (m.citizen_id||'').includes(q);
+    });
+    if(v) d=d.filter(m=>m.dd_households && String(m.dd_households.village_no)===v);
+    if(s==='poor') d=d.filter(m=>m.dd_households && m.dd_households.poverty_status);
+    
+    if (minAgeStr !== '') {
+        const minAge = parseInt(minAgeStr);
+        d = d.filter(m => m.age !== null && m.age >= minAge);
+    }
+    if (maxAgeStr !== '') {
+        const maxAge = parseInt(maxAgeStr);
+        d = d.filter(m => m.age !== null && m.age <= maxAge);
+    }
+    
+    renderTable(d);
+}
+
+function viewProfile(id) {
+    if(id && id !== 'undefined') {
+        window.location.href = 'digital-data-profile.html?id=' + id;
+    } else {
+        Swal.fire('ไม่พบข้อมูลครัวเรือน', 'บุคคลนี้ไม่ได้เชื่อมโยงกับครัวเรือนใดๆ', 'warning');
+    }
+}
+
+function editMemberModal(id) {
+    if(id && id !== 'undefined') {
+        window.location.href = 'digital-data-profile.html?id=' + id;
+    } else {
+        Swal.fire('ไม่พบข้อมูลครัวเรือน', 'บุคคลนี้ไม่ได้เชื่อมโยงกับครัวเรือนใดๆ', 'warning');
+    }
+}
+
+// Export Excel
+function exportExcel() {
+    if(!populationData.length) { Swal.fire('ไม่มีข้อมูล','ไม่พบข้อมูลสำหรับส่งออก','warning'); return; }
+    const exportData = populationData.map((m, idx) => {
+        const h = m.dd_households || {};
+        return {
+            "ลำดับ": idx + 1,
+            "บ้านเลขที่": h.house_number || '',
+            "หมู่ที่": h.village_no || '',
+            "คำนำหน้า": m.prefix || '',
+            "ชื่อ": m.first_name || '',
+            "นามสกุล": m.last_name || '',
+            "เลขบัตรประชาชน": m.citizen_id || '',
+            "อายุ (ปี)": m.age !== null ? m.age : '',
+            "เพศ": m.gender || '',
+            "ผู้สูงอายุ": m.age >= 60 ? 'ใช่' : '-',
+            "ผู้พิการ": (m.dd_disabled_persons && m.dd_disabled_persons.length > 0) ? 'ใช่' : '-',
+            "ติดเตียง": (m.dd_elderly && m.dd_elderly.length > 0 && m.dd_elderly[0].dependency_level === 'ติดเตียง') ? 'ใช่' : '-',
+            "เด็กแรกเกิด": (m.age !== null && m.age <= 5) ? 'ใช่' : '-',
+            "สถานะยากจน": h.poverty_status ? 'ยากจน' : 'ปกติ'
+        };
+    });
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "ข้อมูลประชากร");
+    XLSX.writeFile(wb, "population_data_export.xlsx");
+}
+</script>
+</body>
+</html>

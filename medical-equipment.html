@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คลังอุปกรณ์การแพทย์ - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="คลังอุปกรณ์การแพทย์"></div>
+    <div class="page-content">
+        <div class="mb-3"><a href="cm-dashboard.html" class="btn btn-light shadow-sm border fw-bold" style="border-radius:10px;"><i class="fa-solid fa-arrow-left me-2"></i>ย้อนกลับ</a></div>
+
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-wheelchair-move text-success me-2"></i>ระบบคลังอุปกรณ์ทางการแพทย์</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="cm-dashboard.html" class="text-decoration-none">CM Dashboard</a></li>
+                    <li class="breadcrumb-item active">คลังอุปกรณ์</li>
+                </ol></nav>
+            </div>
+            <div>
+                <a href="equipment-request.html" class="btn btn-primary shadow-sm"><i class="fa-solid fa-plus me-2"></i>เพิ่มคำร้องขอยืม</a>
+                <button class="btn btn-outline-success shadow-sm"><i class="fa-solid fa-boxes-packing me-2"></i>ลงทะเบียนอุปกรณ์ใหม่</button>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm rounded-4 text-center p-3">
+                    <div class="text-muted small fw-bold">อุปกรณ์ทั้งหมด</div>
+                    <div class="fs-3 fw-bold text-dark">45</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm rounded-4 text-center p-3">
+                    <div class="text-muted small fw-bold">พร้อมใช้งาน</div>
+                    <div class="fs-3 fw-bold text-success">22</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm rounded-4 text-center p-3">
+                    <div class="text-muted small fw-bold">ถูกยืมใช้งาน</div>
+                    <div class="fs-3 fw-bold text-warning">20</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm rounded-4 text-center p-3 border border-danger">
+                    <div class="text-muted small fw-bold">ต้องซ่อมแซม</div>
+                    <div class="fs-3 fw-bold text-danger">3</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white border-bottom pt-3 pb-3">
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control form-control-sm" placeholder="ค้นหาชื่ออุปกรณ์, รหัสครุภัณฑ์...">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select form-select-sm">
+                            <option>ทุกหมวดหมู่</option>
+                            <option>รถเข็น (Wheelchair)</option>
+                            <option>เตียงผู้ป่วย (Bed)</option>
+                            <option>เครื่องผลิตออกซิเจน (Oxygen)</option>
+                            <option>เครื่องดูดเสมหะ (Suction)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">รหัสครุภัณฑ์</th>
+                                <th>ชื่ออุปกรณ์</th>
+                                <th>หมวดหมู่</th>
+                                <th>จำนวนทั้งหมด</th>
+                                <th>ถูกยืม</th>
+                                <th>คงเหลือ</th>
+                                <th>สถานะโดยรวม</th>
+                                <th class="text-center pe-4">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="ps-4 text-muted">WC-2026-01</td>
+                                <td class="fw-bold">รถเข็นผู้ป่วยพับได้ แบบอะลูมิเนียม</td>
+                                <td>รถเข็น</td>
+                                <td>25</td>
+                                <td class="text-warning">15</td>
+                                <td class="text-success fw-bold">10</td>
+                                <td><span class="badge bg-success">พร้อมใช้งาน</span></td>
+                                <td class="text-center pe-4"><button class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye"></i></button></td>
+                            </tr>
+                            <tr>
+                                <td class="ps-4 text-muted">BD-2026-02</td>
+                                <td class="fw-bold">เตียงผู้ป่วย 2 ไกร์</td>
+                                <td>เตียงผู้ป่วย</td>
+                                <td>10</td>
+                                <td class="text-warning">8</td>
+                                <td class="text-danger fw-bold">2</td>
+                                <td><span class="badge bg-success">พร้อมใช้งาน</span></td>
+                                <td class="text-center pe-4"><button class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye"></i></button></td>
+                            </tr>
+                            <tr>
+                                <td class="ps-4 text-muted">OX-2026-03</td>
+                                <td class="fw-bold">เครื่องผลิตออกซิเจน 5 ลิตร</td>
+                                <td>เครื่องออกซิเจน</td>
+                                <td>8</td>
+                                <td class="text-warning">3</td>
+                                <td class="text-success fw-bold">5</td>
+                                <td><span class="badge bg-success">พร้อมใช้งาน</span></td>
+                                <td class="text-center pe-4"><button class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye"></i></button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/cm.js"></script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

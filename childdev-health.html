@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตรวจสุขภาพประจำวัน - ศูนย์พัฒนาเด็กเล็ก</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ตรวจสุขภาพประจำวัน"></div>
+    <div class="page-content">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-heart-pulse text-danger me-2"></i>ตรวจสุขภาพประจำวัน</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="childdev-dashboard.html" class="text-decoration-none">ศูนย์พัฒนาเด็กเล็ก</a></li>
+                    <li class="breadcrumb-item active">ตรวจสุขภาพ</li>
+                </ol></nav>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                <select class="form-select form-select-sm" id="filterRoom" style="width:auto;" onchange="renderChecklist()">
+                    <option value="">ทุกห้อง</option>
+                </select>
+                <span class="badge bg-primary" id="dateLabel"></span>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-xl-2"><div class="kpi-card"><div class="d-flex justify-content-between"><div><div class="kpi-label">มีไข้</div><div class="kpi-value text-danger" id="sumFever">0</div></div><div class="kpi-icon bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-thermometer-half"></i></div></div></div></div>
+            <div class="col-6 col-xl-2"><div class="kpi-card"><div class="d-flex justify-content-between"><div><div class="kpi-label">ป่วย</div><div class="kpi-value text-warning" id="sumSick">0</div></div><div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-face-frown"></i></div></div></div></div>
+            <div class="col-6 col-xl-2"><div class="kpi-card"><div class="d-flex justify-content-between"><div><div class="kpi-label">ยังไม่ดื่มนม</div><div class="kpi-value text-info" id="sumNoMilk">0</div></div><div class="kpi-icon bg-info bg-opacity-10 text-info"><i class="fa-solid fa-glass-water"></i></div></div></div></div>
+            <div class="col-6 col-xl-2"><div class="kpi-card"><div class="d-flex justify-content-between"><div><div class="kpi-label">ยังไม่แปรงฟัน</div><div class="kpi-value" id="sumNoBrush" style="color:#ec4899;">0</div></div><div class="kpi-icon" style="background:rgba(236,72,153,0.1);color:#ec4899;"><i class="fa-solid fa-tooth"></i></div></div></div></div>
+            <div class="col-6 col-xl-2"><div class="kpi-card"><div class="d-flex justify-content-between"><div><div class="kpi-label">ดื่มนมแล้ว</div><div class="kpi-value text-success" id="sumMilk">0</div></div><div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-check"></i></div></div></div></div>
+            <div class="col-6 col-xl-2"><div class="kpi-card"><div class="d-flex justify-content-between"><div><div class="kpi-label">แปรงฟันแล้ว</div><div class="kpi-value text-success" id="sumBrush">0</div></div><div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-check-double"></i></div></div></div></div>
+        </div>
+
+        <!-- Checklist Table -->
+        <div class="card fade-in-up">
+            <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-clipboard-check text-primary me-2"></i>รายการตรวจสุขภาพ</h6>
+                <button class="btn btn-xs btn-outline-success" onclick="checkAllMilk()"><i class="fa-solid fa-glass-water me-1"></i>เช็คนมทั้งหมด</button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-container">
+                    <table class="table table-hover mb-0">
+                        <thead><tr>
+                            <th class="ps-3" style="width:30px;">#</th>
+                            <th>ชื่อ-สกุล</th>
+                            <th class="text-center">🥛 นม</th>
+                            <th class="text-center">🪥 แปรงฟัน</th>
+                            <th class="text-center">💅 เล็บ</th>
+                            <th class="text-center">💇 ผม</th>
+                            <th class="text-center">🧼 สะอาด</th>
+                            <th class="text-center">🤒 ไข้</th>
+                            <th class="text-center">😊 อารมณ์</th>
+                            <th>หมายเหตุ</th>
+                        </tr></thead>
+                        <tbody id="healthBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/childdev.js"></script>
+<script src="assets/js/childdev-health.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    HealthModule.init();
+    document.getElementById('dateLabel').textContent = childdevFormatDate(new Date().toISOString());
+    const rooms = ChilddevDB.getAll('classrooms');
+    const sel = document.getElementById('filterRoom');
+    rooms.forEach(r => { sel.innerHTML += `<option value="${r.id}">${r.name}</option>`; });
+    renderChecklist();
+});
+
+function renderChecklist() {
+    const roomFilter = document.getElementById('filterRoom').value;
+    let students = ChilddevDB.getAll('students').filter(s => s.status === 'กำลังศึกษา');
+    if (roomFilter) students = students.filter(s => s.classroomId === roomFilter);
+    const rooms = ChilddevDB.getAll('classrooms');
+
+    document.getElementById('healthBody').innerHTML = students.map((s, i) => {
+        const h = HealthModule.todayData[s.id] || {};
+        const rm = rooms.find(r => r.id === s.classroomId);
+        const fields = ['milk','brushTeeth','nailCheck','hairCheck','bodyClean'];
+        return `<tr>
+            <td class="ps-3 text-muted">${i+1}</td>
+            <td><span class="fw-semibold">${s.prefix}${s.firstName}</span> <span class="text-xs text-muted">${s.classroom}</span></td>
+            ${fields.map(f => `<td class="text-center"><button class="childdev-health-btn ${h[f]?'checked':''}" onclick="toggleHealth('${s.id}','${f}',this)"><i class="fa-solid fa-check"></i></button></td>`).join('')}
+            <td class="text-center"><button class="childdev-health-btn ${h.hasFever?'checked-danger':''}" onclick="toggleHealth('${s.id}','hasFever',this)"><i class="fa-solid fa-thermometer-half"></i></button></td>
+            <td class="text-center">
+                <select class="form-select form-select-sm" style="width:70px;font-size:1.2rem;padding:2px;" onchange="setMood('${s.id}',this.value)">
+                    <option ${h.mood==='😊'?'selected':''}>😊</option><option ${h.mood==='😐'?'selected':''}>😐</option><option ${h.mood==='😢'?'selected':''}>😢</option><option ${h.mood==='😴'?'selected':''}>😴</option>
+                </select>
+            </td>
+            <td><input type="text" class="form-control form-control-sm" style="width:120px;" value="${h.sickSymptoms||''}" placeholder="อาการ" onchange="setSick('${s.id}',this.value)"></td>
+        </tr>`;
+    }).join('');
+    updateSummary();
+}
+
+function toggleHealth(studentId, field, btn) {
+    const val = HealthModule.toggle(studentId, field);
+    if (field === 'hasFever') {
+        btn.classList.toggle('checked-danger', val);
+    } else {
+        btn.classList.toggle('checked', val);
+    }
+    updateSummary();
+}
+
+function setMood(studentId, mood) { HealthModule.setMood(studentId, mood); }
+function setSick(studentId, symptoms) { HealthModule.setSick(studentId, symptoms); }
+
+function checkAllMilk() {
+    const students = ChilddevDB.getAll('students').filter(s => s.status === 'กำลังศึกษา');
+    students.forEach(s => {
+        const h = HealthModule.todayData[s.id];
+        if (!h || !h.milk) HealthModule.toggle(s.id, 'milk');
+    });
+    renderChecklist();
+    if (typeof showToast === 'function') showToast('เช็คดื่มนมทั้งหมดแล้ว', 'success');
+}
+
+function updateSummary() {
+    const sum = HealthModule.getSummary();
+    document.getElementById('sumFever').textContent = sum.fever;
+    document.getElementById('sumSick').textContent = sum.sick;
+    document.getElementById('sumNoMilk').textContent = sum.noMilk;
+    document.getElementById('sumNoBrush').textContent = sum.noBrush;
+    document.getElementById('sumMilk').textContent = sum.milk;
+    document.getElementById('sumBrush').textContent = sum.brush;
+}
+</script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

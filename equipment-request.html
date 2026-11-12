@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คำร้องขอยืมอุปกรณ์ - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="คำร้องขอยืมอุปกรณ์"></div>
+    <div class="page-content">
+        <div class="mb-3"><a href="cm-dashboard.html" class="btn btn-light shadow-sm border fw-bold" style="border-radius:10px;"><i class="fa-solid fa-arrow-left me-2"></i>ย้อนกลับ</a></div>
+
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-hand-holding-medical text-primary me-2"></i>คำร้องขอยืม-คืนอุปกรณ์การแพทย์</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="cm-dashboard.html" class="text-decoration-none">CM Dashboard</a></li>
+                    <li class="breadcrumb-item active">คำร้องขอยืมอุปกรณ์</li>
+                </ol></nav>
+            </div>
+            <div>
+                <button class="btn btn-primary shadow-sm" onclick="showAddRequestModal()"><i class="fa-solid fa-plus me-2"></i>สร้างคำร้องใหม่</button>
+            </div>
+        </div>
+
+        <!-- Filter -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-body py-3">
+                <ul class="nav nav-pills nav-fill">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="javascript:void(0)" onclick="switchTab(this, 'pending')"><i class="fa-solid fa-clock me-1"></i>รออนุมัติ</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-success" href="javascript:void(0)" onclick="switchTab(this, 'approved')"><i class="fa-solid fa-check me-1"></i>อนุมัติแล้ว/กำลังยืม</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="javascript:void(0)" onclick="switchTab(this, 'overdue')"><i class="fa-solid fa-rotate-left me-1"></i>ค้างส่งคืน</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-muted" href="javascript:void(0)" onclick="switchTab(this, 'returned')"><i class="fa-solid fa-clock-rotate-left me-1"></i>ประวัติคืนแล้ว</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">เลขที่คำร้อง</th>
+                                <th>วันที่ยื่นเรื่อง</th>
+                                <th>ชื่อผู้ป่วย</th>
+                                <th>ชื่อผู้ขอยืม (ญาติ)</th>
+                                <th>อุปกรณ์ที่ขอ</th>
+                                <th>สถานะ</th>
+                                <th class="text-center pe-4">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="requestTableBody">
+                            <!-- Data will be rendered here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Add Request Modal -->
+<div class="modal fade" id="addRequestModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-hand-holding-medical text-primary me-2"></i>สร้างคำร้องขอยืมอุปกรณ์</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">ชื่อผู้ป่วย</label>
+                        <input type="text" class="form-control" placeholder="ค้นหาชื่อผู้ป่วย...">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">อุปกรณ์ที่ต้องการยืม</label>
+                        <select class="form-select">
+                            <option>เตียงผู้ป่วย</option>
+                            <option>รถเข็นผู้ป่วยพับได้</option>
+                            <option>เครื่องผลิตออกซิเจน</option>
+                            <option>เครื่องดูดเสมหะ</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">ชื่อผู้ขอยืม (ญาติ/ผู้ดูแล)</label>
+                        <input type="text" class="form-control" placeholder="ชื่อ-สกุล">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">เบอร์โทรศัพท์ติดต่อ</label>
+                        <input type="text" class="form-control" placeholder="08X-XXX-XXXX">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">เหตุผลความจำเป็น</label>
+                        <textarea class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 bg-light rounded-bottom-4">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" onclick="submitRequest()"><i class="fa-solid fa-save me-2"></i>บันทึกคำร้อง</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const mockData = {
+    'pending': [
+        { id: 'REQ-2026-005', date: '25 พ.ค. 2026', patient: 'ยายสมศรี ใจดี', relative: 'นายสมชาย ใจดี (ลูกชาย)', eq: 'เตียงผู้ป่วย 2 ไกร์', status: 'รออนุมัติ', statusClass: 'bg-warning text-dark' },
+        { id: 'REQ-2026-004', date: '24 พ.ค. 2026', patient: 'ตาบุญมา รักชาติ', relative: 'นางบุญมี รักชาติ (ภรรยา)', eq: 'รถเข็นผู้ป่วยพับได้', status: 'รออนุมัติ', statusClass: 'bg-warning text-dark' }
+    ],
+    'approved': [
+        { id: 'REQ-2026-003', date: '10 พ.ค. 2026', patient: 'ลุงประเสริฐ มั่นคง', relative: 'นางสมหญิง มั่นคง (ลูกสาว)', eq: 'เครื่องผลิตออกซิเจน', status: 'กำลังยืม', statusClass: 'bg-success' },
+        { id: 'REQ-2026-002', date: '05 พ.ค. 2026', patient: 'นางนวลจันทร์ สวยงาม', relative: 'นายเอก สวยงาม (หลาน)', eq: 'เตียงผู้ป่วย 3 ไกร์', status: 'กำลังยืม', statusClass: 'bg-success' }
+    ],
+    'overdue': [
+        { id: 'REQ-2026-001', date: '15 เม.ย. 2026', patient: 'นายคำสิงห์ ดินแดง', relative: 'นางแก้ว ดินแดง (ลูกสาว)', eq: 'รถเข็นผู้ป่วย', status: 'ค้างส่งคืน (เกิน 7 วัน)', statusClass: 'bg-danger' }
+    ],
+    'returned': [
+        { id: 'REQ-2025-156', date: '10 ธ.ค. 2025', patient: 'ยายสมศรี ใจดี', relative: 'นายสมชาย ใจดี (ลูกชาย)', eq: 'ไม้เท้าค้ำยัน', status: 'คืนแล้ว (12 ม.ค. 2026)', statusClass: 'bg-secondary' },
+        { id: 'REQ-2025-142', date: '05 พ.ย. 2025', patient: 'ตาบุญมา รักชาติ', relative: 'นางบุญมี รักชาติ (ภรรยา)', eq: 'ที่นอนลม', status: 'คืนแล้ว (20 ธ.ค. 2025)', statusClass: 'bg-secondary' }
+    ]
+};
+
+function renderTable(tabName) {
+    const tbody = document.getElementById('requestTableBody');
+    tbody.innerHTML = '';
+    const data = mockData[tabName] || [];
+    
+    if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>`;
+        return;
+    }
+
+    data.forEach(item => {
+        let actionButtons = '';
+        if (tabName === 'pending') {
+            actionButtons = `
+                <button class="btn btn-sm btn-success" onclick="approveRequest('${item.id}')">อนุมัติ</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="rejectRequest('${item.id}')">ไม่อนุมัติ</button>
+            `;
+        } else if (tabName === 'approved' || tabName === 'overdue') {
+            actionButtons = `
+                <button class="btn btn-sm btn-primary" onclick="returnEquipment('${item.id}')">รับคืนอุปกรณ์</button>
+            `;
+        } else {
+            actionButtons = `
+                <button class="btn btn-sm btn-outline-secondary" onclick="viewDetails('${item.id}')"><i class="fa-solid fa-eye"></i> รายละเอียด</button>
+            `;
+        }
+
+        tbody.innerHTML += `
+            <tr>
+                <td class="ps-4 fw-bold text-primary">${item.id}</td>
+                <td>${item.date}</td>
+                <td>${item.patient}</td>
+                <td>${item.relative}</td>
+                <td>${item.eq}</td>
+                <td><span class="badge ${item.statusClass}">${item.status}</span></td>
+                <td class="text-center pe-4">${actionButtons}</td>
+            </tr>
+        `;
+    });
+}
+
+function switchTab(el, tabName) {
+    document.querySelectorAll('.nav-pills .nav-link').forEach(link => {
+        link.classList.remove('active', 'bg-primary', 'text-white');
+        if (!link.classList.contains('text-success') && !link.classList.contains('text-danger') && !link.classList.contains('text-muted')) {
+            link.classList.add('text-dark');
+        }
+    });
+    el.classList.add('active');
+    el.classList.remove('text-success', 'text-danger', 'text-muted', 'text-dark');
+    
+    renderTable(tabName);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    renderTable('pending');
+});
+
+function showAddRequestModal() {
+    new bootstrap.Modal(document.getElementById('addRequestModal')).show();
+}
+
+function submitRequest() {
+    bootstrap.Modal.getInstance(document.getElementById('addRequestModal')).hide();
+    Swal.fire({
+        icon: 'success',
+        title: 'บันทึกคำร้องสำเร็จ',
+        text: 'ส่งคำร้องขอยืมอุปกรณ์เรียบร้อยแล้ว รอการอนุมัติ',
+        confirmButtonColor: '#0d6efd'
+    }).then(() => {
+        mockData.pending.unshift({
+            id: 'REQ-2026-006', date: 'วันนี้', patient: 'ผู้ป่วยทดสอบ', relative: 'ญาติทดสอบ', eq: 'รถเข็นผู้ป่วยพับได้', status: 'รออนุมัติ', statusClass: 'bg-warning text-dark'
+        });
+        document.querySelector('.nav-link.active').click(); // Reload current tab
+    });
+}
+
+function approveRequest(reqId) {
+    Swal.fire({
+        title: 'ยืนยันการอนุมัติ',
+        text: `คุณต้องการอนุมัติคำร้อง ${reqId} ใช่หรือไม่?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#198754',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'ใช่, อนุมัติเลย',
+        cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const idx = mockData.pending.findIndex(x => x.id === reqId);
+            if(idx > -1) {
+                let item = mockData.pending.splice(idx, 1)[0];
+                item.status = 'กำลังยืม';
+                item.statusClass = 'bg-success';
+                mockData.approved.unshift(item);
+                renderTable('pending');
+            }
+            Swal.fire('อนุมัติสำเร็จ!', `คำร้อง ${reqId} ได้รับการอนุมัติแล้ว`, 'success');
+        }
+    });
+}
+
+function rejectRequest(reqId) {
+    Swal.fire({
+        title: 'ไม่อนุมัติคำร้อง',
+        input: 'textarea',
+        inputLabel: 'เหตุผลที่ไม่อนุมัติ',
+        inputPlaceholder: 'พิมพ์เหตุผลที่นี่...',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'ยืนยันไม่อนุมัติ',
+        cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const idx = mockData.pending.findIndex(x => x.id === reqId);
+            if(idx > -1) {
+                let item = mockData.pending.splice(idx, 1)[0];
+                item.status = 'ไม่อนุมัติ';
+                item.statusClass = 'bg-danger';
+                mockData.returned.unshift(item);
+                renderTable('pending');
+            }
+            Swal.fire('บันทึกสำเร็จ', `คำร้อง ${reqId} ถูกปฏิเสธเรียบร้อยแล้ว`, 'success');
+        }
+    });
+}
+
+function returnEquipment(reqId) {
+    Swal.fire({
+        title: 'ยืนยันการรับคืนอุปกรณ์',
+        text: `บันทึกรับคืนอุปกรณ์สำหรับคำร้อง ${reqId} ใช่หรือไม่?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#0d6efd',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'ยืนยันรับคืน',
+        cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            let idx = mockData.approved.findIndex(x => x.id === reqId);
+            let source = 'approved';
+            if(idx === -1) {
+                idx = mockData.overdue.findIndex(x => x.id === reqId);
+                source = 'overdue';
+            }
+            if(idx > -1) {
+                let item = mockData[source].splice(idx, 1)[0];
+                item.status = 'คืนแล้ว (วันนี้)';
+                item.statusClass = 'bg-secondary';
+                mockData.returned.unshift(item);
+                renderTable(source);
+            }
+            Swal.fire('รับคืนสำเร็จ', `บันทึกการคืนอุปกรณ์สำหรับ ${reqId} เรียบร้อยแล้ว`, 'success');
+        }
+    });
+}
+
+function viewDetails(reqId) {
+    Swal.fire('รายละเอียดคำร้อง', `กำลังแสดงรายละเอียดของ ${reqId}`, 'info');
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/cm.js"></script>
+<script src="assets/js/responsive.js"></script>
+</body>
+</html>

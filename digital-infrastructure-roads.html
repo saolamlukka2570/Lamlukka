@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ทะเบียนถนนและโครงข่ายทางหลวงท้องถิ่น (DIIS) - กองช่าง</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet Map CSS Leaflet Library -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; }
+        .dropzone-box {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            background: #fff;
+            transition: all 0.2s ease;
+        }
+        .dropzone-box:hover {
+            border-color: #4f46e5;
+            background: #f8fafc;
+        }
+        .leaflet-interactive:focus {
+            outline: none !important;
+        }
+        #digitizeMap {
+            border: 1px solid #cbd5e1;
+        }
+        /* Fullscreen Map Styles */
+        .fullscreen-map {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+        }
+        .fullscreen-map + #btnMapFullscreen {
+            position: fixed !important;
+            top: 20px !important;
+            left: 20px !important;
+            z-index: 10000 !important;
+        }
+        .fullscreen-controls {
+            position: fixed !important;
+            top: 20px !important;
+            right: 20px !important;
+            z-index: 10000 !important;
+            width: 420px !important;
+            max-width: 90% !important;
+            background: rgba(255, 255, 255, 0.96) !important;
+            backdrop-filter: blur(12px) !important;
+            border-radius: 16px !important;
+            border: 1px solid rgba(226, 232, 240, 0.8) !important;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04) !important;
+            padding: 16px !important;
+        }
+        #btnMapFullscreen {
+            transition: all 0.2s ease;
+        }
+        #btnMapFullscreen:hover {
+            background-color: #f1f5f9 !important;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ระบบควบคุมและลงทะเบียนถนน"></div>
+    <div class="page-content p-4">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+                <h1 class="text-xl font-bold text-slate-800 mb-0 d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-road text-indigo-600"></i> ทะเบียนถนนและโครงข่ายทางหลวงท้องถิ่น
+                </h1>
+                <p class="text-xs text-slate-500 mb-0">ระบบลงทะเบียน ค้นหา และวิเคราะห์พิกัดเชิงเส้นทางคมนาคม</p>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary" onclick="loadRoads()"><i class="fa-solid fa-sync me-1"></i>รีเฟรช</button>
+                <button class="btn btn-sm btn-outline-indigo border-indigo-600 text-indigo-600 hover:bg-indigo-50 fw-semibold" onclick="openExportGISModal()"><i class="fa-solid fa-file-export me-1"></i> ส่งออกข้อมูล GIS (EXPORT)</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="openRoadSurfaceSettings()"><i class="fa-solid fa-gear me-1"></i> ตั้งค่าผิวจราจร</button>
+                <button class="btn btn-sm btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 fw-semibold" data-bs-toggle="modal" data-bs-target="#newRoadModal" onclick="initNewRoadModal()"><i class="fa-solid fa-plus me-1"></i> ลงทะเบียนถนนใหม่</button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs for different views -->
+        <ul class="nav nav-pills mb-4 text-xs font-semibold" id="pills-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="tab-list-tab" data-bs-toggle="pill" data-bs-target="#tab-list" type="button" role="tab"><i class="fa-solid fa-list me-1"></i> ทะเบียนบัญชีถนน</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-upload-tab" data-bs-toggle="pill" data-bs-target="#tab-upload" type="button" role="tab"><i class="fa-solid fa-file-import me-1"></i> นำเข้าไฟล์แผนที่ GIS (Shapefile / GeoJSON)</button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="pills-tabContent">
+            <!-- 1. Road List Tab -->
+            <div class="tab-pane fade show active" id="tab-list" role="tabpanel">
+                <!-- Advanced Search filters -->
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm mb-4">
+                    <div class="row g-3 text-xs">
+                        <div class="col-md-3">
+                            <label class="form-label font-bold text-slate-600">ค้นหาชื่อถนน/สายทาง</label>
+                            <input type="text" class="form-control" id="searchRoadName" placeholder="ระบุคีย์คำค้น..." oninput="filterRoadsTable()">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label font-bold text-slate-600">ประเภทถนน</label>
+                            <select class="form-select" id="searchRoadType" onchange="filterRoadsTable()">
+                                <option value="">-- ทั้งหมด --</option>
+                                <option>ถนนขึ้นทะเบียนทางหลวง</option>
+                                <option>ถนนในแผนพัฒนา</option>
+                                <option>ถนนภายในตำบล</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label font-bold text-slate-600">ประเภทผิวทาง</label>
+                            <select class="form-select" id="searchSurfaceType" onchange="filterRoadsTable()">
+                                <option value="">-- ทั้งหมด --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label font-bold text-slate-600">พื้นที่หมู่บ้าน</label>
+                            <select class="form-select" id="searchVillage" onchange="filterRoadsTable()">
+                                <option value="">-- ทั้งหมด --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Road Color Legend Bar -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-3 mb-3 d-flex align-items-center flex-wrap gap-3" id="roadLegendContainer">
+                    <!-- Populated by JS -->
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-lg-7">
+                        <!-- Table -->
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden d-flex flex-column h-100">
+                            <div class="table-responsive" style="flex-grow: 1;">
+                                <table class="table table-gov table-hover mb-0 text-xs">
+                                    <thead>
+                                        <tr>
+                                            <th class="ps-4 text-center text-nowrap">จัดการ</th>
+                                            <th class="text-nowrap">รหัสสายทาง</th>
+                                            <th class="text-nowrap">ชื่อถนน/สายทาง</th>
+                                            <th class="text-nowrap">ผิวจราจร</th>
+                                            <th class="text-nowrap">กว้าง x ยาว (เมตร)</th>
+                                            <th class="text-nowrap">หมู่ที่</th>
+                                            <th class="pe-4 text-nowrap">ปีสร้าง (พ.ศ.)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="roadsTableBody">
+                                        <tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลดข้อมูลถนน...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="p-3 border-t d-flex justify-content-between align-items-center bg-slate-50">
+                                <span class="text-xs text-slate-500" id="roadsTableInfo">กำลังโหลด...</span>
+                                <div class="btn-group" id="roadsPagination">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 d-flex flex-column h-100">
+                            <h6 class="font-bold text-slate-800 text-sm mb-3"><i class="fa-solid fa-map-location-dot text-indigo-600 me-2"></i> แผนที่แสดงเส้นทางถนน</h6>
+                            <div id="mainRoadMapContainer" style="flex-grow: 1; min-height: 400px; width: 100%; border-radius: 12px; z-index: 10;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. GIS File Upload Center Tab -->
+            <div class="tab-pane fade" id="tab-upload" role="tabpanel">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    <!-- Dropzone -->
+                    <div class="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-column justify-between" style="min-height:300px;">
+                        <div>
+                            <h5 class="font-bold text-slate-800 text-sm mb-1"><i class="fa-solid fa-cloud-arrow-up text-indigo-600 me-1"></i> GIS File Drag & Drop Center</h5>
+                            <p class="text-xs text-slate-500 mb-3">รองรับ .zip (Shapefile), .geojson, .kml — ระบบจะวิเคราะห์ฟิลด์ข้อมูลและจับคู่กับฐานข้อมูลอัตโนมัติ</p>
+                        </div>
+                        
+                        <!-- Dropzone container box -->
+                        <div class="dropzone-box flex-grow flex flex-column items-center justify-center p-6 cursor-pointer border-2" id="dropZoneContainer">
+                            <i class="fa-solid fa-map-location-dot text-slate-400 text-4xl mb-3"></i>
+                            <span class="text-xs font-bold text-slate-700 mb-1">ลากวางไฟล์ที่ต้องการอัปโหลดแผนที่ที่นี่</span>
+                            <span class="text-[10px] text-slate-400">หรือคลิกเพื่อเลือกไฟล์จากคอมพิวเตอร์ของท่าน (ขนาดสูงสุด 10MB)</span>
+                            <input type="file" id="fileUploadInput" class="hidden" accept=".zip, .geojson, .json, .kml">
+                        </div>
+
+                        <!-- Progress indicator -->
+                        <div class="mt-3 text-xs hidden" id="uploadProgressPanel">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-semibold text-indigo-600" id="uploadFileNameLabel">ถนนหมู่2.zip</span>
+                                <span class="text-slate-500" id="uploadPercentLabel">45%</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-indigo-600" role="progressbar" style="width: 45%" id="uploadProgressBar"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Geometry Validator + Attribute Mapper -->
+                    <div class="lg:col-span-7 flex flex-column gap-4">
+                        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                            <h5 class="font-bold text-slate-800 text-sm mb-2"><i class="fa-solid fa-circle-check text-emerald-500 me-1"></i> ผลการตรวจรับสัญวิทยา (Geometry Validator)</h5>
+                            <div class="p-3 rounded-xl border bg-slate-50 text-xs text-slate-600 mb-3 space-y-1">
+                                <div><b>ระบบพิกัดที่ตรวจพบ (CRS):</b> <span id="detectedCRS">WGS 84 (EPSG:4326)</span></div>
+                                <div><b>รูปแบบโครงสร้าง (Feature Type):</b> <span id="detectedGeomType">ไม่ได้อัปโหลดไฟล์</span></div>
+                                <div><b>จำนวนฟีเจอร์ที่ตรวจพบ:</b> <span id="detectedCount">0</span></div>
+                                <div><b>จำนวนฟิลด์ข้อมูล (Attributes):</b> <span id="detectedFieldsCount">0</span> ฟิลด์</div>
+                            </div>
+                            <div id="attributeMapperContainer">
+                                <!-- Attribute fields, preview table & preview map will be built dynamically here by shapefile-upload.js -->
+                                <div class="p-3 text-center text-muted border rounded-xl bg-slate-50 text-xs">
+                                    กรุณาอัปโหลดไฟล์ข้อมูล GIS เพื่อเริ่มต้นจับคู่แอตทริบิวต์ฟิลด์อัตโนมัติ
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GIS Upload History -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm mt-4 text-xs font-semibold text-slate-700">
+                    <h5 class="font-bold text-slate-800 text-sm mb-3 border-b pb-2 d-flex align-items-center justify-content-between">
+                        <span><i class="fa-solid fa-cloud text-indigo-600 me-2"></i> แฟ้มคลังไฟล์แผนที่ภูมิสารสนเทศ (Supabase Cloud Storage & Database Sync History)</span>
+                        <button class="btn btn-xs btn-outline-secondary" onclick="loadGISUploadHistory()"><i class="fa-solid fa-sync"></i> รีเฟรชประวัติ</button>
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-gov table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4 text-nowrap">รหัสอ้างอิงนำเข้า</th>
+                                    <th class="text-nowrap">ชื่อไฟล์แผนที่ต้นฉบับ</th>
+                                    <th class="text-nowrap">ระบบพิกัดแผนที่ (CRS)</th>
+                                    <th class="text-nowrap">ประเภทเรขาคณิต</th>
+                                    <th class="text-nowrap">จำนวนวัตถุ</th>
+                                    <th class="text-nowrap">วันที่ซิงก์อัปโหลด</th>
+                                    <th class="text-nowrap">สถานะคลาวด์</th>
+                                    <th class="text-center pe-4 text-nowrap">เรียกใช้งาน / ดาวน์โหลดแผนที่</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gisUploadsTableBody">
+                                <tr><td colspan="8" class="text-center py-4 text-muted">ไม่พบข้อมูลประวัตินำเข้าจากคลาวด์</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- New Road Registration Modal -->
+<div class="modal fade" id="newRoadModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="newRoadModalTitle"><i class="fa-solid fa-road text-indigo-600 me-2"></i>ขึ้นทะเบียนสายทางถนนหลวงท้องถิ่นใหม่</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-xs font-semibold text-slate-700">
+                <form id="newRoadForm" onsubmit="submitNewRoad(event)">
+                    <div class="row g-3">
+                        <!-- 👑 ประเภทสายทาง (วางไว้บนสุด ไฮไลท์สีครามโดดเด่นสไตล์ราชการ SaaS) -->
+                        <div class="col-12 mb-2">
+                            <div class="p-3 bg-indigo-50 border border-indigo-100 rounded-3">
+                                <label class="form-label fw-bold text-indigo-800 text-sm mb-2"><i class="fa-solid fa-layer-group me-1"></i> ประเภทจำแนกโครงข่ายสายทางหลวงท้องถิ่น <span class="text-danger">*</span></label>
+                                <select class="form-select border-indigo-200 text-indigo-950 fw-bold py-2" id="nrRoadType" onchange="handleRoadTypeChange()" style="font-size: 13px; border-radius: 6px;">
+                                    <option>ถนนขึ้นทะเบียนทางหลวง</option>
+                                    <option>ถนนในแผนพัฒนา</option>
+                                    <option>ถนนภายในตำบล</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- รหัสสายทาง และ ชื่อถนน (แถวถัดมา เคียงข้างกัน) -->
+                        <div class="col-md-6">
+                            <label class="form-label">รหัสสายทาง <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nrRoadId" required placeholder="เช่น ถ.ทถ. 1-0004">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ชื่อถนน/ซอย <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nrRoadName" required placeholder="เช่น ถนนมิตรภาพร่วมใจ">
+                        </div>
+
+                        <!-- คุณลักษณะจำเพาะ (จัดแบ่งเป็น 4 คอลัมน์ละ 3 Grid เท่ากัน เพื่อความพอดีและอ่านง่าย) -->
+                        <div class="col-md-3">
+                            <label class="form-label">ประเภทผิวจราจร</label>
+                            <select class="form-select" id="nrSurfaceType">
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">ความกว้าง (เมตร)</label>
+                            <input type="number" step="0.1" class="form-control" id="nrWidth" value="">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">ความยาว (เมตร)</label>
+                            <input type="number" class="form-control" id="nrLength" value="" placeholder="ระบุความยาว">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">หมู่ที่ตั้งทาง</label>
+                            <input type="text" class="form-control" id="nrVillage" value="">
+                        </div>
+
+                        <!-- พิกัดเริ่มต้น -->
+                        <div class="col-md-6">
+                            <label class="form-label">พิกัด Latitude (Y) <span class="text-slate-400 font-normal">(จุดเริ่มต้น)</span></label>
+                            <input type="number" step="0.000001" class="form-control" id="nrLat" value="">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">พิกัด Longitude (X) <span class="text-slate-400 font-normal">(จุดเริ่มต้น)</span></label>
+                            <input type="number" step="0.000001" class="form-control" id="nrLng" value="">
+                        </div>
+
+                        <!-- 💡 กล่องกรอกข้อมูลตามเงื่อนไข (Conditional Input Containers) -->
+                        <!-- กรณีเลือก: ถนนในแผนพัฒนา -->
+                        <div class="col-12" id="divPlanFields" style="display: none;">
+                            <div class="p-3 bg-amber-50 border border-amber-200 rounded-3">
+                                <div class="row g-2">
+                                    <div class="col-12 text-amber-800 fw-bold text-[10px] mb-1">
+                                        <i class="fa-solid fa-file-invoice-dollar me-1"></i> รายละเอียดข้อมูลประมาณการแผนพัฒนาสายทาง
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-amber-900">ประมาณการงบประมาณพัฒนา (บาท)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-white border-end-0 text-amber-600"><i class="fa-solid fa-coins"></i></span>
+                                            <input type="number" class="form-control border-start-0" id="nrBudget" placeholder="ระบุงบพัฒนา เช่น 1200000" value="">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-amber-900">ปีในแผนพัฒนา (พ.ศ.)</label>
+                                        <input type="number" class="form-control" id="nrPlanYear" placeholder="เช่น 2569" value="">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- กรณีเลือก: ถนนขึ้นทะเบียนทางหลวง หรือ ถนนภายในตำบล -->
+                        <div class="col-12" id="divRegisteredFields" style="display: none;">
+                            <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-3">
+                                <div class="row g-2">
+                                    <div class="col-12 text-emerald-800 fw-bold text-[10px] mb-1">
+                                        <i class="fa-solid fa-calendar-check me-1"></i> ข้อมูลทะเบียนประวัติและการตรวจประเมินทางหลวงท้องถิ่น
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-emerald-900">ปีที่ก่อสร้างแล้วเสร็จ (พ.ศ.)</label>
+                                        <input type="number" class="form-control" id="nrConstructionYear" placeholder="ระบุปี เช่น 2564" value="">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-emerald-900">สภาพการใช้งานของผิวทาง</label>
+                                        <select class="form-select" id="nrStatus">
+                                            <option value="good">ดีเยี่ยม / สมบูรณ์ดี</option>
+                                            <option value="fair">ปานกลาง / พอใช้</option>
+                                            <option value="poor">ชำรุดเสียหายหนัก</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 🗺️ Digitize Path Toggle Button -->
+                        <div class="col-12 mt-2">
+                            <button type="button" class="btn btn-xs btn-outline-indigo w-100 py-2 font-bold" id="btnToggleDigitize" onclick="toggleDigitizeMap()">
+                                <i class="fa-solid fa-map-location-dot me-1"></i> 🗺️ เปิดระบบวาดแนวเส้นทางถนนบนแผนที่ดาวเทียม (Digitize Path)
+                            </button>
+                        </div>
+
+                        <!-- Success Badge for Digitized Path with Re-edit button -->
+                        <div class="col-12" id="digitizeSuccessBadge" style="display: none;">
+                            <div class="p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-[10px] fw-bold d-flex justify-content-between align-items-center mb-1">
+                                <span><i class="fa-solid fa-circle-check text-emerald-600 me-1"></i> วาดแนวเส้นทางสำเร็จ (พิกัด <span id="digitizePointsCount">0</span> จุด, ยาว <span id="digitizeLengthValue">0</span> เมตร)</span>
+                                <button type="button" class="btn btn-xs btn-success text-white bg-emerald-600 hover:bg-emerald-700 font-bold px-3 py-1 rounded" onclick="editDigitizedPath()"><i class="fa-solid fa-edit me-1"></i> แก้ไขแนวเส้นทาง</button>
+                            </div>
+                        </div>
+
+                        <!-- Digitize Status Controls -->
+                        <div class="col-12" id="digitizeControls" style="display: none;">
+                            <div class="p-2 bg-slate-100 rounded-lg d-flex flex-column gap-2 mb-1">
+                                <!-- Mode indicators & Interactive Editing Tools -->
+                                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 flex-wrap gap-1 text-[10px]">
+                                    <span class="text-slate-500 font-bold"><i class="fa-solid fa-compass-drafting text-indigo-600 me-1"></i> เครื่องมือจัดการแนวพิกัด:</span>
+                                    <div class="d-flex gap-1 flex-wrap">
+                                        <button type="button" class="btn btn-xs btn-outline-indigo bg-white font-bold py-1 px-2 text-[10px]" id="btnModeAddMarker" onclick="toggleInsertMarkerMode()">
+                                            <i class="fa-solid fa-plus-circle me-1"></i>➕ แทรกเพิ่มหมุด
+                                        </button>
+                                        <button type="button" class="btn btn-xs btn-outline-danger bg-white font-bold py-1 px-2 text-[10px]" id="btnDeleteSelectedMarker" onclick="deleteSelectedMarker()" disabled>
+                                            <i class="fa-solid fa-minus-circle me-1"></i>🗑️ ลบหมุดที่เลือก
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Workflow controls -->
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 text-[10px]">
+                                    <span class="text-slate-400 font-normal">คลิกแผนที่ว่างเพื่อวาดต่อ, คลิกหมุดเพื่อขยับย้ายหรือเลือกเพื่อลบ</span>
+                                    <div class="d-flex gap-1">
+                                        <button type="button" class="btn btn-xs btn-outline-secondary bg-white text-slate-700 hover:bg-slate-100" onclick="undoLastDigitizedPoint()"><i class="fa-solid fa-rotate-left me-1"></i> ย้อนกลับ</button>
+                                        <button type="button" class="btn btn-xs btn-outline-danger bg-white" onclick="clearDigitizedPath()"><i class="fa-solid fa-trash me-1"></i> ล้างเส้นวาด</button>
+                                        <button type="button" class="btn btn-xs btn-success text-white bg-emerald-600 hover:bg-emerald-700 font-bold" onclick="finishDigitizedPath()"><i class="fa-solid fa-circle-check me-1"></i> ยืนยันเส้นทาง</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Map Container inside Modal -->
+                        <div class="col-12">
+                            <div class="position-relative">
+                                <div id="digitizeMap" style="height: 280px; width: 100%; border-radius: 8px; display: none; z-index: 10;"></div>
+                                <button type="button" id="btnMapFullscreen" class="btn btn-light shadow-sm border" style="position: absolute; top: 80px; left: 10px; z-index: 1050; width: 34px; height: 34px; border-radius: 4px; display: none; align-items: center; justify-content: center; padding: 0;" onclick="toggleMapFullscreen()" title="ย่อ-ขยายแผนที่เต็มหน้าจอ">
+                                    <i class="fa-solid fa-expand text-slate-700 text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 px-4 fw-semibold"><i class="fa-solid fa-save me-1"></i><span id="btnSubmitFormText">บันทึกขึ้นทะเบียน</span></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export GIS Data Modal -->
+<div class="modal fade" id="exportGISModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom bg-slate-50">
+                <h5 class="modal-title fw-bold text-slate-800"><i class="fa-solid fa-file-export text-indigo-600 me-2"></i>ส่งออกข้อมูลภูมิสารสนเทศ (EXPORT GIS DATA)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-slate-800">
+                <p class="text-xs text-slate-600 mb-4">โปรดเลือกรูปแบบไฟล์แผนที่ที่ต้องการส่งออก ระบบจะจัดฟอร์แมตพิกัดตามระบบอ้างอิงสากล WGS 84 (EPSG:4326) รองรับโปรแกรม QGIS และแอปพลิเคชันระบบสารสนเทศภูมิศาสตร์ 100%</p>
+                
+                <div class="d-flex flex-column gap-3">
+                    <!-- Option 1: GeoJSON -->
+                    <div class="p-3 border rounded-3 bg-slate-50 hover:bg-slate-100 cursor-pointer d-flex align-items-center justify-content-between" onclick="triggerGISExport('geojson')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fs-4 text-emerald-600"><i class="fa-solid fa-code"></i></span>
+                            <div>
+                                <div class="fw-bold text-xs text-slate-800">ส่งออกเป็นไฟล์ GeoJSON</div>
+                                <div class="text-[11px] text-slate-500">มาตรฐานรูปแบบ JSON (roads.geojson) เหมาะสำหรับการสตรีมแผนที่เว็บ</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-400"></i>
+                    </div>
+
+                    <!-- Option 2: SHP ZIP -->
+                    <div class="p-3 border rounded-3 bg-slate-50 hover:bg-slate-100 cursor-pointer d-flex align-items-center justify-content-between" onclick="triggerGISExport('shp')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fs-4 text-indigo-600"><i class="fa-solid fa-box-archive"></i></span>
+                            <div>
+                                <div class="fw-bold text-xs text-slate-800">ส่งออกเป็น ESRI Shapefile Package (ZIP)</div>
+                                <div class="text-[11px] text-slate-500">ประกอบด้วยไฟล์ .shp .dbf .shx .prj บีบอัดเป็น ZIP พร้อมทำงานร่วมกับ QGIS</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-400"></i>
+                    </div>
+
+                    <!-- Option 3: KML -->
+                    <div class="p-3 border rounded-3 bg-slate-50 hover:bg-slate-100 cursor-pointer d-flex align-items-center justify-content-between" onclick="triggerGISExport('kml')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fs-4 text-danger"><i class="fa-solid fa-map-pin"></i></span>
+                            <div>
+                                <div class="fw-bold text-xs text-slate-800">ส่งออกเป็นไฟล์ KML</div>
+                                <div class="text-[11px] text-slate-500">รูปแบบไฟล์สำหรับ Google Earth และโปรแกรมสำรวจแผนที่สามมิติ</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-400"></i>
+                    </div>
+
+                    <!-- Option 4: CSV -->
+                    <div class="p-3 border rounded-3 bg-slate-50 hover:bg-slate-100 cursor-pointer d-flex align-items-center justify-content-between" onclick="triggerGISExport('csv')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fs-4 text-primary"><i class="fa-solid fa-file-csv"></i></span>
+                            <div>
+                                <div class="fw-bold text-xs text-slate-800">ส่งออกเป็นไฟล์ตาราง CSV</div>
+                                <div class="text-[11px] text-slate-500">บรรจุพิกัดละติจูด/ลองจิจูดเริ่มต้น สามารถเปิดใช้งานผ่าน Microsoft Excel ได้ทันที</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-400"></i>
+                    </div>
+                </div>
+
+                <!-- Export Status Area -->
+                <div id="exportStatusArea" class="mt-4 p-3 border border-indigo-100 rounded-3 bg-indigo-50/50 text-xs text-indigo-700 font-semibold align-items-center justify-content-center gap-2" style="display: none;">
+                    <div class="spinner-border spinner-border-sm text-indigo-600 me-2" role="status"></div>
+                    <span id="exportStatusText">กำลังดึงพิกัดจากฐานข้อมูลเชิงพื้นที่หลัก...</span>
+                </div>
+            </div>
+            <div class="modal-footer border-top py-2 bg-slate-50">
+                <button type="button" class="btn btn-sm btn-outline-secondary px-4 fw-semibold" data-bs-dismiss="modal">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Road Map Modal -->
+<div class="modal fade" id="viewRoadMapModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="viewRoadMapTitle"><i class="fa-solid fa-map-location-dot text-indigo-600 me-2"></i>แผนที่แสดงแนวเส้นทางสายทาง</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="p-2 bg-slate-50 border rounded-lg text-xs text-slate-700 mb-2 space-y-1">
+                    <div class="row text-xs">
+                        <div class="col-md-6"><b>ชื่อถนน/สายทาง:</b> <span id="vrmRoadName" class="fw-bold text-indigo-600"></span> (<span id="vrmRoadId"></span>)</div>
+                        <div class="col-md-6 text-md-end"><b>ประเภทผิวจราจร:</b> <span id="vrmSurface"></span> | <b>กว้าง x ยาว:</b> <span id="vrmDimensions"></span> เมตร</div>
+                    </div>
+                </div>
+                <div id="viewRoadMapContainer" style="height: 400px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; z-index: 10;"></div>
+            </div>
+            <div class="modal-footer border-top py-2">
+                <button type="button" class="btn btn-sm btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 px-4 font-bold" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Leaflet JS Map Leaflet Library -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/digital-infrastructure.js"></script>
+<script src="assets/js/shapefile-upload.js"></script>
+<script src="services/gisSpatialService.js"></script>
+<script src="services/gisExportService.js"></script>
+<script>
+    let rawRoadsList = [];
+
+    // Digitize Engine variables
+    let digitizeMapInstance = null;
+    let digitizedPoints = [];
+    let digitizedPolyline = null;
+    let digitizeMarkers = [];
+    let isDigitizingActive = false;
+    let selectedMarkerIndex = null; // ดัชนีของหมุดที่ผู้ใช้เลือก (สำหรับกดปุ่มลบ)
+    let isInsertModeActive = false; // โหมดแทรกหมุดเมื่อคลิกที่เส้น
+    let currentEditingRoadId = null; // ID ที่กำลังทำรายการแก้ไข (null = สร้างถนนใหม่)
+    let viewRoadMapInstance = null; // แผนที่พรีวิวสำหรับกดดูแผนที่
+    let mainRoadMapInstance = null;
+    let mainRoadMapLayer = L.layerGroup();
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await DigitalInfraService.loadRoadSurfaceTypesFromDB();
+        initRoadSurfaceDynamicUI();
+        initMainRoadMap();
+        loadRoads();
+        setupGISUploadEngine();
+        loadGISUploadHistory();
+    });
+
+    function initNewRoadModal() {
+        currentEditingRoadId = null;
+        
+        // คืนหัวข้อฟอร์มและปุ่มเป็นโหมดบันทึกปกติ
+        const modalTitle = document.getElementById('newRoadModalTitle');
+        if (modalTitle) modalTitle.innerHTML = '<i class="fa-solid fa-road text-indigo-600 me-2"></i>ขึ้นทะเบียนสายทางถนนหลวงท้องถิ่นใหม่';
+        
+        const submitBtnText = document.getElementById('btnSubmitFormText');
+        if (submitBtnText) submitBtnText.textContent = 'บันทึกขึ้นทะเบียน';
+
+        // ล้างแบบฟอร์มค่าทั้งหมด
+        const form = document.getElementById('newRoadForm');
+        if (form) form.reset();
+
+        // กรอกค่าดีฟอลต์สำหรับจุดลงทะเบียนใหม่ (เซ็ตเป็นว่างเพื่อให้กรอกใหม่)
+        document.getElementById('nrRoadType').value = "ถนนขึ้นทะเบียนทางหลวง";
+        document.getElementById('nrWidth').value = "";
+        document.getElementById('nrLength').value = "";
+        document.getElementById('nrVillage').value = "";
+        document.getElementById('nrLat').value = "";
+        document.getElementById('nrLng').value = "";
+
+        // ล้างสถานะเงื่อนไข
+        document.getElementById('nrBudget').value = "";
+        document.getElementById('nrPlanYear').value = "";
+        document.getElementById('nrConstructionYear').value = "";
+        document.getElementById('nrStatus').value = "good";
+        handleRoadTypeChange();
+
+        // ล้างสถานะแนวเส้นทางเมื่อกดเปิดคำร้องใหม่
+        digitizedPoints = [];
+        digitizeMarkers = [];
+        isDigitizingActive = false;
+        selectedMarkerIndex = null; // เคลียร์ดัชนีหมุดที่ถูกเลือก
+        isInsertModeActive = false; // เคลียร์โหมดแทรกหมุด
+        if (digitizeMapInstance) {
+            digitizeMapInstance.remove();
+            digitizeMapInstance = null;
+        }
+        document.getElementById('digitizeMap').style.display = 'none';
+        document.getElementById('digitizeControls').style.display = 'none';
+        document.getElementById('digitizeSuccessBadge').style.display = 'none';
+        const fsBtn = document.getElementById('btnMapFullscreen');
+        if (fsBtn) fsBtn.style.display = 'none';
+        const mapDiv = document.getElementById('digitizeMap');
+        if (mapDiv && mapDiv.classList.contains('fullscreen-map')) {
+            mapDiv.classList.remove('fullscreen-map');
+            const icon = document.querySelector('#btnMapFullscreen i');
+            if (icon) icon.className = 'fa-solid fa-expand text-slate-700 text-sm';
+        }
+        document.getElementById('btnToggleDigitize').style.display = 'block';
+        document.getElementById('btnToggleDigitize').innerHTML = '<i class="fa-solid fa-map-location-dot me-1"></i> 🗺️ เปิดระบบวาดแนวเส้นทางถนนบนแผนที่ดาวเทียม (Digitize Path)';
+    }
+
+    function handleRoadTypeChange() {
+        const roadType = document.getElementById('nrRoadType').value;
+        const divPlan = document.getElementById('divPlanFields');
+        const divRegistered = document.getElementById('divRegisteredFields');
+
+        if (!divPlan || !divRegistered) return;
+
+        if (roadType === 'ถนนในแผนพัฒนา') {
+            divPlan.style.display = 'block';
+            divRegistered.style.display = 'none';
+        } else {
+            divPlan.style.display = 'none';
+            divRegistered.style.display = 'block';
+        }
+    }
+
+    let currentRoadPage = 1;
+    const roadsPerPage = 10;
+    let currentRoadsList = [];
+
+    async function loadRoads() {
+        try {
+            rawRoadsList = await DigitalInfraService.getRoads();
+            currentRoadsList = rawRoadsList;
+            currentRoadPage = 1;
+            updateVillageDropdown();
+            updateRoadsView();
+        } catch(e) {
+            console.error("Load roads error:", e);
+        }
+    }
+
+    function updateRoadsView() {
+        renderRoadsTablePage();
+        renderRoadsOnMap(currentRoadsList);
+    }
+
+    function updateVillageDropdown() {
+        const searchVillage = document.getElementById('searchVillage');
+        if (!searchVillage) return;
+        
+        const currentVal = searchVillage.value;
+        const villages = [...new Set(rawRoadsList.map(r => r.village_no).filter(v => v !== null && v !== undefined && v !== ''))];
+        
+        villages.sort((a, b) => {
+            const numA = parseInt(a);
+            const numB = parseInt(b);
+            if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+            return String(a).localeCompare(String(b));
+        });
+
+        searchVillage.innerHTML = '<option value="">-- ทั้งหมด --</option>';
+        villages.forEach(v => {
+            searchVillage.innerHTML += `<option value="${v}">หมู่ ${v}</option>`;
+        });
+
+        if (villages.includes(currentVal) || villages.includes(parseInt(currentVal)) || villages.includes(String(currentVal))) {
+            searchVillage.value = currentVal;
+        }
+    }
+
+    function renderRoadsTablePage() {
+        const tbody = document.getElementById('roadsTableBody');
+        if (!tbody) return;
+        
+        if (!currentRoadsList.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูลถนนสายทาง</td></tr>';
+            document.getElementById('roadsTableInfo').innerText = 'ไม่พบข้อมูล';
+            document.getElementById('roadsPagination').innerHTML = '';
+            return;
+        }
+
+        const totalPages = Math.ceil(currentRoadsList.length / roadsPerPage);
+        if (currentRoadPage > totalPages) currentRoadPage = totalPages;
+        if (currentRoadPage < 1) currentRoadPage = 1;
+
+        const startIdx = (currentRoadPage - 1) * roadsPerPage;
+        const pageRoads = currentRoadsList.slice(startIdx, startIdx + roadsPerPage);
+
+        tbody.innerHTML = pageRoads.map(r => {
+            let yearDisplay = r.road_type === 'ถนนในแผนพัฒนา' 
+                ? `<span class="text-amber-700 font-bold bg-amber-50 px-2 py-1 rounded border border-amber-100 text-nowrap"><i class="fa-solid fa-calendar me-1"></i>แผนปี ${r.plan_year || '-'}</span>`
+                : (r.construction_year || '-');
+
+            const hasMap = !!(r.geom && r.geom.coordinates && r.geom.coordinates.length > 0);
+            const mapBtnClass = hasMap ? 'btn-outline-indigo' : 'btn-outline-secondary opacity-60';
+
+            return `<tr style="cursor: pointer;" onclick="focusRoadOnMainMap('${r.id}')" title="${hasMap ? 'คลิกเพื่อดูเส้นทางบนแผนที่' : 'ไม่มีพิกัดแนวเส้นทาง'}">
+                <td class="ps-4 text-center" onclick="event.stopPropagation()">
+                    <div class="d-flex justify-content-center gap-1">
+                        <button class="btn btn-sm ${mapBtnClass} px-2 py-1" style="font-size: 11px;" onclick="viewRoadMap('${r.id}')" title="${hasMap ? 'กดดูแนวเส้นทางบนแผนที่ดาวเทียม' : 'ไม่มีพิกัดแนวเส้นทาง'}"><i class="fa-solid fa-map-location-dot"></i></button>
+                        <button class="btn btn-sm btn-outline-warning text-dark fw-semibold px-2 py-1" style="font-size: 11px;" onclick="editRoad('${r.id}')" title="แก้ไข"><i class="fa-solid fa-edit"></i></button>
+                        <button class="btn btn-sm btn-outline-danger px-2 py-1" style="font-size: 11px;" onclick="deleteRoad('${r.id}')" title="ลบ"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </td>
+                <td class="fw-bold text-indigo-600">${r.road_id}</td>
+                <td class="font-semibold text-slate-800">${r.road_name}</td>
+                <td><span class="d-inline-flex align-items-center gap-1"><span style="display:inline-block;width:10px;height:3px;border-radius:2px;background:${DigitalInfraService.getRoadStyle(r).color};flex-shrink:0;"></span>${r.surface_type}</span></td>
+                <td>${r.width} x ${r.length_m}</td>
+                <td>หมู่ ${r.village_no}</td>
+                <td class="pe-4">${yearDisplay}</td>
+            </tr>`;
+        }).join('');
+
+        document.getElementById('roadsTableInfo').innerText = `แสดงรายการที่ ${startIdx + 1} ถึง ${Math.min(startIdx + roadsPerPage, currentRoadsList.length)} จากทั้งหมด ${currentRoadsList.length} รายการ`;
+        
+        let paginationHTML = '';
+        paginationHTML += `<button class="btn btn-xs ${currentRoadPage === 1 ? 'btn-light disabled' : 'btn-outline-indigo'}" onclick="changeRoadPage(${currentRoadPage - 1})"><i class="fa-solid fa-chevron-left"></i></button>`;
+        paginationHTML += `<button class="btn btn-xs btn-indigo bg-indigo-600 text-white disabled px-3">${currentRoadPage} / ${totalPages}</button>`;
+        paginationHTML += `<button class="btn btn-xs ${currentRoadPage === totalPages ? 'btn-light disabled' : 'btn-outline-indigo'}" onclick="changeRoadPage(${currentRoadPage + 1})"><i class="fa-solid fa-chevron-right"></i></button>`;
+        
+        document.getElementById('roadsPagination').innerHTML = paginationHTML;
+    }
+
+    function changeRoadPage(page) {
+        currentRoadPage = page;
+        renderRoadsTablePage();
+    }
+
+    function initMainRoadMap() {
+        mainRoadMapInstance = L.map('mainRoadMapContainer', { wheelDebounceTime: 150 }).setView([17.975, 103.472], 13);
+        L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=th&x={x}&y={y}&z={z}', {
+            attribution: '&copy; Google Maps (Satellite)',
+            maxZoom: 20
+        }).addTo(mainRoadMapInstance);
+        mainRoadMapLayer.addTo(mainRoadMapInstance);
+    }
+
+    function renderRoadsOnMap(roads) {
+        if (!mainRoadMapInstance) return;
+        mainRoadMapLayer.clearLayers();
+        
+        let bounds = L.latLngBounds();
+        let hasPoints = false;
+
+        roads.forEach(road => {
+            if (road.geom && road.geom.coordinates && road.geom.coordinates.length > 0) {
+                const points = road.geom.coordinates.map(coord => [coord[1], coord[0]]);
+                const styleOpts = Object.assign({}, DigitalInfraService.getRoadStyle(road), { roadId: road.id });
+                const polyline = L.polyline(points, styleOpts);
+                polyline.bindTooltip(`<b>${road.road_name}</b><br>${road.surface_type}`, {sticky: true});
+                polyline.bindPopup(`<b>${road.road_name}</b><br>ผิวจราจร: ${road.surface_type}`);
+                polyline.addTo(mainRoadMapLayer);
+                bounds.extend(polyline.getBounds());
+                hasPoints = true;
+            }
+        });
+
+        if (hasPoints && bounds.isValid()) {
+            mainRoadMapInstance.fitBounds(bounds, { padding: [20, 20], maxZoom: 17 });
+        } else {
+            mainRoadMapInstance.setView([17.975, 103.472], 13);
+        }
+    }
+
+    function focusRoadOnMainMap(id) {
+        if (!mainRoadMapInstance) return;
+        const road = rawRoadsList.find(r => r.id === id);
+        if (!road) return;
+
+        let points = [];
+        if (road.geom && road.geom.coordinates && road.geom.coordinates.length > 0) {
+            points = road.geom.coordinates.map(pt => [pt[1], pt[0]]);
+        } else if (road.latitude && road.longitude) {
+            points = [[road.latitude, road.longitude]];
+        }
+
+        if (points.length > 1) {
+            const polyline = L.polyline(points);
+            mainRoadMapInstance.fitBounds(polyline.getBounds(), { padding: [50, 50], maxZoom: 18 });
+        } else if (points.length === 1) {
+            mainRoadMapInstance.setView(points[0], 18);
+        }
+
+        // Highlight line by opening popup
+        mainRoadMapLayer.eachLayer(layer => {
+            if (layer.options && layer.options.roadId === id) {
+                layer.openPopup();
+            }
+        });
+    }
+
+    function filterRoadsTable() {
+        const name = document.getElementById('searchRoadName').value.toLowerCase();
+        const type = document.getElementById('searchRoadType').value;
+        const surface = document.getElementById('searchSurfaceType').value;
+        const village = document.getElementById('searchVillage').value;
+
+        const filtered = rawRoadsList.filter(r => {
+            const matchName = !name || r.road_name.toLowerCase().includes(name) || r.road_id.toLowerCase().includes(name);
+            const matchType = !type || r.road_type === type;
+            const matchSurface = !surface || r.surface_type === surface;
+            const matchVillage = !village || r.village_no === village;
+            return matchName && matchType && matchSurface && matchVillage;
+        });
+
+        currentRoadsList = filtered;
+        currentRoadPage = 1;
+        updateRoadsView();
+    }
+
+    async function submitNewRoad(e) {
+        e.preventDefault();
+        const roadType = document.getElementById('nrRoadType').value;
+        const roadPayload = {
+            road_id: document.getElementById('nrRoadId').value,
+            road_name: document.getElementById('nrRoadName').value,
+            road_type: roadType,
+            surface_type: document.getElementById('nrSurfaceType').value,
+            width: parseFloat(document.getElementById('nrWidth').value) || 5.0,
+            length_m: parseFloat(document.getElementById('nrLength').value) || 500,
+            village_no: document.getElementById('nrVillage').value,
+            latitude: parseFloat(document.getElementById('nrLat').value) || 17.975,
+            longitude: parseFloat(document.getElementById('nrLng').value) || 103.472,
+        };
+
+        if (roadType === 'ถนนในแผนพัฒนา') {
+            roadPayload.budget_amount = parseFloat(document.getElementById('nrBudget').value) || 1000000;
+            roadPayload.plan_year = parseInt(document.getElementById('nrPlanYear').value) || 2569;
+            roadPayload.status = 'good'; // แผนพัฒนาให้เซ็ตเป็นดีฟอลต์ (good) หรือค่าคงเดิม
+        } else {
+            roadPayload.construction_year = parseInt(document.getElementById('nrConstructionYear').value) || null;
+            roadPayload.status = document.getElementById('nrStatus').value;
+        }
+
+        if (currentEditingRoadId) {
+            roadPayload.id = currentEditingRoadId;
+            const existingRoad = rawRoadsList.find(r => r.id === currentEditingRoadId);
+            if (existingRoad) {
+                if (existingRoad.budget_source) roadPayload.budget_source = existingRoad.budget_source;
+            }
+        }
+
+        // ผูกรูปทรงเชิงพิกัดเส้นทางหากมีการดิกิไทซ์แบบจุด
+        if (digitizedPoints.length > 1) {
+            roadPayload.geom = {
+                type: 'LineString',
+                coordinates: digitizedPoints.map(pt => [pt[1], pt[0]]) // แปลงกลับเป็น [lng, lat] สำหรับ GeoJSON
+            };
+        } else {
+            roadPayload.geom = null;
+        }
+
+        try {
+            await DigitalInfraService.saveRoad(roadPayload);
+            bootstrap.Modal.getInstance(document.getElementById('newRoadModal')).hide();
+            const successMsg = currentEditingRoadId ? 'แก้ไขข้อมูลสายทางและบันทึกแนวพิกัดแผนที่ถนนเรียบร้อยแล้ว' : 'ขึ้นทะเบียนสายทางและบันทึกพิกัดแผนที่ถนนเรียบร้อยแล้ว';
+            if(typeof showToast !== 'undefined') showToast(successMsg, 'success');
+            loadRoads();
+        } catch(err) {
+            if(typeof showToast !== 'undefined') showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'danger');
+        }
+    }
+
+    async function deleteRoad(id) {
+        if(!confirm('ยืนยันที่จะลบถนนรายการนี้ออกจากระบบคุมบัญชีหรือไม่?')) return;
+        try {
+            if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                await supabaseClient.from('infra_roads').delete().eq('id', id);
+            } else {
+                const idx = DigitalInfraService.mockRoads.findIndex(r => r.id === id);
+                if(idx !== -1) DigitalInfraService.mockRoads.splice(idx, 1);
+            }
+            if(typeof showToast !== 'undefined') showToast('ลบรายการถนนเรียบร้อยแล้ว', 'success');
+            loadRoads();
+        } catch(e) {
+            if(typeof showToast !== 'undefined') showToast('ไม่สามารถลบข้อมูลได้', 'danger');
+        }
+    }
+
+    function viewRoadMap(id) {
+        const road = rawRoadsList.find(r => r.id === id);
+        if (!road) return;
+
+        document.getElementById('vrmRoadName').textContent = road.road_name;
+        document.getElementById('vrmRoadId').textContent = road.road_id;
+        document.getElementById('vrmSurface').textContent = road.surface_type;
+        document.getElementById('vrmDimensions').textContent = `${road.width} x ${road.length_m}`;
+
+        const viewModal = new bootstrap.Modal(document.getElementById('viewRoadMapModal'));
+        viewModal.show();
+
+        // Leaflet maps inside modals require a timeout to render correctly and load tiles
+        setTimeout(() => {
+            if (!viewRoadMapInstance) {
+                viewRoadMapInstance = L.map('viewRoadMapContainer').setView([road.latitude || 17.975, road.longitude || 103.472], 15);
+                L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=th&x={x}&y={y}&z={z}', {
+                    attribution: '&copy; Google Satellite Hybrid',
+                    maxZoom: 20
+                }).addTo(viewRoadMapInstance);
+            } else {
+                viewRoadMapInstance.setView([road.latitude || 17.975, road.longitude || 103.472], 15);
+                // ลบ layer เดิมทิ้งทั้งหมดก่อนเริ่มวาดใหม่ (ยกเว้น tileLayer)
+                viewRoadMapInstance.eachLayer((layer) => {
+                    if (layer instanceof L.Polyline || layer instanceof L.Marker) {
+                        viewRoadMapInstance.removeLayer(layer);
+                    }
+                });
+            }
+
+            viewRoadMapInstance.invalidateSize();
+
+            let points = [];
+            if (road.geom && road.geom.coordinates && road.geom.coordinates.length > 1) {
+                points = road.geom.coordinates.map(pt => [pt[1], pt[0]]);
+            } else if (road.latitude && road.longitude) {
+                points = [[road.latitude, road.longitude]];
+            }
+
+            if (points.length > 1) {
+                // วาดเส้นแนวถนนแยกสีตามประเภทผิวจราจรและแผนพัฒนา
+                const polyline = L.polyline(points, DigitalInfraService.getRoadStyle(road)).addTo(viewRoadMapInstance);
+                
+                // หมุดจุดเริ่มต้นสีเขียว
+                L.marker(points[0], {
+                    icon: L.divIcon({
+                        className: 'view-start-marker',
+                        html: '<div style="width: 14px; height: 14px; border-radius: 50%; background-color: #fff; border: 3px solid #16a34a; box-shadow: 0 1px 3px rgba(0,0,0,0.4);"></div>',
+                        iconSize: [14, 14],
+                        iconAnchor: [7, 7]
+                    })
+                }).addTo(viewRoadMapInstance).bindTooltip('จุดเริ่มต้น', { permanent: false, direction: 'top' });
+
+                // หมุดจุดสิ้นสุดสีแดง
+                L.marker(points[points.length - 1], {
+                    icon: L.divIcon({
+                        className: 'view-end-marker',
+                        html: '<div style="width: 14px; height: 14px; border-radius: 50%; background-color: #fff; border: 3px solid #ef4444; box-shadow: 0 1px 3px rgba(0,0,0,0.4);"></div>',
+                        iconSize: [14, 14],
+                        iconAnchor: [7, 7]
+                    })
+                }).addTo(viewRoadMapInstance).bindTooltip('จุดสิ้นสุด', { permanent: false, direction: 'top' });
+
+                viewRoadMapInstance.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+            } else if (points.length === 1) {
+                L.marker(points[0]).addTo(viewRoadMapInstance).bindTooltip('ตำแหน่งที่ตั้งถนน', { permanent: true, direction: 'top' });
+                viewRoadMapInstance.setView(points[0], 17);
+            }
+        }, 300);
+    }
+
+    function editRoad(id) {
+        const road = rawRoadsList.find(r => r.id === id);
+        if (!road) return;
+
+        currentEditingRoadId = id;
+
+        // เปลี่ยนหัวข้อและข้อความปุ่มบันทึก
+        document.getElementById('newRoadModalTitle').innerHTML = `<i class="fa-solid fa-road text-indigo-600 me-2"></i>แก้ไขข้อมูลและแนวเส้นทางถนน: ${road.road_name}`;
+        document.getElementById('btnSubmitFormText').textContent = 'บันทึกการแก้ไข';
+
+        // กรอกข้อมูลฟอร์ม
+        document.getElementById('nrRoadId').value = road.road_id || '';
+        document.getElementById('nrRoadName').value = road.road_name || '';
+        document.getElementById('nrRoadType').value = road.road_type || 'ถนนขึ้นทะเบียนทางหลวง';
+        document.getElementById('nrSurfaceType').value = road.surface_type || 'คอนกรีตเสริมเหล็ก';
+        document.getElementById('nrWidth').value = road.width || '5.0';
+        document.getElementById('nrLength').value = road.length_m || '500';
+        document.getElementById('nrVillage').value = road.village_no || '1';
+        document.getElementById('nrLat').value = road.latitude || '17.975';
+        document.getElementById('nrLng').value = road.longitude || '103.472';
+
+        // โหลดค่ากล่องเงื่อนไขเชิงลึก
+        if (road.road_type === 'ถนนในแผนพัฒนา') {
+            document.getElementById('nrBudget').value = road.budget_amount || 1000000;
+            document.getElementById('nrPlanYear').value = road.plan_year || 2569;
+        } else {
+            document.getElementById('nrConstructionYear').value = road.construction_year || 2564;
+            document.getElementById('nrStatus').value = road.status || 'good';
+        }
+        
+        handleRoadTypeChange();
+
+        // เคลียร์/รีเซ็ตตัวแปรวาดแผนที่ดั้งเดิมเพื่อให้แก้ไขต่อได้เลย
+        isDigitizingActive = true;
+        selectedMarkerIndex = null;
+        isInsertModeActive = false;
+
+        if (digitizeMapInstance) {
+            digitizeMapInstance.remove();
+            digitizeMapInstance = null;
+        }
+
+        // แสดงแผนที่ดาวเทียมและเครื่องมือจัดการแนวพิกัดทันทีในโหมดแก้ไข
+        document.getElementById('digitizeMap').style.display = 'block';
+        document.getElementById('digitizeControls').style.display = 'block';
+        document.getElementById('digitizeSuccessBadge').style.display = 'none';
+        const fsBtn = document.getElementById('btnMapFullscreen');
+        if (fsBtn) fsBtn.style.display = 'flex';
+
+        const toggleBtn = document.getElementById('btnToggleDigitize');
+        if (toggleBtn) {
+            toggleBtn.style.display = 'block';
+            toggleBtn.innerHTML = '<i class="fa-solid fa-map-location-dot me-1"></i> 🗺️ ย่อขนาด/ซ่อนแผนที่วาดแนว';
+        }
+
+        // ดึงพิกัดจาก geom (ถ้ามี)
+        if (road.geom && road.geom.coordinates && road.geom.coordinates.length > 1) {
+            digitizedPoints = road.geom.coordinates.map(pt => [pt[1], pt[0]]);
+        } else if (road.latitude && road.longitude) {
+            // โหลดจุดเริ่มต้นพิกัดเดิมปักเป็นจุดแรก
+            digitizedPoints = [[road.latitude, road.longitude]];
+        } else {
+            digitizedPoints = [];
+        }
+
+        // แสดง Modal
+        const editModal = new bootstrap.Modal(document.getElementById('newRoadModal'));
+        editModal.show();
+
+        // หน่วงเวลา 300ms ให้ตัว Modal กางออกเสร็จก่อนเปิดแผนที่ ป้องกันปัญหาแผนที่ Blank Box
+        setTimeout(() => {
+            if (!digitizeMapInstance) {
+                initDigitizeMap();
+            } else {
+                digitizeMapInstance.invalidateSize();
+            }
+
+            if (digitizeMapInstance) {
+                // อัปเดตและวาดแนวเส้น หมุดพิกัดเดิมทั้งหมด
+                updateDigitizedRendering();
+                
+                digitizeMapInstance.getContainer().style.cursor = 'crosshair';
+
+                // ปรับขยายขอบเขตแผนที่ให้พอดีกับแนวสายทางถนน หรือจัดกึ่งกลางพิกัด
+                if (digitizedPoints.length > 1) {
+                    if (digitizedPolyline) {
+                        digitizeMapInstance.fitBounds(digitizedPolyline.getBounds());
+                    }
+                } else if (digitizedPoints.length === 1) {
+                    digitizeMapInstance.setView(digitizedPoints[0], 16);
+                } else {
+                    digitizeMapInstance.setView([17.975, 103.472], 14);
+                }
+            }
+        }, 300);
+    }
+
+    function setupGISUploadEngine() {
+        ShapefileUploader.initDropZone('dropZoneContainer', 'fileUploadInput', (geojson) => {
+            document.getElementById('detectedCRS').textContent = ShapefileUploader.detectedCRS;
+            document.getElementById('detectedGeomType').textContent = geojson.features.length ? geojson.features[0].geometry.type : 'LineString';
+            document.getElementById('detectedCount').textContent = geojson.features.length;
+
+            // แสดงจำนวนฟิลด์ข้อมูลที่ตรวจพบ
+            const detectedFieldsEl = document.getElementById('detectedFieldsCount');
+            if (detectedFieldsEl) detectedFieldsEl.textContent = ShapefileUploader.attributes.length;
+
+            // ใช้ target fields ที่ครบชุดจาก ShapefileUploader พร้อม auto-mapping อัจฉริยะ
+            ShapefileUploader.buildAttributeMapper('attributeMapperContainer', ShapefileUploader.targetFields, (importedResults) => {
+                document.getElementById('tab-list-tab').click();
+                loadRoads();
+                loadGISUploadHistory();
+            });
+        });
+    }
+
+    async function loadGISUploadHistory() {
+        const tbody = document.getElementById('gisUploadsTableBody');
+        if (!tbody) return;
+        try {
+            if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                const { data, error } = await supabaseClient
+                    .from('infra_gis_uploads')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                if (error) throw error;
+                if (!data || !data.length) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">ไม่พบข้อมูลประวัตินำเข้าจากคลาวด์</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.map(upload => {
+                    let downloadBtn = '-';
+                    if (upload.file_url) {
+                        downloadBtn = `<a href="${upload.file_url}" target="_blank" class="btn btn-xs btn-indigo bg-indigo-600 text-white hover:bg-indigo-700 text-nowrap"><i class="fa-solid fa-cloud-arrow-down me-1"></i> ดาวน์โหลด GeoJSON</a>`;
+                    }
+                    return `
+                        <tr>
+                            <td class="ps-4 fw-bold text-indigo-600 text-nowrap">${upload.id.slice(0, 8)}</td>
+                            <td class="font-semibold text-slate-800 text-nowrap">${upload.filename}</td>
+                            <td class="text-nowrap">${upload.crs || 'EPSG:4326'}</td>
+                            <td class="text-nowrap">${upload.geom_type || 'LineString'}</td>
+                            <td class="text-nowrap">${upload.features_count || 0} รายการ</td>
+                            <td class="text-nowrap">${new Date(upload.created_at).toLocaleString('th-TH')}</td>
+                            <td class="text-nowrap"><span class="diis-badge diis-badge-success"><i class="fa-solid fa-circle-check me-1"></i> ซิงก์สำเร็จ</span></td>
+                            <td class="text-center pe-4 text-nowrap">${downloadBtn}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">ไม่ได้เชื่อมต่อระบบคลาวด์ Supabase (รันอยู่ในโหมดจำลอง)</td></tr>';
+            }
+        } catch(e) {
+            console.error("GIS Upload history error:", e);
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">เกิดข้อผิดพลาดในการดึงข้อมูลจากคลาวด์</td></tr>';
+        }
+    }
+
+    function toggleDigitizeMap() {
+        const mapDiv = document.getElementById('digitizeMap');
+        const controlsDiv = document.getElementById('digitizeControls');
+        const toggleBtn = document.getElementById('btnToggleDigitize');
+
+        if (mapDiv.style.display === 'none') {
+            mapDiv.style.display = 'block';
+            controlsDiv.style.display = 'block';
+            toggleBtn.innerHTML = '<i class="fa-solid fa-map-location-dot me-1"></i> 🗺️ ย่อขนาด/ซ่อนแผนที่วาดแนว';
+            const fsBtn = document.getElementById('btnMapFullscreen');
+            if (fsBtn) fsBtn.style.display = 'flex';
+            isDigitizingActive = true;
+            
+            setTimeout(() => {
+                if (!digitizeMapInstance) {
+                    initDigitizeMap();
+                } else {
+                    digitizeMapInstance.invalidateSize();
+                }
+                if (digitizeMapInstance) {
+                    digitizeMapInstance.getContainer().style.cursor = 'crosshair';
+                }
+            }, 100);
+        } else {
+            mapDiv.style.display = 'none';
+            controlsDiv.style.display = 'none';
+            toggleBtn.innerHTML = '<i class="fa-solid fa-map-location-dot me-1"></i> 🗺️ เปิดระบบวาดแนวเส้นทางถนนบนแผนที่ดาวเทียม (Digitize Path)';
+            const fsBtn = document.getElementById('btnMapFullscreen');
+            if (fsBtn) fsBtn.style.display = 'none';
+            if (mapDiv.classList.contains('fullscreen-map')) {
+                mapDiv.classList.remove('fullscreen-map');
+                if (controlsDiv) controlsDiv.classList.remove('fullscreen-controls');
+                const icon = document.querySelector('#btnMapFullscreen i');
+                if (icon) icon.className = 'fa-solid fa-expand text-slate-700 text-sm';
+            }
+            isDigitizingActive = false;
+        }
+    }
+
+    function toggleMapFullscreen() {
+        const mapDiv = document.getElementById('digitizeMap');
+        const icon = document.querySelector('#btnMapFullscreen i');
+        const controls = document.getElementById('digitizeControls');
+        
+        if (mapDiv.classList.contains('fullscreen-map')) {
+            mapDiv.classList.remove('fullscreen-map');
+            if (controls) {
+                controls.classList.remove('fullscreen-controls');
+            }
+            if (icon) {
+                icon.className = 'fa-solid fa-expand text-slate-700 text-sm';
+            }
+            if (typeof showToast !== 'undefined') {
+                showToast('ย่อขนาดแผนที่กลับสู่ฟอร์มปกติ', 'info');
+            }
+        } else {
+            mapDiv.classList.add('fullscreen-map');
+            if (controls) {
+                controls.classList.add('fullscreen-controls');
+            }
+            if (icon) {
+                icon.className = 'fa-solid fa-compress text-slate-700 text-sm';
+            }
+            if (typeof showToast !== 'undefined') {
+                showToast('ขยายแผนที่เต็มหน้าจอเพื่อสะดวกในการวาดแนวเส้นทาง', 'info');
+            }
+        }
+        
+        setTimeout(() => {
+            if (digitizeMapInstance) {
+                digitizeMapInstance.invalidateSize();
+            }
+        }, 100);
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const mapDiv = document.getElementById('digitizeMap');
+            if (mapDiv && mapDiv.classList.contains('fullscreen-map')) {
+                toggleMapFullscreen();
+            }
+        }
+    });
+
+    function initDigitizeMap() {
+        digitizeMapInstance = L.map('digitizeMap').setView([17.975, 103.472], 14);
+
+        L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=th&x={x}&y={y}&z={z}', {
+            attribution: '&copy; Google Satellite Hybrid',
+            maxZoom: 20
+        }).addTo(digitizeMapInstance);
+
+        digitizeMapInstance.on('click', (e) => {
+            if (!isDigitizingActive) return;
+
+            if (selectedMarkerIndex !== null) {
+                selectedMarkerIndex = null;
+                updateDigitizedRendering();
+                return;
+            }
+
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+
+            digitizedPoints.push([lat, lng]);
+            isInsertModeActive = false;
+
+            if (digitizedPoints.length === 1) {
+                document.getElementById('nrLat').value = lat.toFixed(6);
+                document.getElementById('nrLng').value = lng.toFixed(6);
+            }
+
+            updateDigitizedRendering();
+        });
+        
+        digitizeMapInstance.invalidateSize();
+    }
+
+    function updateDigitizedRendering() {
+        if (digitizedPolyline) {
+            digitizeMapInstance.removeLayer(digitizedPolyline);
+        }
+        digitizeMarkers.forEach(m => digitizeMapInstance.removeLayer(m));
+        digitizeMarkers = [];
+
+        if (digitizedPoints.length === 0) return;
+
+        const currentFormRoad = {
+            road_type: document.getElementById('nrRoadType').value,
+            surface_type: document.getElementById('nrSurfaceType').value
+        };
+        const activeRoadStyle = DigitalInfraService.getRoadStyle(currentFormRoad);
+        digitizedPolyline = L.polyline(digitizedPoints, activeRoadStyle).addTo(digitizeMapInstance);
+
+        if (isDigitizingActive) {
+            digitizedPolyline.on('dblclick', (e) => {
+                L.DomEvent.stopPropagation(e);
+                insertPointAtLocation(e.latlng);
+            });
+
+            digitizedPolyline.on('click', (e) => {
+                L.DomEvent.stopPropagation(e);
+                if (isInsertModeActive) {
+                    insertPointAtLocation(e.latlng);
+                    isInsertModeActive = false;
+                    updateDigitizedRendering();
+                } else {
+                    if (typeof showToast !== 'undefined') {
+                        showToast('กรุณากดปุ่ม "➕ แทรกเพิ่มหมุด" ก่อนคลิกเลือกบนเส้น หรือดับเบิลคลิกบนเส้นเพื่อแทรกหมุดด่วน', 'info');
+                    }
+                }
+            });
+            
+            digitizedPolyline.getElement().style.cursor = isInsertModeActive ? 'cell' : 'pointer';
+        }
+
+        const deleteBtn = document.getElementById('btnDeleteSelectedMarker');
+        if (deleteBtn) {
+            if (selectedMarkerIndex !== null) {
+                deleteBtn.disabled = false;
+                deleteBtn.className = "btn btn-xs btn-danger text-white bg-red-600 hover:bg-red-700 font-bold py-1 px-2 text-[10px]";
+            } else {
+                deleteBtn.disabled = true;
+                deleteBtn.className = "btn btn-xs btn-outline-secondary bg-white text-slate-400 font-bold py-1 px-2 text-[10px]";
+            }
+        }
+
+        const insertBtn = document.getElementById('btnModeAddMarker');
+        if (insertBtn) {
+            if (isInsertModeActive) {
+                insertBtn.className = "btn btn-xs btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 font-bold py-1 px-2 text-[10px] animate-pulse";
+                insertBtn.innerHTML = "<i class='fa-solid fa-plus-circle me-1'></i> คลิกที่เส้นเพื่อแทรกหมุด...";
+            } else {
+                insertBtn.className = "btn btn-xs btn-outline-indigo bg-white text-indigo-600 font-bold py-1 px-2 text-[10px]";
+                insertBtn.innerHTML = "<i class='fa-solid fa-plus-circle me-1'></i>➕ แทรกเพิ่มหมุด";
+            }
+        }
+
+        digitizedPoints.forEach((pt, idx) => {
+            const isSelected = (idx === selectedMarkerIndex);
+            const markerColor = idx === 0 ? '#16a34a' : '#ef4444';
+            const borderStyle = isSelected ? 
+                `border: 3px solid #2563eb; box-shadow: 0 0 0 3px #93c5fd, 0 2px 5px rgba(37, 99, 235, 0.5); transform: scale(1.2); z-index: 1000;` : 
+                `border: 3px solid ${markerColor}; box-shadow: 0 1px 3px rgba(0,0,0,0.3);`;
+
+            const customIcon = L.divIcon({
+                className: 'custom-digitize-marker',
+                html: `<div style="display: flex; align-items: center; justify-content: center; width: 22px; height: 22px;">
+                         <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #fff; ${borderStyle} cursor: ${isDigitizingActive ? 'move' : 'default'}; transition: all 0.15s ease-out;"></div>
+                       </div>`,
+                iconSize: [22, 22],
+                iconAnchor: [11, 11]
+            });
+
+            const marker = L.marker(pt, {
+                draggable: isDigitizingActive,
+                icon: customIcon
+            }).addTo(digitizeMapInstance);
+            
+            marker.bindTooltip(idx === 0 ? 'จุดเริ่มต้น' : `จุดที่ ${idx+1}`, { permanent: false, direction: 'top' });
+
+            marker.on('drag', (e) => {
+                const newLatLng = e.target.getLatLng();
+                digitizedPoints[idx] = [newLatLng.lat, newLatLng.lng];
+                if (idx === 0) {
+                    document.getElementById('nrLat').value = newLatLng.lat.toFixed(6);
+                    document.getElementById('nrLng').value = newLatLng.lng.toFixed(6);
+                }
+                if (digitizedPolyline) {
+                    digitizedPolyline.setLatLngs(digitizedPoints);
+                }
+                updateLengthUI();
+            });
+
+            marker.on('dragend', () => { updateDigitizedRendering(); });
+
+            marker.on('click', (e) => {
+                if (!isDigitizingActive) return;
+                L.DomEvent.stopPropagation(e);
+                selectedMarkerIndex = idx;
+                updateDigitizedRendering();
+                if (typeof showToast !== 'undefined') {
+                    showToast(`เลือกหมุดจุดที่ ${idx + 1} แล้ว (กดปุ่ม Delete บนคีย์บอร์ด หรือคลิกปุ่ม "🗑️ ลบหมุดที่เลือก" เพื่อลบหมุด)`, 'info');
+                }
+            });
+
+            digitizeMarkers.push(marker);
+        });
+
+        // คำนวณความยาวถนนสะสมล่วงหน้าเชิงฟอร์ม (เมตร)
+        let totalDist = 0;
+        for (let i = 0; i < digitizedPoints.length - 1; i++) {
+            totalDist += haversineDistanceMeters(digitizedPoints[i], digitizedPoints[i+1]);
+        }
+        
+        document.getElementById('nrLength').value = Math.round(totalDist);
+    }
+
+    // ย้อนกลับเอาพิกัดจุดสุดท้ายออกหากคลิกจุดผิด (Undo Last Point)
+    function undoLastDigitizedPoint() {
+        if (digitizedPoints.length === 0) return;
+
+        digitizedPoints.pop();
+
+        if (digitizedPoints.length === 0) {
+            document.getElementById('nrLat').value = 17.975;
+            document.getElementById('nrLng').value = 103.472;
+            document.getElementById('nrLength').value = 500;
+        } else {
+            document.getElementById('nrLat').value = digitizedPoints[0][0].toFixed(6);
+            document.getElementById('nrLng').value = digitizedPoints[0][1].toFixed(6);
+        }
+
+        updateDigitizedRendering();
+
+        if (typeof showToast !== 'undefined') {
+            showToast('ย้อนกลับนำหมุดจุดสุดท้ายออกแล้ว', 'info');
+        }
+    }
+
+    function clearDigitizedPath() {
+        digitizedPoints = [];
+        updateDigitizedRendering();
+        document.getElementById('nrLength').value = 500;
+        if(typeof showToast !== 'undefined') showToast('ล้างแนวเส้นวาดสำเร็จ สามารถเริ่มคลิกจุดใหม่ได้', 'info');
+    }
+
+    function finishDigitizedPath() {
+        if (digitizedPoints.length < 2) {
+            alert('กรุณาคลิกเลือกจุดบนแผนที่อย่างน้อย 2 จุดเพื่อวาดเส้นทางสายยาว');
+            return;
+        }
+        
+        // ให้แผนที่ดาวเทียมยังคงแสดงเส้นเวกเตอร์เส้นทางสายยาวที่สำเร็จอย่างสวยงามก่อนกดบันทึก
+        document.getElementById('digitizeMap').style.display = 'block';
+        document.getElementById('digitizeControls').style.display = 'none';
+        
+        // ซ่อนปุ่มเปิดระบบเดิม
+        document.getElementById('btnToggleDigitize').style.display = 'none';
+        
+        // แสดงบาร์ความสำเร็จที่วาดเส้นสายเสร็จสมบูรณ์ พร้อมมีปุ่มแก้ไขแนวเส้นทาง
+        const successPanel = document.getElementById('digitizeSuccessBadge');
+        document.getElementById('digitizePointsCount').textContent = digitizedPoints.length;
+        document.getElementById('digitizeLengthValue').textContent = document.getElementById('nrLength').value;
+        successPanel.style.display = 'block';
+
+        isDigitizingActive = false;
+
+        // ปิดการลาก (Drag) ทุกหมุดเมื่อกดยืนยันเส้นทาง
+        digitizeMarkers.forEach(m => {
+            if (m.dragging) {
+                m.dragging.disable();
+                const element = m.getElement();
+                if (element && element.firstChild) {
+                    element.firstChild.style.cursor = 'default';
+                }
+            }
+        });
+
+        if (digitizeMapInstance) {
+            digitizeMapInstance.getContainer().style.cursor = 'grab';
+            digitizeMapInstance.invalidateSize();
+            if (digitizedPolyline) {
+                digitizeMapInstance.fitBounds(digitizedPolyline.getBounds());
+            }
+        }
+        
+        if(typeof showToast !== 'undefined') showToast(`ยืนยันการบันทึกแนวพิกัดแผนที่ถนนเรียบร้อยแล้ว (ยาว ${document.getElementById('nrLength').value} เมตร)`, 'success');
+    }
+
+    // ย้อนกลับเปิดแผนที่จากป้ายวาดสำเร็จเพื่อทำการแก้ไข
+    function editDigitizedPath() {
+        // ซ่อนแถบแจ้งความสำเร็จ
+        document.getElementById('digitizeSuccessBadge').style.display = 'none';
+
+        // แสดงควบคุมเครื่องมือวาดใหม่ และเปิดการใช้งานวาดเส้นทาง
+        document.getElementById('digitizeMap').style.display = 'block';
+        document.getElementById('digitizeControls').style.display = 'block';
+        isDigitizingActive = true;
+
+        // เปิดการลาก (Drag) ทุกหมุดเมื่อกดแก้ไขแนวเส้นทาง
+        digitizeMarkers.forEach(m => {
+            if (m.dragging) {
+                m.dragging.enable();
+                const element = m.getElement();
+                if (element && element.firstChild) {
+                    element.firstChild.style.cursor = 'move';
+                }
+            }
+        });
+
+        if (digitizeMapInstance) {
+            digitizeMapInstance.getContainer().style.cursor = 'crosshair';
+        }
+
+        // ขยายขนาดแผนที่พรีวิวใหม่
+        setTimeout(() => {
+            if (digitizeMapInstance) {
+                digitizeMapInstance.invalidateSize();
+                if (digitizedPolyline) {
+                    digitizeMapInstance.fitBounds(digitizedPolyline.getBounds());
+                }
+            }
+        }, 100);
+    }
+
+    // คำนวณระยะทางภูมิศาสตร์ระหว่างจุดเชิงพิกัด
+    function haversineDistanceMeters(pt1, pt2) {
+        const R = 6371000; // รัศมีโลกเฉลี่ย หน่วยเป็นเมตร
+        const dLat = (pt2[0] - pt1[0]) * Math.PI / 180;
+        const dLon = (pt2[1] - pt1[1]) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(pt1[0] * Math.PI / 180) * Math.cos(pt2[0] * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    // อัปเดตการแสดงผลระยะความยาวเมตรใน UI ฟอร์มหลักและ Success Badge
+    function updateLengthUI() {
+        let totalDist = 0;
+        for (let i = 0; i < digitizedPoints.length - 1; i++) {
+            totalDist += haversineDistanceMeters(digitizedPoints[i], digitizedPoints[i+1]);
+        }
+        document.getElementById('nrLength').value = Math.round(totalDist);
+        if (document.getElementById('digitizeSuccessBadge').style.display === 'block') {
+            document.getElementById('digitizeLengthValue').textContent = Math.round(totalDist);
+        }
+    }
+
+    // ฟังก์ชันย่อยสำหรับแทรกจุดพิกัดลงในเส้นทางสายทาง
+    function insertPointAtLocation(latlng) {
+        const insertIndex = findClosestSegmentIndex(latlng, digitizedPoints);
+        digitizedPoints.splice(insertIndex, 0, [latlng.lat, latlng.lng]);
+        selectedMarkerIndex = insertIndex;
+        updateDigitizedRendering();
+        
+        if (typeof showToast !== 'undefined') {
+            showToast(`แทรกหมุดพิกัดลงตรงกลางเส้นสำเร็จ (จุดที่ ${insertIndex + 1})`, 'success');
+        }
+    }
+
+    // ฟังก์ชันเปิด/ปิดโหมดแทรกหมุดจากปุ่ม
+    function toggleInsertMarkerMode() {
+        if (!isDigitizingActive) return;
+        isInsertModeActive = !isInsertModeActive;
+        updateDigitizedRendering();
+        
+        if (selectedMarkerIndex !== null && isInsertModeActive) {
+            selectedMarkerIndex = null; // เคลียร์เลือกเดิมเมื่อจะเข้าโหมดเพิ่มจุด
+            updateDigitizedRendering();
+        }
+        
+        if (isInsertModeActive) {
+            if (typeof showToast !== 'undefined') {
+                showToast('เปิดโหมดแทรกหมุด: คลิกจุดที่ต้องการแทรกบนเส้นสีแดงได้ทันที', 'info');
+            }
+        }
+    }
+
+    // ฟังก์ชันลบหมุดปักจากปุ่มกดเมนู
+    function deleteSelectedMarker() {
+        if (!isDigitizingActive || selectedMarkerIndex === null) return;
+        
+        if (confirm(`ยืนยันการลบหมุดจุดที่ ${selectedMarkerIndex + 1} หรือไม่?`)) {
+            const deletedIdx = selectedMarkerIndex;
+            digitizedPoints.splice(selectedMarkerIndex, 1);
+            selectedMarkerIndex = null; // เคลียร์
+            
+            // อัปเดตฟอร์มพิกัด Latitude / Longitude
+            if (digitizedPoints.length > 0) {
+                document.getElementById('nrLat').value = digitizedPoints[0][0].toFixed(6);
+                document.getElementById('nrLng').value = digitizedPoints[0][1].toFixed(6);
+            } else {
+                document.getElementById('nrLat').value = 17.975;
+                document.getElementById('nrLng').value = 103.472;
+                document.getElementById('nrLength').value = 500;
+            }
+            
+            updateDigitizedRendering();
+            
+            if (typeof showToast !== 'undefined') {
+                showToast(`ลบหมุดจุดที่ ${deletedIdx + 1} เรียบร้อยแล้ว`, 'success');
+            }
+        }
+    }
+
+    // ค้นหาส่วนของเส้นตรงที่อยู่ใกล้จุดที่ดับเบิลคลิกมากที่สุด เพื่อทำตำแหน่งการแทรกหมุด
+    function findClosestSegmentIndex(clickLatLng, points) {
+        if (points.length < 2) return 0;
+        
+        let minDistance = Infinity;
+        let closestIndex = 1;
+        
+        const cLat = clickLatLng.lat;
+        const cLng = clickLatLng.lng;
+        
+        for (let i = 0; i < points.length - 1; i++) {
+            const p1 = points[i];
+            const p2 = points[i+1];
+            
+            const dist = getPerpendicularDistance(cLat, cLng, p1[0], p1[1], p2[0], p2[1]);
+            if (dist < minDistance) {
+                minDistance = dist;
+                closestIndex = i + 1; // แทรกระหว่าง i และ i+1
+            }
+        }
+        
+        return closestIndex;
+    }
+
+    // ฟังก์ชันสูตรเรขาคณิตวิเคราะห์คำนวณหาระยะทางตั้งฉากจุดกับเส้นตรงส่วนปลาย
+    function getPerpendicularDistance(px, py, ax, ay, bx, by) {
+        const dx = bx - ax;
+        const dy = by - ay;
+        
+        if (dx === 0 && dy === 0) {
+            return Math.sqrt((px - ax) ** 2 + (py - ay) ** 2);
+        }
+        
+        let t = ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy);
+        t = Math.max(0, Math.min(1, t)); // จำกัดให้อยู่บนส่วนเส้นตรงเท่านั้น
+        
+        const closestX = ax + t * dx;
+        const closestY = ay + t * dy;
+        
+        return Math.sqrt((px - closestX) ** 2 + (py - closestY) ** 2);
+    }
+
+    // ดักจับการกดคีย์บอร์ดเพื่อลบหมุดที่ถูกเลือกด้วยปุ่ม Delete หรือ Backspace
+    document.addEventListener('keydown', (e) => {
+        if (!isDigitizingActive || selectedMarkerIndex === null) return;
+
+        // ไม่ให้มีผลถ้าเจ้าหน้าที่พิมพ์ข้อความในช่องฟอร์ม input ต่างๆ อยู่
+        if (document.activeElement && 
+            (document.activeElement.tagName === 'INPUT' || 
+             document.activeElement.tagName === 'SELECT' || 
+             document.activeElement.tagName === 'TEXTAREA')) {
+            return;
+        }
+    });
+
+    // ==========================================
+    // GIS EXPORT ACTIONS & CHAIN PIPELINES
+    // ==========================================
+    function openExportGISModal() {
+        const modal = new bootstrap.Modal(document.getElementById('exportGISModal'));
+        document.getElementById('exportStatusArea').style.display = 'none';
+        modal.show();
+    }
+
+    async function triggerGISExport(format) {
+        const statusArea = document.getElementById('exportStatusArea');
+        const statusText = document.getElementById('exportStatusText');
+        statusArea.style.display = 'flex';
+        statusText.textContent = `กำลังโหลดข้อมูลถนนและแปลงพิกัดในรูปแบบ ${format.toUpperCase()}...`;
+
+        try {
+            // โหลดเรคคอร์ดจาก Master GIS PostgreSQL Database
+            const roads = await GISSpatialService.loadRoads();
+            if (!roads || !roads.length) {
+                throw new Error("ไม่พบข้อมูลถนนสายทางในระบบเพื่อทำการส่งออก");
+            }
+
+            let fileData, filename, mimeType;
+            if (format === 'geojson') {
+                const geojsonObj = GISExportService.exportGeoJSON(roads);
+                fileData = JSON.stringify(geojsonObj, null, 2);
+                filename = `roads_${Date.now()}.geojson`;
+                mimeType = 'application/json';
+            } else if (format === 'kml') {
+                fileData = GISExportService.exportKML(roads);
+                filename = `roads_${Date.now()}.kml`;
+                mimeType = 'application/vnd.google-earth.kml+xml';
+            } else if (format === 'csv') {
+                fileData = GISExportService.exportCSV(roads);
+                filename = `roads_${Date.now()}.csv`;
+                mimeType = 'text/csv';
+            } else if (format === 'shp') {
+                statusText.textContent = `กำลังสร้างไฟล์ .shp, .dbf, .shx, .prj และบีบอัดเป็น ZIP...`;
+                const zipBlob = await GISExportService.exportSHP(roads);
+                fileData = zipBlob;
+                filename = `roads_${Date.now()}.zip`;
+                mimeType = 'application/zip';
+            }
+
+            // จัดอัปโหลดเข้าสู่คลาวด์และจำลองสำรองเข้า Google Drive
+            statusText.textContent = `กำลังอัปโหลดชุดส่งออกภูมิสารสนเทศไปยัง Cloud Storage & Google Drive...`;
+            const uploadResult = await GISExportService.uploadStorageBackup(filename, fileData, format === 'shp' ? 'zip' : 'text');
+            
+            // ดาวน์โหลดไฟล์ตรงลงสู่เครื่องเบราว์เซอร์ผู้ใช้
+            statusText.textContent = `ประมวลผล GIS สำเร็จ! กำลังเตรียมไฟล์ดาวน์โหลดอัตโนมัติ...`;
+            const blob = format === 'shp' ? fileData : new Blob([fileData], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = format === 'shp' ? 'roads.zip' : (format === 'geojson' ? 'roads.geojson' : `roads.${format}`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            setTimeout(() => {
+                const exportModalEl = document.getElementById('exportGISModal');
+                const modalInstance = bootstrap.Modal.getInstance(exportModalEl);
+                if (modalInstance) modalInstance.hide();
+                
+                if (typeof showToast !== 'undefined') {
+                    showToast(`ส่งออกข้อมูลพิกัด ${format.toUpperCase()} และสำรองไฟล์สำเร็จ!`, 'success');
+                }
+                loadGISUploadHistory(); // รีเฟรชประวัติข้อมูล
+            }, 1500);
+
+        } catch (err) {
+            console.error("Export process failed:", err);
+            statusArea.style.display = 'none';
+            alert(`ข้อผิดพลาดในการส่งออกข้อมูล GIS: ${err.message}`);
+        }
+    }
+
+    function initRoadSurfaceDynamicUI() {
+        const types = DigitalInfraService.getRoadSurfaceTypes();
+        const searchSelect = document.getElementById('searchSurfaceType');
+        const nrSelect = document.getElementById('nrSurfaceType');
+        const legendContainer = document.getElementById('roadLegendContainer');
+
+        if (searchSelect) {
+            searchSelect.innerHTML = '<option value="">-- ทั้งหมด --</option>';
+            types.forEach(t => {
+                searchSelect.innerHTML += `<option value="${t.name}">${t.name}</option>`;
+            });
+        }
+
+        if (nrSelect) {
+            nrSelect.innerHTML = '';
+            types.forEach(t => {
+                nrSelect.innerHTML += `<option value="${t.name}">${t.name}</option>`;
+            });
+        }
+
+        if (legendContainer) {
+            let legendHTML = `<span class="fw-bold text-slate-700 text-xs d-flex align-items-center gap-1"><i class="fa-solid fa-palette text-indigo-600"></i> คำอธิบายสีเส้นถนน:</span>`;
+            legendHTML += `<span class="d-inline-flex align-items-center gap-1 text-[11px] text-slate-600"><span style="display:inline-block;width:22px;height:4px;border-radius:2px;background:#eab308;"></span> ถนนในแผนพัฒนา</span>`;
+            types.forEach(t => {
+                legendHTML += `<span class="d-inline-flex align-items-center gap-1 text-[11px] text-slate-600"><span style="display:inline-block;width:22px;height:4px;border-radius:2px;background:${t.color};"></span> ${t.name}</span>`;
+            });
+            legendContainer.innerHTML = legendHTML;
+        }
+    }
+
+    function openRoadSurfaceSettings() {
+        renderSurfaceSettingsList();
+        const modal = new bootstrap.Modal(document.getElementById('surfaceSettingsModal'));
+        modal.show();
+    }
+
+    function renderSurfaceSettingsList() {
+        const types = DigitalInfraService.getRoadSurfaceTypes();
+        const container = document.getElementById('surfaceTypesList');
+        container.innerHTML = '';
+        types.forEach((t, i) => {
+            container.innerHTML += `
+                <div class="d-flex gap-2 align-items-center surface-type-item">
+                    <input type="text" class="form-control form-control-sm w-50 surface-name" value="${t.name}" placeholder="ชื่อผิวจราจร">
+                    <input type="color" class="form-control form-control-sm form-control-color surface-color" value="${t.color}" title="เลือกสี">
+                    <button class="btn btn-sm btn-outline-danger" onclick="this.parentElement.remove()"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `;
+        });
+    }
+
+    function addSurfaceTypeRow() {
+        const container = document.getElementById('surfaceTypesList');
+        container.innerHTML += `
+            <div class="d-flex gap-2 align-items-center surface-type-item">
+                <input type="text" class="form-control form-control-sm w-50 surface-name" value="ใหม่" placeholder="ชื่อผิวจราจร">
+                <input type="color" class="form-control form-control-sm form-control-color surface-color" value="#000000" title="เลือกสี">
+                <button class="btn btn-sm btn-outline-danger" onclick="this.parentElement.remove()"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        `;
+    }
+
+    async function saveSurfaceSettings() {
+        const items = document.querySelectorAll('.surface-type-item');
+        let newTypes = [];
+        items.forEach(item => {
+            const name = item.querySelector('.surface-name').value.trim();
+            const color = item.querySelector('.surface-color').value;
+            if (name) {
+                newTypes.push({ name, color });
+            }
+        });
+        await DigitalInfraService.saveRoadSurfaceTypes(newTypes);
+        bootstrap.Modal.getInstance(document.getElementById('surfaceSettingsModal')).hide();
+        initRoadSurfaceDynamicUI();
+        loadRoads(); 
+        if (typeof showToast !== 'undefined') {
+            showToast('บันทึกการตั้งค่าผิวจราจรเรียบร้อยแล้ว', 'success');
+        }
+    }
+</script>
+<!-- Settings Modal -->
+<div class="modal fade" id="surfaceSettingsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom bg-slate-50">
+                <h5 class="modal-title fw-bold text-slate-800"><i class="fa-solid fa-gear text-indigo-600 me-2"></i>ตั้งค่าผิวจราจร</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-slate-800">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-xs text-slate-600 font-bold">รายการประเภทผิวจราจร</span>
+                    <button class="btn btn-xs btn-indigo text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1 fw-semibold" style="border-radius: 4px;" onclick="addSurfaceTypeRow()"><i class="fa-solid fa-plus"></i> เพิ่มใหม่</button>
+                </div>
+                <div id="surfaceTypesList" class="d-flex flex-column gap-2 mb-3">
+                    <!-- Populated by JS -->
+                </div>
+                <div class="text-end">
+                    <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-success btn-sm text-white" onclick="saveSurfaceSettings()"><i class="fa-solid fa-save"></i> บันทึกการตั้งค่า</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
