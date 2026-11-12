@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แผนที่เสาไฟ GIS - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Prompt', sans-serif; }
+        #poleMap { height: calc(100vh - 200px); min-height: 500px; width: 100%; border-radius: 14px; z-index: 1; }
+        .filter-panel { background: rgba(255,255,255,0.97); backdrop-filter: blur(10px); border-radius: 14px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); position: absolute; top: 1rem; right: 1rem; z-index: 500; padding: 1rem; min-width: 260px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 6px; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+    </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body class="bg-slate-50">
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="แผนที่เสาไฟ GIS"></div>
+    <div class="page-content p-4">
+
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <a href="publicworks-electric.html" class="btn btn-light rounded-circle shadow-sm border" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; text-decoration: none;">
+                    <i class="fa-solid fa-arrow-left text-slate-600"></i>
+                </a>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-800 mb-1"><i class="fa-solid fa-map-location-dot text-blue-500 me-2"></i>แผนที่เสาไฟฟ้า</h1>
+                    <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                        <li class="breadcrumb-item"><a href="publicworks-electric.html" class="text-decoration-none">ซ่อมบำรุงไฟฟ้า</a></li>
+                        <li class="breadcrumb-item active">แผนที่เสาไฟ</li>
+                    </ol></nav>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn btn-sm btn-warning text-dark fw-semibold" data-bs-toggle="modal" data-bs-target="#addPoleModal"><i class="fa-solid fa-plus me-1"></i>เพิ่มเสาไฟ</button>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div class="position-relative">
+            <div id="poleMap"></div>
+            <!-- Filter Panel -->
+            <div class="filter-panel" id="filterPanel">
+                <h6 class="fw-bold text-sm mb-3"><i class="fa-solid fa-filter text-blue-500 me-1"></i>ตัวกรอง</h6>
+                <div class="mb-3">
+                    <label class="form-label text-xs fw-semibold">หมู่บ้าน</label>
+                    <select class="form-select form-select-sm" id="fVillage" onchange="applyFilter()">
+                        <option value="">ทั้งหมด</option>
+                        <option value="1">หมู่ 1</option><option value="2">หมู่ 2</option>
+                        <option value="3">หมู่ 3</option><option value="4">หมู่ 4</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-xs fw-semibold">ประเภทเสา</label>
+                    <select class="form-select form-select-sm" id="fType" onchange="applyFilter()">
+                        <option value="">ทั้งหมด</option>
+                        <option>คอนกรีต</option><option>เหล็ก</option><option>ไม้</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-xs fw-semibold">สถานะ</label>
+                    <select class="form-select form-select-sm" id="fStatus" onchange="applyFilter()">
+                        <option value="">ทั้งหมด</option>
+                        <option value="normal">ปกติ</option><option value="broken">เสีย</option>
+                    </select>
+                </div>
+                <hr class="my-2">
+                <div class="text-xs text-muted"><span class="legend-dot" style="background:#22c55e;"></span>ปกติ <span class="legend-dot ms-2" style="background:#ef4444;"></span>เสีย</div>
+                <div class="text-xs text-muted mt-1" id="poleCount">กำลังโหลด...</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Add/Edit Pole Modal -->
+<div class="modal fade" id="addPoleModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="poleModalTitle"><i class="fa-solid fa-plus text-primary me-2"></i>เพิ่มเสาไฟใหม่</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="poleForm" onsubmit="submitPole(event)">
+                    <input type="hidden" id="pfId">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold text-sm">รหัสเสาไฟ <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="pfCode" required placeholder="PL-XXX">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold text-sm">หมู่ที่</label>
+                            <select class="form-select" id="pfVillage">
+                                <option value="1">หมู่ 1</option><option value="2">หมู่ 2</option>
+                                <option value="3">หมู่ 3</option><option value="4">หมู่ 4</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold text-sm">ประเภทเสา</label>
+                            <select class="form-select" id="pfType">
+                                <option>คอนกรีต</option><option>เหล็ก</option><option>ไม้</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold text-sm">ประเภทหลอดไฟ</label>
+                            <select class="form-select" id="pfLight">
+                                <option>LED</option><option>หลอดไส้</option><option>โซล่าเซลล์</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-sm">รายละเอียดที่ตั้ง</label>
+                            <input type="text" class="form-control" id="pfLocation" placeholder="เช่น หน้าตลาดสด">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold text-sm">Latitude</label>
+                            <input type="number" step="any" class="form-control" id="pfLat" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold text-sm">Longitude</label>
+                            <input type="number" step="any" class="form-control" id="pfLng" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-sm">สถานะ</label>
+                            <select class="form-select" id="pfStatus">
+                                <option value="normal">ปกติ</option><option value="broken">เสีย</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold"><i class="fa-solid fa-save me-1"></i>บันทึก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script>
+const API = 'http://localhost:3000/api/electric';
+let map, markerClusterGroup = null, allPoles = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+    initMap();
+    loadPoles();
+});
+
+function initMap() {
+    map = L.map('poleMap').setView([13.7563, 100.5018], 15);
+    L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        maxZoom: 20, attribution: '&copy; Google'
+    }).addTo(map);
+
+    // Click on map to get coordinates for adding pole
+    map.on('click', function(e) {
+        document.getElementById('pfLat').value = e.latlng.lat.toFixed(8);
+        document.getElementById('pfLng').value = e.latlng.lng.toFixed(8);
+    });
+}
+
+async function loadPoles() {
+    if (supabaseClient) {
+        const { data, error } = await supabaseClient.from('electric_poles').select('*');
+        if (!error && data) {
+            allPoles = data;
+        } else {
+            console.warn('Supabase fetch failed, falling back to local API', error);
+            try{allPoles=await fetch(API+'/poles').then(r=>r.json())}catch(e){allPoles=[]}
+        }
+    } else {
+        try{allPoles=await fetch(API+'/poles').then(r=>r.json())}catch(e){allPoles=[]}
+    }
+    applyFilter();
+}
+
+function getDriveImgUrl(url) {
+    if (!url) return null;
+    if (url.includes('drive.google.com/uc?')) {
+        const idMatch = url.match(/id=([^&]+)/);
+        if (idMatch && idMatch[1]) {
+            return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
+        }
+    }
+    return url;
+}
+
+function applyFilter() {
+    let filtered = [...allPoles];
+    const v = document.getElementById('fVillage').value;
+    const t = document.getElementById('fType').value;
+    const s = document.getElementById('fStatus').value;
+    if (v) filtered = filtered.filter(p => p.village_no === v);
+    if (t) filtered = filtered.filter(p => p.pole_type === t);
+    if (s) filtered = filtered.filter(p => p.status === s);
+    renderMarkers(filtered);
+    document.getElementById('poleCount').textContent = `แสดง ${filtered.length} / ${allPoles.length} เสา`;
+}
+
+function renderMarkers(poles) {
+    if (markerClusterGroup) {
+        map.removeLayer(markerClusterGroup);
+    }
+    
+    markerClusterGroup = L.markerClusterGroup({
+        chunkedLoading: true,
+        maxClusterRadius: 50,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true
+    });
+
+    poles.forEach(p => {
+        if (!p.lat || !p.lng || (p.lat === 0 && p.lng === 0)) return;
+
+        const color = p.status === 'broken' ? '#ef4444' : '#22c55e';
+        const icon = L.divIcon({
+            className: '',
+            html: `<div style="width:28px;height:28px;background:${color};border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;">
+                <i class="fa-solid fa-bolt" style="color:#fff;font-size:12px;"></i></div>`,
+            iconSize: [28, 28], iconAnchor: [14, 14]
+        });
+        const m = L.marker([p.lat, p.lng], { icon });
+        const imgHtml = p.image_url ? `<img src="${getDriveImgUrl(p.image_url)}" style="width:100%;height:100px;object-fit:cover;border-radius:8px;margin-bottom:8px;">` : '';
+        m.bindPopup(`
+            <div style="min-width:200px;font-family:'Prompt',sans-serif;">
+                <h6 style="font-weight:700;margin-bottom:4px;">${p.pole_code}</h6>
+                ${imgHtml}
+                <table style="font-size:0.8rem;width:100%;">
+                    <tr><td style="color:#6b7280;">ประเภทเสา</td><td style="font-weight:600;">${p.pole_type}</td></tr>
+                    <tr><td style="color:#6b7280;">หลอดไฟ</td><td>${p.light_type}</td></tr>
+                    <tr><td style="color:#6b7280;">หมู่ที่</td><td>${p.village_no}</td></tr>
+                    <tr><td style="color:#6b7280;">สถานะ</td><td><span style="padding:2px 8px;border-radius:4px;font-size:0.72rem;background:${p.status==='broken'?'#fef2f2':'#dcfce7'};color:${p.status==='broken'?'#dc2626':'#166534'}">${p.status==='broken'?'เสีย':'ปกติ'}</span></td></tr>
+                    <tr><td style="color:#6b7280;">ที่ตั้ง</td><td>${p.location_detail||'-'}</td></tr>
+                </table>
+                <div style="margin-top:8px;display:flex;gap:4px;">
+                    <button onclick="editPole('${p.id}')" class="btn btn-xs btn-primary">แก้ไข</button>
+                    <button onclick="deletePole('${p.id}')" class="btn btn-xs btn-outline-danger">ลบ</button>
+                </div>
+            </div>
+        `);
+        markerClusterGroup.addLayer(m);
+    });
+
+    map.addLayer(markerClusterGroup);
+
+    if (poles.length > 0) {
+        map.fitBounds(markerClusterGroup.getBounds().pad(0.2));
+    }
+}
+
+async function submitPole(e) {
+    e.preventDefault();
+    const id = document.getElementById('pfId').value;
+    const payload = {
+        pole_code: document.getElementById('pfCode').value,
+        pole_type: document.getElementById('pfType').value,
+        light_type: document.getElementById('pfLight').value,
+        lat: parseFloat(document.getElementById('pfLat').value),
+        lng: parseFloat(document.getElementById('pfLng').value),
+        location_detail: document.getElementById('pfLocation').value,
+        village_no: document.getElementById('pfVillage').value,
+        status: document.getElementById('pfStatus').value
+    };
+    try {
+        if (supabaseClient) {
+            if(id){
+                const { error } = await supabaseClient.from('electric_poles').update(payload).eq('id', id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabaseClient.from('electric_poles').insert([payload]);
+                if (error) throw error;
+            }
+        } else {
+            if (id) {
+                await fetch(API + '/poles/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+            } else {
+                await fetch(API + '/poles', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+            }
+        }
+        bootstrap.Modal.getInstance(document.getElementById('addPoleModal')).hide();
+        showToast(id ? 'แก้ไขเสาไฟสำเร็จ' : 'เพิ่มเสาไฟสำเร็จ','success');
+        loadPoles();
+    } catch(e) { showToast('เกิดข้อผิดพลาด','danger'); }
+}
+
+function editPole(id) {
+    const p = allPoles.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('pfId').value = p.id;
+    document.getElementById('pfCode').value = p.pole_code;
+    document.getElementById('pfType').value = p.pole_type;
+    document.getElementById('pfLight').value = p.light_type;
+    document.getElementById('pfLat').value = p.lat;
+    document.getElementById('pfLng').value = p.lng;
+    document.getElementById('pfLocation').value = p.location_detail || '';
+    document.getElementById('pfVillage').value = p.village_no || '1';
+    document.getElementById('pfStatus').value = p.status;
+    document.getElementById('poleModalTitle').innerHTML = '<i class="fa-solid fa-pen text-warning me-2"></i>แก้ไขเสาไฟ';
+    new bootstrap.Modal(document.getElementById('addPoleModal')).show();
+}
+
+async function deletePole(id) {
+    if (!confirm('ยืนยันการลบเสาไฟนี้?')) return;
+    try {
+        if (supabaseClient) {
+            const { error } = await supabaseClient.from('electric_poles').delete().eq('id', id);
+            if (error) throw error;
+        } else {
+            await fetch(API + '/poles/' + id, { method:'DELETE' });
+        }
+        showToast('ลบเสาไฟสำเร็จ','success');
+        loadPoles();
+    } catch(e) { showToast('เกิดข้อผิดพลาด','danger'); }
+}
+
+// Reset form on modal close
+document.getElementById('addPoleModal').addEventListener('hidden.bs.modal', () => {
+    document.getElementById('pfId').value = '';
+    document.getElementById('poleForm').reset();
+    document.getElementById('poleModalTitle').innerHTML = '<i class="fa-solid fa-plus text-primary me-2"></i>เพิ่มเสาไฟใหม่';
+});
+</script>
+    <script src="assets/js/responsive.js"></script>
+</body>
+</html>

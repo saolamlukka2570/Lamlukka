@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เจ้าหน้าที่ไฟฟ้า - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Prompt', sans-serif; }
+        .staff-card { transition: transform 0.2s, box-shadow 0.2s; }
+        .staff-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1) !important; }
+        .avatar-circle { width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:#fff; }
+    </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body class="bg-slate-50">
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="เจ้าหน้าที่ไฟฟ้า"></div>
+    <div class="page-content p-4">
+
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <a href="publicworks-electric.html" class="btn btn-light rounded-circle shadow-sm border" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; text-decoration: none;">
+                    <i class="fa-solid fa-arrow-left text-slate-600"></i>
+                </a>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-800 mb-1"><i class="fa-solid fa-users text-emerald-500 me-2"></i>เจ้าหน้าที่ไฟฟ้า</h1>
+                    <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                        <li class="breadcrumb-item"><a href="publicworks-electric.html" class="text-decoration-none">ซ่อมบำรุงไฟฟ้า</a></li>
+                        <li class="breadcrumb-item active">เจ้าหน้าที่</li>
+                    </ol></nav>
+                </div>
+            </div>
+            <button class="btn btn-sm btn-warning text-dark fw-semibold" data-bs-toggle="modal" data-bs-target="#staffModal"><i class="fa-solid fa-plus me-1"></i>เพิ่มเจ้าหน้าที่</button>
+        </div>
+
+        <!-- Staff Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6" id="staffGrid">
+            <div class="text-center py-5 text-muted col-span-full">กำลังโหลด...</div>
+        </div>
+
+        <!-- Assigned Jobs Table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800"><i class="fa-solid fa-clipboard-list text-blue-500 me-2"></i>งานซ่อมที่มอบหมาย</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead><tr>
+                        <th class="ps-4">เลขอ้างอิง</th><th>สถานที่</th><th>สาเหตุ</th>
+                        <th>ช่างซ่อม</th><th>สถานะ</th><th>วันที่</th>
+                    </tr></thead>
+                    <tbody id="jobsBody">
+                        <tr><td colspan="6" class="text-center py-4 text-muted">กำลังโหลด...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Staff Modal -->
+<div class="modal fade" id="staffModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="staffModalTitle"><i class="fa-solid fa-user-plus text-primary me-2"></i>เพิ่มเจ้าหน้าที่</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="staffForm" onsubmit="submitStaff(event)">
+                    <input type="hidden" id="sfId">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-sm">ชื่อ-สกุล <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="sfName" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-sm">ตำแหน่ง</label>
+                            <input type="text" class="form-control" id="sfPosition" placeholder="เช่น ช่างไฟฟ้า">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-sm">เบอร์โทร</label>
+                            <input type="tel" class="form-control" id="sfPhone">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold"><i class="fa-solid fa-save me-1"></i>บันทึก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script>
+const API = 'http://localhost:3000/api/electric';
+let allStaff = [], allRepairs = [];
+const colors = ['#3b82f6','#ef4444','#22c55e','#8b5cf6','#f59e0b','#06b6d4'];
+
+document.addEventListener('DOMContentLoaded', () => { loadAll(); });
+
+async function loadAll() {
+    try {
+        if (supabaseClient) {
+            const resStaff = await supabaseClient.from('electric_staff').select('*').order('name');
+            const resRepairs = await supabaseClient.from('electric_repairs').select('*').order('created_at', { ascending: false });
+            
+            allStaff = resStaff.data || [];
+            allRepairs = resRepairs.data || [];
+        } else {
+            const [staffRes, repairsRes] = await Promise.all([
+                fetch(API + '/staff').then(r=>r.json()),
+                fetch(API + '/repairs').then(r=>r.json()),
+            ]);
+            allStaff = staffRes || [];
+            allRepairs = repairsRes || [];
+        }
+    } catch(e) { 
+        console.error("Load Error:", e);
+        allStaff = []; allRepairs = []; 
+    }
+    renderStaff();
+    renderJobs();
+}
+
+function renderStaff() {
+    const grid = document.getElementById('staffGrid');
+    if (!allStaff.length) { grid.innerHTML = '<div class="text-center py-5 text-muted col-span-full">ไม่มีข้อมูล</div>'; return; }
+    grid.innerHTML = allStaff.map((s, i) => {
+        const initial = s.name.charAt(0);
+        const c = colors[i % colors.length];
+        const jobCount = allRepairs.filter(r => r.staff_id === s.id && r.status !== 'completed').length;
+        const doneCount = allRepairs.filter(r => r.staff_id === s.id && r.status === 'completed').length;
+        return `<div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 staff-card">
+            <div class="flex items-start gap-4">
+                <div class="avatar-circle" style="background:${c};">${initial}</div>
+                <div class="flex-grow-1">
+                    <h5 class="font-bold text-slate-800 mb-1">${s.name}</h5>
+                    <p class="text-sm text-slate-500 mb-0">${s.position || '-'}</p>
+                    <p class="text-xs text-slate-400 mb-2"><i class="fa-solid fa-phone me-1"></i>${s.phone || '-'}</p>
+                    <div class="flex gap-2 flex-wrap">
+                        <span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">กำลังซ่อม: ${jobCount}</span>
+                        <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">เสร็จ: ${doneCount}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+                <button class="btn btn-xs btn-primary flex-grow-1" onclick="editStaff('${s.id}')"><i class="fa-solid fa-pen me-1"></i>แก้ไข</button>
+                <button class="btn btn-xs btn-outline-danger" onclick="deleteStaff('${s.id}')"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderJobs() {
+    const tbody = document.getElementById('jobsBody');
+    // แสดงงานที่มีการมอบหมาย (staff_id หรือ staff_name) + งานที่ยังไม่ได้มอบหมาย
+    const assigned = allRepairs.filter(r => r.staff_id || r.staff_name);
+    if (!assigned.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">ไม่มีงานซ่อมที่มอบหมาย</td></tr>'; return; }
+    const statusLabels = { pending:'รอรับเรื่อง', accepted:'รับเรื่องแล้ว', in_progress:'กำลังดำเนินการ', completed:'เสร็จสิ้น', cancelled:'ยกเลิก' };
+    const statusClass = { pending:'bg-warning text-dark', accepted:'bg-info text-white', in_progress:'bg-primary', completed:'bg-success', cancelled:'bg-danger' };
+    tbody.innerHTML = assigned.map(r => {
+        const staff = r.staff_id ? allStaff.find(s => s.id === r.staff_id) : null;
+        const staffDisplay = staff ? staff.name : (r.staff_name || '-');
+        const loc = r.reporter_address || r.location || '-';
+        const date = r.created_at ? new Date(r.created_at).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'}) : (r.repair_date || '-');
+        return `<tr>
+            <td class="ps-4 fw-bold text-primary">${r.complaint_id || r.id}</td>
+            <td>${loc}</td>
+            <td>${r.damage_cause || '-'}</td>
+            <td>${staffDisplay}</td>
+            <td><span class="badge ${statusClass[r.status] || 'bg-secondary'}">${statusLabels[r.status] || r.status}</span></td>
+            <td class="text-xs text-muted">${date}</td>
+        </tr>`;
+    }).join('');
+}
+
+async function submitStaff(e) {
+    e.preventDefault();
+    const id = document.getElementById('sfId').value;
+    const payload = {
+        name: document.getElementById('sfName').value,
+        position: document.getElementById('sfPosition').value,
+        phone: document.getElementById('sfPhone').value
+    };
+    try {
+        if (supabaseClient) {
+            if (id) {
+                const { error } = await supabaseClient.from('electric_staff').update(payload).eq('id', id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabaseClient.from('electric_staff').insert([payload]);
+                if (error) throw error;
+            }
+        } else {
+            if (id) {
+                await fetch(API + '/staff/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+            } else {
+                await fetch(API + '/staff', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+            }
+        }
+        bootstrap.Modal.getInstance(document.getElementById('staffModal')).hide();
+        showToast(id ? 'แก้ไขสำเร็จ' : 'เพิ่มเจ้าหน้าที่สำเร็จ','success');
+        loadAll();
+    } catch(e) { console.error(e); showToast('เกิดข้อผิดพลาดในการบันทึก','danger'); }
+}
+
+function editStaff(id) {
+    const s = allStaff.find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('sfId').value = s.id;
+    document.getElementById('sfName').value = s.name;
+    document.getElementById('sfPosition').value = s.position || '';
+    document.getElementById('sfPhone').value = s.phone || '';
+    document.getElementById('staffModalTitle').innerHTML = '<i class="fa-solid fa-user-pen text-warning me-2"></i>แก้ไขเจ้าหน้าที่';
+    new bootstrap.Modal(document.getElementById('staffModal')).show();
+}
+
+async function deleteStaff(id) {
+    if (!confirm('ยืนยันการลบเจ้าหน้าที่นี้?')) return;
+    try {
+        if (supabaseClient) {
+            const { error } = await supabaseClient.from('electric_staff').delete().eq('id', id);
+            if (error) throw error;
+        } else {
+            await fetch(API + '/staff/' + id, { method:'DELETE' });
+        }
+        showToast('ลบเจ้าหน้าที่สำเร็จ','success');
+        loadAll();
+    } catch(e) { console.error(e); showToast('เกิดข้อผิดพลาดในการลบ','danger'); }
+}
+
+document.getElementById('staffModal').addEventListener('hidden.bs.modal', () => {
+    document.getElementById('sfId').value = '';
+    document.getElementById('staffForm').reset();
+    document.getElementById('staffModalTitle').innerHTML = '<i class="fa-solid fa-user-plus text-primary me-2"></i>เพิ่มเจ้าหน้าที่';
+});
+</script>
+    <script src="assets/js/responsive.js"></script>
+</body>
+</html>

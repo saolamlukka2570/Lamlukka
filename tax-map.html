@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบแผนที่ภาษี (LTAX GIS) - เทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <!-- GeoTIFF.js -->
+    <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
+    <style>
+        #taxMap { height: calc(100vh - 280px); min-height: 420px; border-radius: 10px; z-index: 1; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+        .parcel-panel { max-height: calc(100vh - 280px); overflow-y: auto; }
+
+        /* ── Layer Panel (floating) ── */
+        .layer-panel {
+            position: absolute; top: 12px; left: 12px; z-index: 1000;
+            width: 310px; max-height: calc(100% - 24px); overflow-y: auto; overflow-x: hidden;
+            background: rgba(255,255,255,0.92); backdrop-filter: blur(16px);
+            border: 1px solid rgba(0,0,0,0.08); border-radius: 14px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            font-size: 0.82rem;
+            transition: width 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+        }
+        .layer-panel.collapsed {
+            width: 0; opacity: 0; padding: 0; border: none;
+            overflow: hidden; pointer-events: none;
+        }
+        .layer-panel-header {
+            padding: 10px 14px; border-bottom: 1px solid rgba(0,0,0,0.06);
+            display: flex; align-items: center; justify-content: space-between;
+            font-weight: 700; font-size: 0.85rem; position: sticky; top: 0;
+            background: rgba(255,255,255,0.95); border-radius: 14px 14px 0 0; z-index: 2;
+            white-space: nowrap;
+        }
+        .layer-panel-header .collapse-btn {
+            width: 28px; height: 28px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.08);
+            background: rgba(0,0,0,0.03); display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.15s; flex-shrink: 0; color: #6b7280;
+        }
+        .layer-panel-header .collapse-btn:hover { background: rgba(0,0,0,0.08); color: #111827; }
+        .layer-section { padding: 10px 14px; border-bottom: 1px solid rgba(0,0,0,0.04); white-space: nowrap; }
+        .layer-section:last-child { border-bottom: none; }
+        .layer-section-title {
+            font-weight: 600; font-size: 0.72rem; text-transform: uppercase;
+            color: #6b7280; letter-spacing: 0.04em; margin-bottom: 8px;
+        }
+        .layer-row {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 0; border-radius: 6px;
+        }
+        .layer-color { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.1); }
+        .layer-badge { font-size: 0.65rem; color: #9ca3af; margin-left: auto; white-space: nowrap; }
+
+        /* ── Toggle Switch ── */
+        .layer-toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+        .layer-toggle input { opacity: 0; width: 0; height: 0; }
+        .layer-toggle .slider {
+            position: absolute; inset: 0; background: #d1d5db; border-radius: 20px;
+            cursor: pointer; transition: background 0.25s;
+        }
+        .layer-toggle .slider::before {
+            content: ''; position: absolute; width: 16px; height: 16px;
+            left: 2px; top: 2px; background: #fff; border-radius: 50%;
+            transition: transform 0.25s; box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        .layer-toggle input:checked + .slider { background: #3b82f6; }
+        .layer-toggle input:checked + .slider::before { transform: translateX(16px); }
+        .layer-toggle.green input:checked + .slider { background: #22c55e; }
+        .layer-toggle.orange input:checked + .slider { background: #f97316; }
+        .layer-toggle.yellow input:checked + .slider { background: #eab308; }
+        .layer-toggle.purple input:checked + .slider { background: #8b5cf6; }
+
+        .layer-name { font-size: 0.8rem; font-weight: 500; flex: 1; white-space: nowrap; }
+        .layer-disabled { opacity: 0.4; pointer-events: none; }
+        .drive-input-group { display: flex; gap: 4px; margin-top: 6px; }
+        .drive-input-group input {
+            flex: 1; font-size: 0.75rem; padding: 4px 8px; min-width: 0;
+            border: 1px solid #e5e7eb; border-radius: 6px; background: #f9fafb;
+        }
+        .drive-input-group button { flex-shrink: 0; font-size: 0.7rem; padding: 4px 8px; }
+        .file-upload-area {
+            border: 2px dashed #d1d5db; border-radius: 8px; padding: 10px;
+            text-align: center; cursor: pointer; transition: all 0.2s;
+            background: rgba(249,250,251,0.6); margin-top: 6px; white-space: normal;
+        }
+        .file-upload-area:hover { border-color: #3b82f6; background: rgba(59,130,246,0.04); }
+        .file-upload-area input[type=file] { display: none; }
+        .opacity-slider { width: 100%; height: 4px; -webkit-appearance: none; appearance: none;
+            background: linear-gradient(90deg,#3b82f6,#93c5fd); border-radius: 2px; outline: none; }
+        .opacity-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px;
+            background: #1d4ed8; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+
+        /* ── Expand button (visible when collapsed) ── */
+        .expand-panel-btn {
+            position: absolute; top: 12px; left: 12px; z-index: 1001;
+            width: 42px; height: 42px; border-radius: 10px;
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(8px);
+            border: 1px solid rgba(0,0,0,0.1);
+            display: none; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            transition: all 0.2s; color: #3b82f6; font-size: 1.1rem;
+        }
+        .expand-panel-btn:hover { background: #fff; box-shadow: 0 6px 20px rgba(0,0,0,0.18); transform: scale(1.05); }
+        .expand-panel-btn.visible { display: flex; }
+
+        .layer-tooltip { font-family: 'Prompt', sans-serif; font-size: 0.75rem; }
+        .map-container { position: relative; overflow: hidden; border-radius: 10px; }
+    </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ระบบแผนที่ภาษีอัจฉริยะ (LTAX GIS)"></div>
+    <div class="page-content">
+
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">ระบบแผนที่ภาษีอัจฉริยะ</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                    <li class="breadcrumb-item active">แผนที่ภาษี</li>
+                </ol></nav>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-primary" onclick="showToast('ซิงค์ LTAX Online สำเร็จ','success')"><i class="fa-solid fa-rotate me-1"></i>ซิงค์ LTAX</button>
+                <button class="btn btn-sm btn-outline-success" onclick="showToast('Export รายการแปลงสำเร็จ','info')"><i class="fa-solid fa-file-excel me-1"></i>Export</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="row g-3 mb-3">
+            <div class="col-6 col-xl-3"><div class="kpi-card py-2 px-3"><div class="d-flex align-items-center gap-2"><span class="legend-dot" style="background:#1a56db;"></span><div><div class="kpi-label">แปลงทั้งหมด</div><div class="fw-bold fs-5">2,450</div></div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card py-2 px-3"><div class="d-flex align-items-center gap-2"><span class="legend-dot" style="background:#22c55e;"></span><div><div class="kpi-label">ชำระแล้ว</div><div class="fw-bold fs-5 text-success">2,108</div></div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card py-2 px-3"><div class="d-flex align-items-center gap-2"><span class="legend-dot" style="background:#ef4444;"></span><div><div class="kpi-label">ค้างชำระ</div><div class="fw-bold fs-5 text-danger">342</div></div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card py-2 px-3"><div class="d-flex align-items-center gap-2"><span class="legend-dot" style="background:#f59e0b;"></span><div><div class="kpi-label">รอตรวจสอบ</div><div class="fw-bold fs-5 text-warning">0</div></div></div></div></div>
+        </div>
+
+        <div class="row g-3">
+            <!-- Map -->
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-body p-2 border-bottom d-flex align-items-center gap-2 flex-wrap" style="background:#f9fafb;border-radius:14px 14px 0 0;">
+                        <div class="input-group input-group-sm" style="max-width:220px;">
+                            <span class="input-group-text bg-white"><i class="fa-solid fa-search text-muted"></i></span>
+                            <input type="text" class="form-control" id="searchParcel" placeholder="รหัสแปลง / ชื่อเจ้าของ" onkeyup="filterParcels(this.value)">
+                        </div>
+                        <div class="d-flex gap-1 ms-auto">
+                            <button class="btn btn-xs btn-success" onclick="filterMap('all')">ทั้งหมด</button>
+                            <button class="btn btn-xs btn-outline-success" onclick="filterMap('paid')">ชำระแล้ว</button>
+                            <button class="btn btn-xs btn-outline-danger" onclick="filterMap('unpaid')">ค้างชำระ</button>
+                        </div>
+                    </div>
+                    <div class="card-body p-2">
+                        <div class="map-container">
+                            <div id="taxMap"></div>
+
+                            <!-- Floating Layer Panel -->
+                            <div class="layer-panel" id="layerPanel">
+                                <div class="layer-panel-header">
+                                    <span><i class="fa-solid fa-layer-group me-2 text-primary"></i>จัดการ Layer</span>
+                                    <div class="collapse-btn" onclick="collapsePanel()" title="ย่อ Panel">
+                                        <i class="fa-solid fa-angle-left"></i>
+                                    </div>
+                                </div>
+
+                                <!-- Drone GeoTIFF from Google Drive Folder -->
+                                <div class="layer-section">
+                                    <div class="layer-section-title"><i class="fa-solid fa-satellite me-1"></i>ภาพถ่ายโดรน (GeoTIFF)</div>
+                                    <div class="layer-row">
+                                        <label class="layer-toggle purple">
+                                            <input type="checkbox" id="toggle-drone" checked onchange="DriveGeoTIFF.setVisible(this.checked, map)">
+                                            <span class="slider"></span>
+                                        </label>
+                                        <span class="layer-color" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);"></span>
+                                        <span class="layer-name">ภาพโดรน GeoTIFF</span>
+                                        <span class="layer-badge" id="droneCount">0 ไฟล์</span>
+                                    </div>
+
+                                    <!-- API Key (collapsible) -->
+                                    <div class="mt-2">
+                                        <div class="d-flex align-items-center gap-1 mb-1 cursor-pointer" onclick="document.getElementById('apiKeySection').style.display=document.getElementById('apiKeySection').style.display==='none'?'block':'none'" style="cursor:pointer;">
+                                            <i class="fa-solid fa-key text-warning" style="font-size:0.7rem;"></i>
+                                            <span class="text-xs text-muted">ตั้งค่า Google API Key</span>
+                                            <i class="fa-solid fa-chevron-down text-muted" style="font-size:0.6rem;margin-left:auto;"></i>
+                                        </div>
+                                        <div id="apiKeySection" style="display:none;">
+                                            <div class="drive-input-group">
+                                                <input type="password" id="googleApiKey" placeholder="AIzaSy..." style="font-size:0.7rem;">
+                                                <button class="btn btn-xs btn-warning" onclick="saveApiKey()" title="บันทึก"><i class="fa-solid fa-save"></i></button>
+                                            </div>
+                                            <div class="text-xs text-muted mt-1" style="white-space:normal;line-height:1.3;">
+                                                <i class="fa-solid fa-circle-info me-1"></i>สร้างคีย์ได้ที่ <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:#3b82f6;">Google Cloud Console</a> เปิดใช้ Drive API
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Folder ID -->
+                                    <div class="mt-2">
+                                        <div class="text-xs text-muted mb-1"><i class="fa-solid fa-folder me-1"></i>โฟลเดอร์ Google Drive (ที่เก็บไฟล์ .tif)</div>
+                                        <div class="drive-input-group">
+                                            <input type="text" id="driveFolderId" placeholder="วาง Folder URL หรือ Folder ID">
+                                            <button class="btn btn-xs btn-primary" onclick="loadDriveFolder()" title="โหลดทั้งโฟลเดอร์" id="btnLoadFolder">
+                                                <i class="fa-solid fa-cloud-arrow-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Progress -->
+                                    <div id="driveProgress" style="display:none;" class="mt-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="flex-grow-1" style="height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden;">
+                                                <div id="driveProgressBar" style="height:100%;background:linear-gradient(90deg,#8b5cf6,#a78bfa);width:0%;transition:width 0.3s;"></div>
+                                            </div>
+                                            <span class="text-xs fw-semibold" id="driveProgressPct">0%</span>
+                                        </div>
+                                        <div class="text-xs text-muted mt-1" id="driveProgressText"></div>
+                                    </div>
+
+                                    <!-- Controls (after loaded) -->
+                                    <div id="driveTifControls" style="display:none;" class="mt-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="text-xs text-muted">ความทึบ:</span>
+                                            <input type="range" class="opacity-slider flex-grow-1" min="0" max="1" step="0.05" value="0.75" oninput="DriveGeoTIFF.setAllOpacity(parseFloat(this.value));document.getElementById('driveTifOpVal').textContent=Math.round(this.value*100)+'%';">
+                                            <span class="text-xs fw-semibold" id="driveTifOpVal">75%</span>
+                                        </div>
+                                        <button class="btn btn-xs btn-outline-danger mt-1 w-100" onclick="DriveGeoTIFF.clearAll(map);document.getElementById('driveTifControls').style.display='none';document.getElementById('droneCount').textContent='0 ไฟล์';">
+                                            <i class="fa-solid fa-trash-can me-1"></i>ลบทั้งหมด
+                                        </button>
+                                    </div>
+
+                                    <!-- Single file upload fallback -->
+                                    <div class="file-upload-area mt-2" onclick="document.getElementById('droneFileInput').click()">
+                                        <i class="fa-solid fa-upload text-primary me-1"></i>หรืออัปโหลดไฟล์ทีละไฟล์
+                                        <input type="file" id="droneFileInput" accept=".png,.jpg,.jpeg,.tif,.tiff" onchange="handleFileUpload(this,'drone')">
+                                    </div>
+                                </div>
+
+                                <!-- GeoJSON Layers -->
+                                <div class="layer-section">
+                                    <div class="layer-section-title"><i class="fa-solid fa-shapes me-1"></i>แปลงที่ดิน</div>
+                                    <div class="layer-row">
+                                        <label class="layer-toggle green">
+                                            <input type="checkbox" id="toggle-parcels" checked onchange="toggleLayer('parcels');toggleDemoParcelVisibility(this.checked)">
+                                            <span class="slider"></span>
+                                        </label>
+                                        <span class="layer-color" style="background:#22c55e;"></span>
+                                        <span class="layer-name">แปลงที่ดิน</span>
+                                        <span class="layer-badge" id="count-parcels">4 รายการ</span>
+                                    </div>
+                                    <div class="drive-input-group">
+                                        <input type="text" id="drive-url-parcels" placeholder="Drive URL (GeoJSON)">
+                                        <button class="btn btn-xs btn-primary" onclick="loadFromDriveURL('parcels')" title="โหลดจาก Drive"><i class="fa-solid fa-cloud-arrow-down"></i></button>
+                                    </div>
+                                    <div class="file-upload-area" onclick="document.getElementById('parcelFileInput').click()">
+                                        <i class="fa-solid fa-upload text-success me-1"></i>อัปโหลด .geojson / .shp / .zip
+                                        <input type="file" id="parcelFileInput" accept=".geojson,.json,.shp,.zip" onchange="handleFileUpload(this,'parcels')">
+                                    </div>
+                                </div>
+
+                                <div class="layer-section">
+                                    <div class="layer-section-title"><i class="fa-solid fa-building me-1"></i>สิ่งปลูกสร้าง</div>
+                                    <div class="layer-row">
+                                        <label class="layer-toggle orange">
+                                            <input type="checkbox" id="toggle-buildings" checked onchange="toggleLayer('buildings')">
+                                            <span class="slider"></span>
+                                        </label>
+                                        <span class="layer-color" style="background:#f97316;"></span>
+                                        <span class="layer-name">อาคาร / สิ่งปลูกสร้าง</span>
+                                        <span class="layer-badge" id="count-buildings">0 รายการ</span>
+                                    </div>
+                                    <div class="drive-input-group">
+                                        <input type="text" id="drive-url-buildings" placeholder="Drive URL (GeoJSON)">
+                                        <button class="btn btn-xs btn-primary" onclick="loadFromDriveURL('buildings')" title="โหลดจาก Drive"><i class="fa-solid fa-cloud-arrow-down"></i></button>
+                                    </div>
+                                    <div class="file-upload-area" onclick="document.getElementById('buildingFileInput').click()">
+                                        <i class="fa-solid fa-upload text-warning me-1"></i>อัปโหลด .geojson / .shp / .zip
+                                        <input type="file" id="buildingFileInput" accept=".geojson,.json,.shp,.zip" onchange="handleFileUpload(this,'buildings')">
+                                    </div>
+                                </div>
+
+                                <div class="layer-section">
+                                    <div class="layer-section-title"><i class="fa-solid fa-road me-1"></i>ถนน</div>
+                                    <div class="layer-row">
+                                        <label class="layer-toggle yellow">
+                                            <input type="checkbox" id="toggle-roads" checked onchange="toggleLayer('roads')">
+                                            <span class="slider"></span>
+                                        </label>
+                                        <span class="layer-color" style="background:#facc15;"></span>
+                                        <span class="layer-name">เส้นทางถนน</span>
+                                        <span class="layer-badge" id="count-roads">0 รายการ</span>
+                                    </div>
+                                    <div class="drive-input-group">
+                                        <input type="text" id="drive-url-roads" placeholder="Drive URL (GeoJSON)">
+                                        <button class="btn btn-xs btn-primary" onclick="loadFromDriveURL('roads')" title="โหลดจาก Drive"><i class="fa-solid fa-cloud-arrow-down"></i></button>
+                                    </div>
+                                    <div class="file-upload-area" onclick="document.getElementById('roadFileInput').click()">
+                                        <i class="fa-solid fa-upload text-danger me-1"></i>อัปโหลด .geojson / .shp / .zip
+                                        <input type="file" id="roadFileInput" accept=".geojson,.json,.shp,.zip" onchange="handleFileUpload(this,'roads')">
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Expand button (visible when panel collapsed) -->
+                            <div class="expand-panel-btn" id="expandPanelBtn" onclick="expandPanel()" title="เปิด Layer Panel">
+                                <i class="fa-solid fa-layer-group"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body py-2 px-3 border-top d-flex gap-3 flex-wrap">
+                        <span class="text-xs"><span class="legend-dot" style="background:#22c55e;"></span>ชำระแล้ว</span>
+                        <span class="text-xs"><span class="legend-dot" style="background:#ef4444;"></span>ค้างชำระ</span>
+                        <span class="text-xs"><span class="legend-dot" style="background:#f97316;"></span>สิ่งปลูกสร้าง</span>
+                        <span class="text-xs"><span class="legend-dot" style="background:#facc15;"></span>ถนน</span>
+                        <span class="text-xs ms-auto text-muted"><i class="fa-solid fa-satellite-dish me-1"></i>Base: Google Satellite</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel -->
+            <div class="col-lg-4">
+                <div class="card parcel-panel mb-3">
+                    <div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-map-pin text-primary me-2"></i>รายละเอียดแปลง</h6></div>
+                    <div class="card-body" id="parcelDetail">
+                        <div class="text-center text-muted py-4">
+                            <i class="fa-solid fa-map-location-dot fa-3x mb-3"></i>
+                            <p class="text-sm">คลิกแปลงบนแผนที่เพื่อดูรายละเอียด</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header border-0"><h6 class="fw-bold mb-0 text-sm"><i class="fa-solid fa-list text-danger me-2"></i>ค้างชำระสูงสุด</h6></div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0" style="font-size:0.8rem;">
+                            <thead><tr><th class="ps-3">แปลง</th><th>เจ้าของ</th><th class="pe-3 text-end">ยอด</th></tr></thead>
+                            <tbody>
+                                <tr><td class="ps-3 fw-bold">04E003</td><td>บจก.เจริญพาณิชย์</td><td class="pe-3 text-end text-danger fw-semibold">฿22,000</td></tr>
+                                <tr><td class="ps-3 fw-bold">04E001</td><td>นายวิชัย ร่ำรวย</td><td class="pe-3 text-end text-danger fw-semibold">฿7,500</td></tr>
+                                <tr><td class="ps-3 fw-bold">04E005</td><td>นางสาวสุดา</td><td class="pe-3 text-end text-danger fw-semibold">฿5,200</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="assets/js/tax-map-layers.js"></script>
+<script src="assets/js/drive-geotiff.js"></script>
+<script>
+// ── Panel collapse/expand ──
+function collapsePanel() {
+    document.getElementById('layerPanel').classList.add('collapsed');
+    document.getElementById('expandPanelBtn').classList.add('visible');
+}
+function expandPanel() {
+    document.getElementById('layerPanel').classList.remove('collapsed');
+    document.getElementById('expandPanelBtn').classList.remove('visible');
+}
+
+// ── Drive GeoTIFF init ──
+DriveGeoTIFF.init(map);
+// Restore saved API key
+const savedKey = DriveGeoTIFF.getApiKey();
+if (savedKey) {
+    document.getElementById('googleApiKey').value = savedKey;
+}
+
+function saveApiKey() {
+    const key = document.getElementById('googleApiKey').value.trim();
+    DriveGeoTIFF.setApiKey(key);
+    showToast('บันทึก API Key แล้ว', 'success');
+    document.getElementById('apiKeySection').style.display = 'none';
+}
+
+async function loadDriveFolder() {
+    const folderInput = document.getElementById('driveFolderId').value.trim();
+    if (!folderInput) { showToast('กรุณาใส่ Folder URL หรือ Folder ID', 'warning'); return; }
+    const btn = document.getElementById('btnLoadFolder');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    document.getElementById('driveProgress').style.display = 'block';
+
+    try {
+        const result = await DriveGeoTIFF.loadFolder(folderInput, map, (text, pct) => {
+            document.getElementById('driveProgressBar').style.width = pct + '%';
+            document.getElementById('driveProgressPct').textContent = pct + '%';
+            document.getElementById('driveProgressText').textContent = text;
+        });
+        document.getElementById('droneCount').textContent = result.loaded + ' ไฟล์';
+        document.getElementById('driveTifControls').style.display = 'block';
+        document.getElementById('toggle-drone').checked = true;
+        showToast('โหลดภาพโดรนสำเร็จ ' + result.loaded + '/' + result.total + ' ไฟล์', 'success');
+    } catch (err) {
+        showToast(err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i>';
+        setTimeout(() => { document.getElementById('driveProgress').style.display = 'none'; }, 2000);
+    }
+}
+</script>
+    <script src="assets/js/responsive.js"></script>
+</body>
+</html>

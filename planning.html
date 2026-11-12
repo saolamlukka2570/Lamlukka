@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>กองยุทธศาสตร์ฯ (Planning) - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ระบบกองยุทธศาสตร์และงบประมาณ (Policy & Planning)"></div>
+    <div class="page-content">
+
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">ระบบกองยุทธศาสตร์และงบประมาณ</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item active">กองยุทธศาสตร์ฯ</li>
+                </ol></nav>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary" onclick="showToast('Export Annual Report PDF','info')">
+                <i class="fa-solid fa-file-pdf me-1 text-danger"></i> Export รายงานประจำปี
+            </button>
+        </div>
+
+        <!-- City Data Platform Header -->
+        <div class="card mb-4 fade-in-up" style="background:linear-gradient(135deg,#111928 0%,#1e3a5f 100%);">
+            <div class="card-body p-4">
+                <div class="row g-4 align-items-center">
+                    <div class="col-md-4 text-white">
+                        <div class="text-xs mb-2" style="color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em;">City Data Platform</div>
+                        <h5 class="fw-bold mb-3">ศูนย์ข้อมูลเมืองอัจฉริยะ</h5>
+                        <div class="row g-2 text-center">
+                            <div class="col-4">
+                                <div class="p-2 rounded" style="background:rgba(255,255,255,0.08);">
+                                    <div class="fw-bold">85%</div><div class="text-xs" style="color:rgba(255,255,255,0.5);">ความพึงพอใจ</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-2 rounded" style="background:rgba(255,255,255,0.08);">
+                                    <div class="fw-bold">88</div><div class="text-xs" style="color:rgba(255,255,255,0.5);">คะแนน ITA</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-2 rounded" style="background:rgba(255,255,255,0.08);">
+                                    <div class="fw-bold">65%</div><div class="text-xs" style="color:rgba(255,255,255,0.5);">เบิกจ่ายงบฯ</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <canvas id="kpiChart" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <!-- E-Hearing -->
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-bullhorn text-warning me-2"></i>ระบบรับฟังความคิดเห็น (E-Hearing)</h6>
+                        <button class="btn btn-xs btn-outline-warning text-warning" onclick="showToast('สร้างหัวข้อรับฟังใหม่','info')">+ สร้างหัวข้อใหม่</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4 p-3 rounded" style="background:#f9fafb; border:1px solid #e5e7eb;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="fw-semibold text-sm">โครงการก่อสร้างสวนสาธารณะเฉลิมพระเกียรติ</div>
+                                <span class="badge bg-success">เปิดอยู่</span>
+                            </div>
+                            <div class="mb-1">
+                                <div class="d-flex justify-content-between text-xs text-muted mb-1">
+                                    <span>เห็นด้วย 938 เสียง (75%)</span><span>ไม่เห็นด้วย 312 เสียง (25%)</span>
+                                </div>
+                                <div class="progress" style="height:8px; border-radius:4px;">
+                                    <div class="progress-bar bg-success" style="width:75%; border-radius:4px 0 0 4px;"></div>
+                                    <div class="progress-bar bg-danger" style="width:25%; border-radius:0 4px 4px 0;"></div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-muted mt-2">ผู้ร่วมโหวต: 1,250 คน · ปิดโหวต: 15 พ.ค. 2026</div>
+                        </div>
+
+                        <div class="mb-4 p-3 rounded" style="background:#f9fafb; border:1px solid #e5e7eb;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="fw-semibold text-sm">ร่างเทศบัญญัติการจัดการขยะมูลฝอย (ฉบับใหม่)</div>
+                                <span class="badge bg-primary">รับฟังความเห็น</span>
+                            </div>
+                            <div class="text-xs text-muted">ความคิดเห็นที่ได้รับ: 340 รายการ</div>
+                            <button class="btn btn-xs btn-outline-primary mt-2" onclick="showToast('เปิดดูความคิดเห็นทั้งหมด','info')">ดูความคิดเห็น</button>
+                        </div>
+
+                        <div class="p-3 rounded" style="background:#f9fafb; border:1px solid #e5e7eb;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="fw-semibold text-sm">แผนพัฒนาเทศบาล 5 ปี (พ.ศ. 2566-2570)</div>
+                                <span class="badge bg-secondary">ปิดแล้ว</span>
+                            </div>
+                            <div class="text-xs text-muted">สรุปผล: เห็นด้วย 89% (2,340 เสียง)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Budget Tracker & Analytics -->
+            <div class="col-lg-6">
+                <div class="card mb-3">
+                    <div class="card-header border-0">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-chart-bar text-primary me-2"></i>การเบิกจ่ายงบประมาณประจำปี 2569</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between text-sm mb-1">
+                                <span>งบลงทุน (โครงสร้างพื้นฐาน)</span>
+                                <span class="fw-semibold">72%</span>
+                            </div>
+                            <div class="progress" style="height:8px;border-radius:4px;">
+                                <div class="progress-bar bg-primary" style="width:72%;border-radius:4px;"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between text-sm mb-1">
+                                <span>งบดำเนินการ (บุคลากร/สิ่งของ)</span>
+                                <span class="fw-semibold">65%</span>
+                            </div>
+                            <div class="progress" style="height:8px;border-radius:4px;">
+                                <div class="progress-bar bg-info" style="width:65%;border-radius:4px;"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between text-sm mb-1">
+                                <span>งบกองทุนสวัสดิการสังคม</span>
+                                <span class="fw-semibold">88%</span>
+                            </div>
+                            <div class="progress" style="height:8px;border-radius:4px;">
+                                <div class="progress-bar bg-success" style="width:88%;border-radius:4px;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="d-flex justify-content-between text-sm mb-1">
+                                <span>งบการศึกษาและวัฒนธรรม</span>
+                                <span class="fw-semibold">45%</span>
+                            </div>
+                            <div class="progress" style="height:8px;border-radius:4px;">
+                                <div class="progress-bar bg-warning" style="width:45%;border-radius:4px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header border-0">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-map-location-dot text-danger me-2"></i>แผนที่ Heat Map สถิติการร้องเรียน</h6>
+                    </div>
+                    <div class="card-body text-center py-4">
+                        <i class="fa-solid fa-map-location-dot fa-3x text-muted mb-3"></i>
+                        <p class="text-muted text-sm mb-3">แสดงจุดที่มีการร้องเรียนและแจ้งปัญหาสูงสุดในพื้นที่เทศบาล</p>
+                        <button class="btn btn-sm btn-outline-danger" onclick="showToast('เปิด Heat Map ระบบ GIS Analytics','info')">
+                            <i class="fa-solid fa-fire me-1"></i>เปิด Heat Map GIS
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script>
+    const ctx = document.getElementById('kpiChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.'],
+            datasets: [
+                { label: 'คะแนน ITA', data: [80,82,83,85,86,87,88,88], borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,0.1)', fill:true, tension:0.4 },
+                { label: 'ความพึงพอใจ (%)', data: [78,80,81,83,84,85,85,85], borderColor:'#34d399', backgroundColor:'rgba(52,211,153,0.1)', fill:true, tension:0.4 }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color:'#e5e7eb', font:{ family:'Prompt', size:11 }, boxRadius:4 } } },
+            scales: {
+                x: { ticks: { color:'rgba(255,255,255,0.5)', font:{ family:'Prompt', size:11 } }, grid: { color:'rgba(255,255,255,0.05)' } },
+                y: { ticks: { color:'rgba(255,255,255,0.5)', font:{ family:'Prompt', size:11 } }, grid: { color:'rgba(255,255,255,0.05)' } }
+            }
+        }
+    });
+</script>
+    <script src="assets/js/responsive.js"></script>
+</body>
+</html>

@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ใบแจ้งค่าน้ำ - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .print-only { display: none; }
+        @media print {
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+            .modal { position: absolute; left: 0; top: 0; margin: 0; padding: 0; overflow: visible!important; }
+        }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ใบแจ้งค่าน้ำ"></div>
+    <div class="page-content">
+        <!-- Breadcrumb -->
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-file-invoice me-2"></i>ใบแจ้งค่าน้ำ</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                    <li class="breadcrumb-item"><a href="water-dashboard.html" class="text-decoration-none">ระบบประปา</a></li>
+                    <li class="breadcrumb-item active">ใบแจ้งค่าน้ำ</li>
+                </ol></nav>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-success" onclick="exportExcel()"><i class="fa-solid fa-file-excel me-2"></i>Export</button>
+                <button class="btn btn-outline-secondary" onclick="printBatchBills()"><i class="fa-solid fa-print me-2"></i>พิมพ์ทั้งหมด</button>
+                <button class="btn btn-warning" onclick="generateBatchBills()"><i class="fa-solid fa-wand-magic-sparkles me-2"></i>สร้างทั้งหมด</button>
+                <button class="btn btn-primary" onclick="openBillModal()"><i class="fa-solid fa-plus me-2"></i>สร้างใบแจ้งรายเดียว</button>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ใบแจ้งทั้งหมด (เดือนนี้)</div><div class="kpi-value text-primary" id="kpiTotalBills">-</div></div><div class="kpi-icon bg-primary-subtle text-primary"><i class="fa-solid fa-file-invoice"></i></div></div></div></div>
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up" style="animation-delay: 0.1s;"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ยอดเงินรวม (บาท)</div><div class="kpi-value text-info" id="kpiTotalAmount">-</div></div><div class="kpi-icon bg-info-subtle text-info"><i class="fa-solid fa-coins"></i></div></div></div></div>
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up" style="animation-delay: 0.2s;"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ชำระแล้ว (รายการ)</div><div class="kpi-value text-success" id="kpiPaidBills">-</div></div><div class="kpi-icon bg-success-subtle text-success"><i class="fa-solid fa-check-circle"></i></div></div></div></div>
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up" style="animation-delay: 0.3s;"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ยังไม่ชำระ (รายการ)</div><div class="kpi-value text-danger" id="kpiUnpaidBills">-</div></div><div class="kpi-icon bg-danger-subtle text-danger"><i class="fa-solid fa-clock"></i></div></div></div></div>
+        </div>
+
+        <!-- Filter -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label small">ปีงบประมาณ</label>
+                        <select class="form-select" id="filterYear">
+                            <option value="2567">2567</option>
+                            <option value="2566">2566</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">เดือน</label>
+                        <select class="form-select" id="filterMonth">
+                            <option value="10">ตุลาคม</option>
+                            <option value="9">กันยายน</option>
+                            <option value="8">สิงหาคม</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">สถานะ</label>
+                        <select class="form-select" id="filterStatus">
+                            <option value="">ทั้งหมด</option>
+                            <option value="unpaid">ยังไม่ชำระ</option>
+                            <option value="paid">ชำระแล้ว</option>
+                            <option value="overdue">เกินกำหนด</option>
+                            <option value="cancelled">ยกเลิก</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">ค้นหา</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="fa-solid fa-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0 ps-0" id="searchInput" placeholder="เลขบิล / ชื่อ / รหัส...">
+                        </div>
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <span class="text-muted small">พบ <span id="billCount" class="fw-bold text-dark">0</span> รายการ</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card">
+            <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-table me-2"></i>รายการใบแจ้งค่าน้ำ</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="billTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4" style="width: 40px;"><input class="form-check-input" type="checkbox" id="checkAll"></th>
+                                <th>เลขบิล</th>
+                                <th>รหัสผู้ใช้</th>
+                                <th>ชื่อ-สกุล</th>
+                                <th>เดือน/ปี</th>
+                                <th class="text-end">มาตรก่อน</th>
+                                <th class="text-end">มาตรหลัง</th>
+                                <th class="text-end">หน่วย</th>
+                                <th class="text-end">ค่าน้ำ</th>
+                                <th class="text-end">รวมสุทธิ</th>
+                                <th class="text-center">สถานะ</th>
+                                <th class="pe-4 text-end">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="billTableBody">
+                            <!-- JS Generated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-white border-0 py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="small text-muted">แสดง 1 ถึง 10 จาก <span id="totalItems">0</span> รายการ</div>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item disabled"><a class="page-link" href="#">ก่อนหน้า</a></li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                        <li class="page-item"><a class="page-link" href="#">ถัดไป</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Create Bill -->
+<div class="modal fade" id="billModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-file-invoice me-2"></i>สร้างใบแจ้งค่าน้ำ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="billForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">ค้นหาผู้ใช้น้ำ <span class="text-danger">*</span></label>
+                            <div class="position-relative">
+                                <input type="text" class="form-control" id="customerSearch" placeholder="พิมพ์ชื่อหรือรหัส...">
+                                <div id="customerSearchResults" class="list-group position-absolute w-100 z-3" style="display:none; max-height:200px; overflow-y:auto; box-shadow:0 4px 6px rgba(0,0,0,0.1);"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ประจำเดือน/ปี <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <select class="form-select" id="billMonth">
+                                    <option value="10">ตุลาคม</option>
+                                    <option value="9">กันยายน</option>
+                                </select>
+                                <select class="form-select" id="billYear">
+                                    <option value="2567">2567</option>
+                                    <option value="2566">2566</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Customer Info (Readonly) -->
+                        <div class="col-md-4">
+                            <label class="form-label">รหัสผู้ใช้</label>
+                            <input type="text" class="form-control bg-light" id="custCode" readonly>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">ชื่อ-สกุล</label>
+                            <input type="text" class="form-control bg-light" id="custName" readonly>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">ที่อยู่</label>
+                            <input type="text" class="form-control bg-light" id="custAddress" readonly>
+                        </div>
+
+                        <hr class="my-4">
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">เลขมาตรครั้งก่อน</label>
+                            <input type="number" class="form-control bg-light text-end" id="prevReading" readonly value="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">เลขมาตรครั้งนี้ <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control text-end" id="currReading" required oninput="calculateBill()">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">หน่วยที่ใช้ (ลบ.ม.)</label>
+                            <input type="number" class="form-control bg-light text-end fw-bold" id="usageUnits" readonly value="0">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">การคำนวณค่าน้ำ (ประเภท: <span id="tariffTypeLabel">-</span>)</label>
+                            <table class="table table-bordered table-sm small">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ช่วงหน่วย</th>
+                                        <th class="text-end">ราคา/หน่วย</th>
+                                        <th class="text-end">หน่วยที่คิด</th>
+                                        <th class="text-end">เป็นเงิน</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tariffBreakdownBody">
+                                    <tr><td colspan="4" class="text-center text-muted">กรุณาใส่เลขมาตรครั้งนี้</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="col-md-4 offset-md-8">
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <td>ค่าน้ำ:</td>
+                                    <td class="text-end" id="waterChargeAmt">0.00</td>
+                                </tr>
+                                <tr>
+                                    <td>ค่าบริการ/รักษามิเตอร์:</td>
+                                    <td class="text-end" id="serviceChargeAmt">0.00</td>
+                                </tr>
+                                <tr class="fw-bold fs-5">
+                                    <td>รวมสุทธิ:</td>
+                                    <td class="text-end text-primary" id="netTotalAmt">0.00</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">กำหนดชำระภายในวันที่ <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="dueDate" required>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-top-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" onclick="saveBill()">บันทึกใบแจ้งค่าน้ำ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Bill Detail / Print -->
+<div class="modal fade" id="billDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header d-flex justify-content-between align-items-center border-bottom-0 no-print">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-file-invoice me-2"></i>รายละเอียดใบแจ้งค่าน้ำ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" id="printArea">
+                <div class="text-center mb-4">
+                    <img src="assets/images/logo.png" alt="Logo" height="60" class="mb-2" onerror="this.src='https://placehold.co/60x60?text=Logo'">
+                    <h5 class="fw-bold mb-0">เทศบาลตำบลตัวอย่าง</h5>
+                    <div class="small">ใบแจ้งหนี้ค่าน้ำประปา (Water Bill)</div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-6">
+                        <div class="small text-muted">ข้อมูลผู้ใช้น้ำ</div>
+                        <div class="fw-bold fs-6" id="viewCustName">-</div>
+                        <div id="viewCustAddress" class="small">-</div>
+                        <div class="small mt-1">รหัสผู้ใช้น้ำ: <span id="viewCustCode" class="fw-bold">-</span></div>
+                        <div class="small">ประเภท: <span id="viewCustType">-</span></div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div class="small text-muted">ข้อมูลใบแจ้งหนี้</div>
+                        <div class="fw-bold">เลขที่บิล: <span id="viewBillNo" class="text-primary">-</span></div>
+                        <div class="small">ประจำเดือน: <span id="viewBillMonth">-</span></div>
+                        <div class="small">วันที่ออกบิล: <span id="viewBillDate">-</span></div>
+                        <div class="small text-danger fw-bold mt-1">กำหนดชำระ: <span id="viewDueDate">-</span></div>
+                    </div>
+                </div>
+
+                <div class="card border mb-4 shadow-none">
+                    <div class="card-body p-3">
+                        <div class="row text-center g-3">
+                            <div class="col-4 border-end">
+                                <div class="small text-muted">เลขมาตรครั้งก่อน</div>
+                                <div class="fs-5 fw-bold" id="viewPrevReading">0</div>
+                            </div>
+                            <div class="col-4 border-end">
+                                <div class="small text-muted">เลขมาตรครั้งนี้</div>
+                                <div class="fs-5 fw-bold" id="viewCurrReading">0</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="small text-muted">ปริมาณน้ำที่ใช้ (ลบ.ม.)</div>
+                                <div class="fs-5 fw-bold text-primary" id="viewUnits">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <table class="table table-bordered table-sm mb-4">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th>รายการ (Description)</th>
+                            <th style="width: 150px;">จำนวนเงิน (Amount)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>ค่าน้ำประปา</td>
+                            <td class="text-end" id="viewWaterCharge">0.00</td>
+                        </tr>
+                        <tr>
+                            <td>ค่าบริการ/รักษามิเตอร์</td>
+                            <td class="text-end" id="viewServiceCharge">0.00</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="fw-bold">
+                            <td class="text-end">รวมเงินสุทธิ (Net Total)</td>
+                            <td class="text-end fs-5 text-primary" id="viewNetTotal">0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                
+                <div class="text-center mt-5 pt-3 border-top small">
+                    <p class="mb-1">หากท่านชำระเงินแล้ว โปรดละทิ้งใบแจ้งหนี้ฉบับนี้</p>
+                    <p class="mb-0">สามารถชำระได้ที่กองคลัง เทศบาลตำบลตัวอย่าง หรือโอนเงินผ่านบัญชีธนาคาร...</p>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-top-0 no-print">
+                <a href="#" class="btn btn-success" id="btnPayBill"><i class="fa-solid fa-money-bill-wave me-2"></i>รับชำระเงิน</a>
+                <button type="button" class="btn btn-outline-secondary" onclick="window.print()"><i class="fa-solid fa-print me-2"></i>พิมพ์บิล</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/water.js"></script>
+<script src="assets/js/responsive.js"></script>
+
+<script>
+    let bills = [];
+    let customers = [];
+    let tariffs = [
+        { id: 1, type: 'ที่อยู่อาศัย', steps: [{ min: 0, max: 10, price: 5 }, { min: 11, max: 20, price: 7 }, { min: 21, max: 9999, price: 10 }], service_charge: 10 },
+        { id: 2, type: 'ธุรกิจ', steps: [{ min: 0, max: 20, price: 10 }, { min: 21, max: 50, price: 12 }, { min: 51, max: 9999, price: 15 }], service_charge: 20 }
+    ];
+    let selectedCustomer = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initData();
+        setupEventListeners();
+    });
+
+    function initData() {
+        for (let i = 1; i <= 20; i++) {
+            customers.push({
+                id: i,
+                code: `W${String(i).padStart(4, '0')}`,
+                name: `นายทดสอบ ${i} นามสกุล${i}`,
+                address: `${i}/1 ม.1 ต.ตัวอย่าง`,
+                type: i % 3 === 0 ? 'ธุรกิจ' : 'ที่อยู่อาศัย',
+                last_reading: Math.floor(Math.random() * 500) + 100
+            });
+        }
+
+        const statuses = ['unpaid', 'paid', 'overdue'];
+        for (let i = 1; i <= 45; i++) {
+            let units = Math.floor(Math.random() * 30) + 5;
+            let water = units * 7;
+            let service = 10;
+            bills.push({
+                id: i,
+                bill_no: `INV6710${String(i).padStart(4, '0')}`,
+                customer_id: i % 20 + 1,
+                customer_code: customers[i % 20].code,
+                customer_name: customers[i % 20].name,
+                customer_address: customers[i % 20].address,
+                year: '2567',
+                month: '10',
+                prev_reading: customers[i % 20].last_reading - units,
+                curr_reading: customers[i % 20].last_reading,
+                units: units,
+                water_charge: water,
+                service_charge: service,
+                total_amount: water + service,
+                status: statuses[Math.floor(Math.random() * statuses.length)],
+                created_at: '2023-10-01'
+            });
+        }
+        
+        updateKPIs();
+        renderTable();
+    }
+
+    function setupEventListeners() {
+        document.getElementById('searchInput').addEventListener('input', renderTable);
+        document.getElementById('filterYear').addEventListener('change', renderTable);
+        document.getElementById('filterMonth').addEventListener('change', renderTable);
+        document.getElementById('filterStatus').addEventListener('change', renderTable);
+        document.getElementById('checkAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.bill-checkbox');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+        
+        const searchInput = document.getElementById('customerSearch');
+        const results = document.getElementById('customerSearchResults');
+        
+        searchInput.addEventListener('input', function() {
+            const val = this.value.trim().toLowerCase();
+            if (val.length < 2) {
+                results.style.display = 'none';
+                return;
+            }
+            
+            const matches = customers.filter(c => c.name.toLowerCase().includes(val) || c.code.toLowerCase().includes(val)).slice(0, 5);
+            
+            if (matches.length > 0) {
+                results.innerHTML = matches.map(c => `
+                    <button type="button" class="list-group-item list-group-item-action" onclick="selectCustomer(${c.id})">
+                        <strong>${c.code}</strong> - ${c.name} <br>
+                        <small class="text-muted">${c.address}</small>
+                    </button>
+                `).join('');
+                results.style.display = 'block';
+            } else {
+                results.innerHTML = '<div class="list-group-item text-muted">ไม่พบข้อมูล</div>';
+                results.style.display = 'block';
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (e.target !== searchInput && e.target !== results) {
+                results.style.display = 'none';
+            }
+        });
+    }
+
+    function selectCustomer(id) {
+        selectedCustomer = customers.find(c => c.id === id);
+        if (selectedCustomer) {
+            document.getElementById('customerSearch').value = `${selectedCustomer.code} - ${selectedCustomer.name}`;
+            document.getElementById('customerSearchResults').style.display = 'none';
+            
+            document.getElementById('custCode').value = selectedCustomer.code;
+            document.getElementById('custName').value = selectedCustomer.name;
+            document.getElementById('custAddress').value = selectedCustomer.address;
+            document.getElementById('prevReading').value = selectedCustomer.last_reading;
+            document.getElementById('tariffTypeLabel').innerText = selectedCustomer.type;
+            
+            document.getElementById('currReading').value = '';
+            document.getElementById('usageUnits').value = '0';
+            document.getElementById('tariffBreakdownBody').innerHTML = '<tr><td colspan="4" class="text-center text-muted">กรุณาใส่เลขมาตรครั้งนี้</td></tr>';
+            
+            document.getElementById('waterChargeAmt').innerText = '0.00';
+            
+            const tariff = tariffs.find(t => t.type === selectedCustomer.type) || tariffs[0];
+            document.getElementById('serviceChargeAmt').innerText = tariff.service_charge.toFixed(2);
+            document.getElementById('netTotalAmt').innerText = tariff.service_charge.toFixed(2);
+            
+            const today = new Date();
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            document.getElementById('dueDate').value = lastDay.toISOString().split('T')[0];
+        }
+    }
+
+    function calculateBill() {
+        if (!selectedCustomer) return;
+        
+        const prev = parseInt(document.getElementById('prevReading').value) || 0;
+        const curr = parseInt(document.getElementById('currReading').value) || 0;
+        
+        if (curr < prev) {
+            document.getElementById('usageUnits').value = '0';
+            document.getElementById('waterChargeAmt').innerText = '0.00';
+            const tariff = tariffs.find(t => t.type === selectedCustomer.type) || tariffs[0];
+            document.getElementById('netTotalAmt').innerText = tariff.service_charge.toFixed(2);
+            document.getElementById('tariffBreakdownBody').innerHTML = '<tr><td colspan="4" class="text-center text-danger">เลขมาตรครั้งนี้ต้องมากกว่าหรือเท่ากับครั้งก่อน</td></tr>';
+            return;
+        }
+        
+        const units = curr - prev;
+        document.getElementById('usageUnits').value = units;
+        
+        const tariff = tariffs.find(t => t.type === selectedCustomer.type) || tariffs[0];
+        let remainingUnits = units;
+        let waterCharge = 0;
+        let breakdownHTML = '';
+        
+        if (units === 0) {
+            breakdownHTML = '<tr><td colspan="4" class="text-center">ไม่มีการใช้น้ำ</td></tr>';
+        } else {
+            for (const step of tariff.steps) {
+                if (remainingUnits > 0) {
+                    const stepSize = step.max - step.min + 1;
+                    const unitsInStep = Math.min(remainingUnits, stepSize);
+                    const stepCost = unitsInStep * step.price;
+                    
+                    breakdownHTML += `
+                        <tr>
+                            <td>${step.min} - ${step.max === 9999 ? 'ขึ้นไป' : step.max}</td>
+                            <td class="text-end">${step.price}</td>
+                            <td class="text-end">${unitsInStep}</td>
+                            <td class="text-end">${stepCost.toFixed(2)}</td>
+                        </tr>
+                    `;
+                    
+                    waterCharge += stepCost;
+                    remainingUnits -= unitsInStep;
+                }
+            }
+        }
+        
+        document.getElementById('tariffBreakdownBody').innerHTML = breakdownHTML;
+        document.getElementById('waterChargeAmt').innerText = waterCharge.toFixed(2);
+        
+        const total = waterCharge + tariff.service_charge;
+        document.getElementById('netTotalAmt').innerText = total.toFixed(2);
+    }
+
+    function updateKPIs() {
+        const fMonth = document.getElementById('filterMonth').value;
+        const fYear = document.getElementById('filterYear').value;
+        
+        const monthBills = bills.filter(b => b.month === fMonth && b.year === fYear);
+        
+        const total = monthBills.length;
+        const amount = monthBills.reduce((sum, b) => sum + b.total_amount, 0);
+        const paid = monthBills.filter(b => b.status === 'paid').length;
+        const unpaid = monthBills.filter(b => b.status === 'unpaid' || b.status === 'overdue').length;
+
+        document.getElementById('kpiTotalBills').innerText = total.toLocaleString();
+        document.getElementById('kpiTotalAmount').innerText = amount.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('kpiPaidBills').innerText = paid.toLocaleString();
+        document.getElementById('kpiUnpaidBills').innerText = unpaid.toLocaleString();
+    }
+
+    function renderTable() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const fYear = document.getElementById('filterYear').value;
+        const fMonth = document.getElementById('filterMonth').value;
+        const fStatus = document.getElementById('filterStatus').value;
+        
+        let filtered = bills.filter(b => {
+            const matchSearch = b.bill_no.toLowerCase().includes(search) || b.customer_code.toLowerCase().includes(search) || b.customer_name.toLowerCase().includes(search);
+            const matchYear = !fYear || b.year === fYear;
+            const matchMonth = !fMonth || b.month === fMonth;
+            const matchStatus = !fStatus || b.status === fStatus;
+            
+            return matchSearch && matchYear && matchMonth && matchStatus;
+        });
+
+        document.getElementById('billCount').innerText = filtered.length.toLocaleString();
+        document.getElementById('totalItems').innerText = filtered.length.toLocaleString();
+        document.getElementById('checkAll').checked = false;
+
+        const tbody = document.getElementById('billTableBody');
+        tbody.innerHTML = '';
+        
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="12" class="text-center py-4 text-muted">ไม่พบข้อมูลใบแจ้งค่าน้ำ</td></tr>';
+            return;
+        }
+
+        const monthNames = { '10': 'ต.ค.', '9': 'ก.ย.', '8': 'ส.ค.' };
+
+        filtered.slice(0, 10).forEach(b => {
+            let statusBadge = '';
+            switch(b.status) {
+                case 'paid': statusBadge = '<span class="badge bg-success-subtle text-success">ชำระแล้ว</span>'; break;
+                case 'unpaid': statusBadge = '<span class="badge bg-warning-subtle text-warning">ยังไม่ชำระ</span>'; break;
+                case 'overdue': statusBadge = '<span class="badge bg-danger-subtle text-danger">เกินกำหนด</span>'; break;
+                case 'cancelled': statusBadge = '<span class="badge bg-secondary-subtle text-secondary">ยกเลิก</span>'; break;
+            }
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="ps-4"><input class="form-check-input bill-checkbox" type="checkbox" value="${b.id}"></td>
+                <td class="fw-medium text-primary cursor-pointer" onclick="viewBill(${b.id})">${b.bill_no}</td>
+                <td>${b.customer_code}</td>
+                <td>${b.customer_name}</td>
+                <td>${monthNames[b.month]} ${b.year}</td>
+                <td class="text-end">${b.prev_reading}</td>
+                <td class="text-end">${b.curr_reading}</td>
+                <td class="text-end fw-bold">${b.units}</td>
+                <td class="text-end">${b.water_charge.toFixed(2)}</td>
+                <td class="text-end fw-bold text-success">${b.total_amount.toFixed(2)}</td>
+                <td class="text-center">${statusBadge}</td>
+                <td class="pe-4 text-end">
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewBill(${b.id})" title="ดูรายละเอียด/พิมพ์"><i class="fa-solid fa-print"></i></button>
+                    ${b.status !== 'paid' && b.status !== 'cancelled' ? `<button class="btn btn-sm btn-outline-success" onclick="payBill(${b.id})" title="รับชำระ"><i class="fa-solid fa-money-bill"></i></button>` : ''}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        
+        updateKPIs();
+    }
+
+    function openBillModal() {
+        document.getElementById('billForm').reset();
+        selectedCustomer = null;
+        document.getElementById('tariffBreakdownBody').innerHTML = '<tr><td colspan="4" class="text-center text-muted">กรุณาเลือกผู้ใช้น้ำ</td></tr>';
+        document.getElementById('waterChargeAmt').innerText = '0.00';
+        document.getElementById('serviceChargeAmt').innerText = '0.00';
+        document.getElementById('netTotalAmt').innerText = '0.00';
+        document.getElementById('tariffTypeLabel').innerText = '-';
+        new bootstrap.Modal(document.getElementById('billModal')).show();
+    }
+
+    function saveBill() {
+        if (!selectedCustomer) {
+            showToast('กรุณาเลือกผู้ใช้น้ำ', 'warning');
+            return;
+        }
+        
+        const currReading = document.getElementById('currReading').value;
+        if (!currReading) {
+            showToast('กรุณาระบุเลขมาตรครั้งนี้', 'warning');
+            return;
+        }
+
+        Swal.fire({
+            title: 'บันทึกใบแจ้งค่าน้ำ?',
+            text: "ต้องการสร้างใบแจ้งค่าน้ำรายการนี้ใช่หรือไม่",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'บันทึก',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const newId = bills.length + 1;
+                const waterStr = document.getElementById('waterChargeAmt').innerText;
+                const serviceStr = document.getElementById('serviceChargeAmt').innerText;
+                const totalStr = document.getElementById('netTotalAmt').innerText;
+                
+                bills.unshift({
+                    id: newId,
+                    bill_no: `INV6710${String(newId).padStart(4, '0')}`,
+                    customer_id: selectedCustomer.id,
+                    customer_code: selectedCustomer.code,
+                    customer_name: selectedCustomer.name,
+                    customer_address: selectedCustomer.address,
+                    year: document.getElementById('billYear').value,
+                    month: document.getElementById('billMonth').value,
+                    prev_reading: parseInt(document.getElementById('prevReading').value),
+                    curr_reading: parseInt(currReading),
+                    units: parseInt(document.getElementById('usageUnits').value),
+                    water_charge: parseFloat(waterStr),
+                    service_charge: parseFloat(serviceStr),
+                    total_amount: parseFloat(totalStr),
+                    status: 'unpaid',
+                    created_at: new Date().toISOString().split('T')[0]
+                });
+                
+                const custIdx = customers.findIndex(c => c.id === selectedCustomer.id);
+                if(custIdx > -1) {
+                    customers[custIdx].last_reading = parseInt(currReading);
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById('billModal')).hide();
+                showToast('บันทึกใบแจ้งค่าน้ำเรียบร้อยแล้ว', 'success');
+                renderTable();
+            }
+        });
+    }
+
+    function viewBill(id) {
+        const bill = bills.find(b => b.id === id);
+        if (!bill) return;
+        
+        const monthNames = { '10': 'ตุลาคม', '9': 'กันยายน', '8': 'สิงหาคม' };
+        
+        document.getElementById('viewCustName').innerText = bill.customer_name;
+        document.getElementById('viewCustAddress').innerText = bill.customer_address;
+        document.getElementById('viewCustCode').innerText = bill.customer_code;
+        const cust = customers.find(c => c.code === bill.customer_code);
+        document.getElementById('viewCustType').innerText = cust ? cust.type : '-';
+        
+        document.getElementById('viewBillNo').innerText = bill.bill_no;
+        document.getElementById('viewBillMonth').innerText = `${monthNames[bill.month]} ${bill.year}`;
+        document.getElementById('viewBillDate').innerText = '10/10/2567';
+        document.getElementById('viewDueDate').innerText = '31/10/2567';
+        
+        document.getElementById('viewPrevReading').innerText = bill.prev_reading;
+        document.getElementById('viewCurrReading').innerText = bill.curr_reading;
+        document.getElementById('viewUnits').innerText = bill.units;
+        
+        document.getElementById('viewWaterCharge').innerText = bill.water_charge.toFixed(2);
+        document.getElementById('viewServiceCharge').innerText = bill.service_charge.toFixed(2);
+        document.getElementById('viewNetTotal').innerText = bill.total_amount.toFixed(2);
+        
+        const payBtn = document.getElementById('btnPayBill');
+        if (bill.status === 'paid' || bill.status === 'cancelled') {
+            payBtn.style.display = 'none';
+        } else {
+            payBtn.style.display = 'inline-block';
+            payBtn.href = `water-payments.html?bill=${bill.bill_no}`;
+        }
+        
+        new bootstrap.Modal(document.getElementById('billDetailModal')).show();
+    }
+
+    function payBill(id) {
+        const bill = bills.find(b => b.id === id);
+        if (bill) {
+            window.location.href = `water-payments.html?bill=${bill.bill_no}`;
+        }
+    }
+
+    function generateBatchBills() {
+        Swal.fire({
+            title: 'สร้างใบแจ้งค่าน้ำอัตโนมัติ?',
+            text: "ระบบจะดึงข้อมูลมิเตอร์เดือนล่าสุดเพื่อสร้างใบแจ้งหนี้ให้ผู้ใช้ที่ยังไม่มีบิลในเดือนนี้",
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'ดำเนินการ',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#0d6efd'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'กำลังสร้างใบแจ้ง...',
+                    html: 'กรุณารอสักครู่',
+                    timer: 1500,
+                    timerProgressBar: true,
+                    didOpen: () => { Swal.showLoading() }
+                }).then(() => {
+                    showToast('สร้างใบแจ้งค่าน้ำสำเร็จ 15 รายการ', 'success');
+                    renderTable();
+                });
+            }
+        });
+    }
+
+    function printBatchBills() {
+        const checked = document.querySelectorAll('.bill-checkbox:checked');
+        if (checked.length === 0) {
+            showToast('กรุณาเลือกใบแจ้งที่ต้องการพิมพ์', 'warning');
+            return;
+        }
+        showToast(`กำลังเตรียมพิมพ์ ${checked.length} รายการ...`, 'info');
+        setTimeout(() => { window.print(); }, 500);
+    }
+
+    function exportExcel() {
+        const ws = XLSX.utils.json_to_sheet(bills.map(b => ({
+            'เลขบิล': b.bill_no,
+            'รหัสผู้ใช้': b.customer_code,
+            'ชื่อ-สกุล': b.customer_name,
+            'เดือน': b.month,
+            'ปี': b.year,
+            'มาตรก่อน': b.prev_reading,
+            'มาตรหลัง': b.curr_reading,
+            'หน่วย': b.units,
+            'ค่าน้ำ': b.water_charge,
+            'ค่าบริการ': b.service_charge,
+            'รวมสุทธิ': b.total_amount,
+            'สถานะ': b.status
+        })));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "WaterBills");
+        XLSX.writeFile(wb, "water_bills.xlsx");
+    }
+</script>
+</body>
+</html>

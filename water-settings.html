@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตั้งค่าระบบประปา - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .settings-card {
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(0,0,0,.125);
+            border-radius: 0.5rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
+        }
+        .settings-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid rgba(0,0,0,.125);
+            padding: 1rem 1.25rem;
+            border-radius: 0.5rem 0.5rem 0 0;
+            font-weight: 600;
+        }
+        .settings-body {
+            padding: 1.25rem;
+        }
+        .nav-tabs .nav-link {
+            color: #495057;
+            font-weight: 500;
+        }
+        .nav-tabs .nav-link.active {
+            font-weight: 600;
+            color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ตั้งค่าระบบประปา"></div>
+    <div class="page-content">
+        <!-- Breadcrumb -->
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-gear me-2"></i>ตั้งค่าระบบประปา</h4>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                        <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                        <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                        <li class="breadcrumb-item"><a href="water-dashboard.html" class="text-decoration-none">ระบบประปา</a></li>
+                        <li class="breadcrumb-item active">ตั้งค่าระบบ</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" onclick="saveAllSettings()"><i class="fa-solid fa-save me-1"></i> บันทึกการตั้งค่าทั้งหมด</button>
+            </div>
+        </div>
+
+        <!-- Settings Cards -->
+        <div class="row">
+            <!-- Left Column: Settings -->
+            <div class="col-lg-8">
+                
+                <!-- 1. ข้อมูลหน่วยงาน -->
+                <div class="card settings-card">
+                    <div class="settings-header">
+                        <i class="fa-solid fa-building me-2"></i>ข้อมูลหน่วยงาน (Organization Info)
+                    </div>
+                    <div class="settings-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">ชื่อหน่วยงาน</label>
+                                <input type="text" class="form-control" id="orgName" value="เทศบาลตำบลตัวอย่าง">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">ที่อยู่</label>
+                                <input type="text" class="form-control" id="orgAddress" value="123 หมู่ 1 ต.ตัวอย่าง อ.เมือง จ.ตัวอย่าง 12345">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">โทรศัพท์</label>
+                                <input type="text" class="form-control" id="orgPhone" value="02-123-4567">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">อีเมล</label>
+                                <input type="email" class="form-control" id="orgEmail" value="contact@example-mun.go.th">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">เว็บไซต์</label>
+                                <input type="url" class="form-control" id="orgWebsite" value="www.example-mun.go.th">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">โลโก้หน่วยงาน</label>
+                                <input type="file" class="form-control" id="orgLogo" accept="image/*">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. ตั้งค่าอัตราค่าน้ำ -->
+                <div class="card settings-card">
+                    <div class="settings-header d-flex justify-content-between align-items-center">
+                        <div><i class="fa-solid fa-money-bill-wave me-2"></i>ตั้งค่าอัตราค่าน้ำ (Tariff Settings)</div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="addCustomerType()"><i class="fa-solid fa-plus"></i> เพิ่มประเภท</button>
+                    </div>
+                    <div class="settings-body">
+                        <ul class="nav nav-tabs" id="tariffTabs" role="tablist">
+                            <!-- Tabs will be generated by JS -->
+                        </ul>
+                        <div class="tab-content pt-3" id="tariffTabContent">
+                            <!-- Content generated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. ตั้งค่าการตรวจจับผิดปกติ -->
+                <div class="card settings-card">
+                    <div class="settings-header">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i>ตั้งค่าการตรวจจับผิดปกติ (Anomaly Settings)
+                    </div>
+                    <div class="settings-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">เปอร์เซ็นต์ที่ถือว่าใช้น้ำผิดปกติ (เพิ่มขึ้นจากเดือนก่อน)</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="anomalyPercent" value="200">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                                <small class="text-muted">ระบบจะแจ้งเตือนเมื่อการใช้น้ำเพิ่มขึ้นเกินค่าที่กำหนด</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">จำนวนเดือนที่ใช้น้ำ 0 หน่วยต่อเนื่อง</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="zeroWaterMonths" value="3">
+                                    <span class="input-group-text">เดือน</span>
+                                </div>
+                                <small class="text-muted">ตรวจสอบมิเตอร์เสียหรือบ้านไม่มีผู้อยู่อาศัย</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. ตั้งค่าประเภทผู้ใช้น้ำ -->
+                <div class="card settings-card">
+                    <div class="settings-header">
+                        <i class="fa-solid fa-users me-2"></i>ตั้งค่าประเภทผู้ใช้น้ำ (Customer Type Settings)
+                    </div>
+                    <div class="settings-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="ps-4">รหัส</th>
+                                        <th>ชื่อประเภท</th>
+                                        <th>รายละเอียด</th>
+                                        <th class="pe-4 text-center">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customerTypesTable">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Previews and Document Settings -->
+            <div class="col-lg-4">
+                
+                <!-- 7. ตารางคำนวณตัวอย่าง -->
+                <div class="card settings-card">
+                    <div class="settings-header bg-primary text-white" style="border-radius: 0.5rem 0.5rem 0 0;">
+                        <i class="fa-solid fa-calculator me-2"></i>ทดสอบคำนวณค่าน้ำ
+                    </div>
+                    <div class="settings-body">
+                        <div class="mb-3">
+                            <label class="form-label">ประเภทผู้ใช้น้ำ</label>
+                            <select class="form-select" id="calcCustomerType" onchange="runPreviewCalc()">
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">ปริมาณน้ำที่ใช้ (หน่วย)</label>
+                            <input type="number" class="form-control" id="calcUnits" value="15" oninput="runPreviewCalc()">
+                        </div>
+                        
+                        <hr>
+                        <h6>ผลการคำนวณ</h6>
+                        <div class="table-responsive mb-3">
+                            <table class="table table-sm table-bordered" style="font-size: 0.85rem;">
+                                <thead>
+                                    <tr class="table-light">
+                                        <th>ช่วง(หน่วย)</th>
+                                        <th class="text-end">ปริมาณ</th>
+                                        <th class="text-end">ราคา/หน่วย</th>
+                                        <th class="text-end">รวม(บาท)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="calcBreakdownTable">
+                                    <!-- Results here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>ค่าน้ำตามขั้นบันได:</span>
+                            <span id="calcTotalSteps">0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>ค่าบริการรายเดือน:</span>
+                            <span id="calcServiceCharge">0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1 text-muted" style="font-size:0.85rem;">
+                            <span>(ค่าขั้นต่ำที่กำหนด: <span id="calcMinCharge">0.00</span>)</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between fw-bold fs-5 text-primary">
+                            <span>รวมเงินสุทธิ:</span>
+                            <span><span id="calcGrandTotal">0.00</span> ฿</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. ตั้งค่าเลขที่เอกสาร -->
+                <div class="card settings-card">
+                    <div class="settings-header">
+                        <i class="fa-solid fa-file-invoice me-2"></i>ตั้งค่าเลขที่เอกสาร
+                    </div>
+                    <div class="settings-body">
+                        <div class="mb-3">
+                            <label class="form-label">Prefix ใบแจ้งค่าน้ำ (Invoice)</label>
+                            <input type="text" class="form-control" id="prefixInvoice" value="WB">
+                            <small class="text-muted">ตัวอย่าง: WB6710-0001</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Prefix ใบเสร็จรับเงิน (Receipt)</label>
+                            <input type="text" class="form-control" id="prefixReceipt" value="WTR">
+                            <small class="text-muted">ตัวอย่าง: WTR6710-0001</small>
+                        </div>
+                        <hr>
+                        <div class="mb-3">
+                            <label class="form-label d-flex justify-content-between">
+                                <span>เลขที่บิลล่าสุด</span>
+                                <a href="#" class="text-danger" onclick="resetRunningNumber(event, 'invoice')" style="font-size:0.8rem; text-decoration:none;"><i class="fa-solid fa-rotate-left"></i> รีเซ็ต</a>
+                            </label>
+                            <input type="text" class="form-control bg-light" id="lastInvoiceNo" value="1425" readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. ตั้งค่าปีงบประมาณ -->
+                <div class="card settings-card">
+                    <div class="settings-header">
+                        <i class="fa-solid fa-calendar-alt me-2"></i>ตั้งค่าปีงบประมาณ
+                    </div>
+                    <div class="settings-body">
+                        <div class="mb-3">
+                            <label class="form-label">ปีงบประมาณปัจจุบัน</label>
+                            <select class="form-select" id="fiscalYear">
+                                <option value="2566">2566</option>
+                                <option value="2567" selected>2567</option>
+                                <option value="2568">2568</option>
+                                <option value="2569">2569</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">เดือนเริ่มต้นปีงบประมาณ</label>
+                            <select class="form-select" id="fiscalMonthStart">
+                                <option value="1">มกราคม</option>
+                                <option value="10" selected>ตุลาคม</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/water.js"></script>
+<script src="assets/js/responsive.js"></script>
+
+<script>
+    // Demo Data
+    let tariffs = [
+        {
+            id: 'T01',
+            name: 'บ้านพักอาศัย',
+            service_charge: 10,
+            minimum_charge: 50,
+            effective_date: '2023-10-01',
+            status: 'active',
+            steps: [
+                { start: 1, end: 10, price: 5 },
+                { start: 11, end: 20, price: 7 },
+                { start: 21, end: 999999, price: 10 }
+            ]
+        },
+        {
+            id: 'T02',
+            name: 'ร้านค้า',
+            service_charge: 20,
+            minimum_charge: 100,
+            effective_date: '2023-10-01',
+            status: 'active',
+            steps: [
+                { start: 1, end: 20, price: 10 },
+                { start: 21, end: 50, price: 12 },
+                { start: 51, end: 999999, price: 15 }
+            ]
+        },
+        {
+            id: 'T03',
+            name: 'หน่วยงานราชการ',
+            service_charge: 0,
+            minimum_charge: 0,
+            effective_date: '2023-10-01',
+            status: 'active',
+            steps: [
+                { start: 1, end: 999999, price: 8 }
+            ]
+        }
+    ];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderTariffTabs();
+        renderCustomerTypes();
+        updateCalcDropdown();
+        runPreviewCalc();
+    });
+
+    function renderTariffTabs() {
+        const tabList = document.getElementById('tariffTabs');
+        const tabContent = document.getElementById('tariffTabContent');
+        tabList.innerHTML = '';
+        tabContent.innerHTML = '';
+
+        tariffs.forEach((t, index) => {
+            const isActive = index === 0 ? 'active' : '';
+            
+            // Tab Header
+            tabList.innerHTML += `
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link ${isActive}" id="tab-${t.id}" data-bs-toggle="tab" data-bs-target="#content-${t.id}" type="button" role="tab">${t.name}</button>
+                </li>
+            `;
+
+            // Tab Content
+            let stepsHtml = '';
+            t.steps.forEach((step, sIndex) => {
+                stepsHtml += `
+                    <tr>
+                        <td class="text-center">${sIndex + 1}</td>
+                        <td><input type="number" class="form-control form-control-sm" value="${step.start}" onchange="updateStep(${index}, ${sIndex}, 'start', this.value)"></td>
+                        <td><input type="number" class="form-control form-control-sm" value="${step.end}" onchange="updateStep(${index}, ${sIndex}, 'end', this.value)"></td>
+                        <td><input type="number" class="form-control form-control-sm text-end" value="${step.price}" onchange="updateStep(${index}, ${sIndex}, 'price', this.value)"></td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeStep(${index}, ${sIndex})"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tabContent.innerHTML += `
+                <div class="tab-pane fade show ${isActive}" id="content-${t.id}" role="tabpanel">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">ชื่ออัตรา</label>
+                            <input type="text" class="form-control" value="${t.name}" onchange="updateTariff(${index}, 'name', this.value)">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">ค่าบริการรายเดือน</label>
+                            <input type="number" class="form-control" value="${t.service_charge}" onchange="updateTariff(${index}, 'service_charge', this.value); runPreviewCalc();">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">ค่าขั้นต่ำ</label>
+                            <input type="number" class="form-control" value="${t.minimum_charge}" onchange="updateTariff(${index}, 'minimum_charge', this.value); runPreviewCalc();">
+                        </div>
+                    </div>
+                    
+                    <h6 class="mb-2">ตารางขั้นบันได</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <thead class="table-light text-center">
+                                <tr>
+                                    <th width="50">ลำดับ</th>
+                                    <th>หน่วยเริ่มต้น</th>
+                                    <th>หน่วยสิ้นสุด</th>
+                                    <th>ราคา/หน่วย (บาท)</th>
+                                    <th width="80">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${stepsHtml}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="addStep(${index})"><i class="fa-solid fa-plus"></i> เพิ่มขั้นบันได</button>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function renderCustomerTypes() {
+        const tbody = document.getElementById('customerTypesTable');
+        tbody.innerHTML = '';
+        tariffs.forEach(t => {
+            tbody.innerHTML += `
+                <tr>
+                    <td class="ps-4">${t.id}</td>
+                    <td>${t.name}</td>
+                    <td>ใช้อัตรา: ${t.name}</td>
+                    <td class="pe-4 text-center">
+                        <button class="btn btn-sm btn-outline-warning"><i class="fa-solid fa-pen"></i></button>
+                        <button class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function updateCalcDropdown() {
+        const sel = document.getElementById('calcCustomerType');
+        sel.innerHTML = '';
+        tariffs.forEach((t, i) => {
+            sel.innerHTML += `<option value="${i}">${t.name}</option>`;
+        });
+    }
+
+    function updateTariff(tIndex, field, value) {
+        tariffs[tIndex][field] = field === 'name' ? value : parseFloat(value);
+        if(field === 'name') {
+            renderTariffTabs();
+            renderCustomerTypes();
+            updateCalcDropdown();
+        }
+    }
+
+    function updateStep(tIndex, sIndex, field, value) {
+        tariffs[tIndex].steps[sIndex][field] = parseFloat(value);
+        runPreviewCalc();
+    }
+
+    function addStep(tIndex) {
+        const lastEnd = tariffs[tIndex].steps.length > 0 ? tariffs[tIndex].steps[tariffs[tIndex].steps.length - 1].end : 0;
+        tariffs[tIndex].steps.push({ start: lastEnd + 1, end: lastEnd + 10, price: 0 });
+        renderTariffTabs();
+    }
+
+    function removeStep(tIndex, sIndex) {
+        tariffs[tIndex].steps.splice(sIndex, 1);
+        renderTariffTabs();
+        runPreviewCalc();
+    }
+
+    function addCustomerType() {
+        const newId = 'T0' + (tariffs.length + 1);
+        tariffs.push({
+            id: newId,
+            name: 'ประเภทใหม่',
+            service_charge: 0,
+            minimum_charge: 0,
+            effective_date: '2023-10-01',
+            status: 'active',
+            steps: [{ start: 1, end: 999999, price: 5 }]
+        });
+        renderTariffTabs();
+        renderCustomerTypes();
+        updateCalcDropdown();
+    }
+
+    function runPreviewCalc() {
+        const tIndex = document.getElementById('calcCustomerType').value;
+        const units = parseFloat(document.getElementById('calcUnits').value) || 0;
+        if(tIndex === '') return;
+
+        const tariff = tariffs[tIndex];
+        const tbody = document.getElementById('calcBreakdownTable');
+        tbody.innerHTML = '';
+        
+        let remaining = units;
+        let totalStepCost = 0;
+
+        // Ensure steps are sorted by start
+        const steps = [...tariff.steps].sort((a,b) => a.start - b.start);
+
+        steps.forEach(step => {
+            if (remaining <= 0) return;
+            const stepUnitsRange = (step.end - step.start) + 1;
+            const unitsInThisStep = Math.min(remaining, stepUnitsRange);
+            const cost = unitsInThisStep * step.price;
+            
+            if (unitsInThisStep > 0) {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${step.start} - ${step.end === 999999 ? 'ขึ้นไป' : step.end}</td>
+                        <td class="text-end">${unitsInThisStep.toLocaleString()}</td>
+                        <td class="text-end">${step.price.toFixed(2)}</td>
+                        <td class="text-end">${cost.toFixed(2)}</td>
+                    </tr>
+                `;
+                totalStepCost += cost;
+                remaining -= unitsInThisStep;
+            }
+        });
+
+        document.getElementById('calcTotalSteps').innerText = totalStepCost.toFixed(2);
+        document.getElementById('calcServiceCharge').innerText = tariff.service_charge.toFixed(2);
+        document.getElementById('calcMinCharge').innerText = tariff.minimum_charge.toFixed(2);
+
+        let subtotal = totalStepCost + tariff.service_charge;
+        if (subtotal < tariff.minimum_charge) {
+            subtotal = tariff.minimum_charge;
+        }
+
+        document.getElementById('calcGrandTotal').innerText = subtotal.toLocaleString(undefined, {minimumFractionDigits: 2});
+    }
+
+    function saveAllSettings() {
+        Swal.fire({
+            title: 'บันทึกการตั้งค่า?',
+            text: "คุณต้องการบันทึกการเปลี่ยนแปลงทั้งหมดใช่หรือไม่",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'ใช่, บันทึก',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Simulate saving to DB
+                Swal.fire(
+                    'บันทึกสำเร็จ!',
+                    'การตั้งค่าระบบประปาได้รับการบันทึกเรียบร้อยแล้ว',
+                    'success'
+                );
+            }
+        });
+    }
+
+    function resetRunningNumber(e, type) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'ยืนยันการรีเซ็ตเลขที่เอกสาร?',
+            text: "เลขที่เอกสารจะเริ่มใหม่จาก 1 หรือตามที่กำหนด",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'รีเซ็ต',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if(type === 'invoice') document.getElementById('lastInvoiceNo').value = "0";
+                Swal.fire('รีเซ็ตสำเร็จ', '', 'success');
+            }
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>กองช่าง (Public Works) - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ระบบจัดการกองช่าง (Public Works)"></div>
+    <div class="page-content">
+
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">ระบบจัดการกองช่าง</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item active">กองช่าง</li>
+                </ol></nav>
+            </div>
+            <button class="btn btn-sm btn-warning text-dark fw-semibold" data-bs-toggle="modal" data-bs-target="#newRepairModal">
+                <i class="fa-solid fa-plus me-1"></i> รับแจ้งซ่อมใหม่
+            </button>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-xl-3"><div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div><div class="kpi-label mb-1">คำร้องทั้งหมด</div><div class="kpi-value">35</div></div>
+                    <div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                </div>
+            </div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div><div class="kpi-label mb-1">รอมอบหมายงาน</div><div class="kpi-value text-danger">8</div></div>
+                    <div class="kpi-icon bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                </div>
+            </div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div><div class="kpi-label mb-1">กำลังดำเนินการ</div><div class="kpi-value text-warning">15</div></div>
+                    <div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-person-digging"></i></div>
+                </div>
+            </div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div><div class="kpi-label mb-1">เสร็จสิ้นเดือนนี้</div><div class="kpi-value text-success">22</div></div>
+                    <div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-circle-check"></i></div>
+                </div>
+            </div></div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <!-- Street Light Repair -->
+            <div class="col-lg-8">
+                <div class="card h-100">
+                    <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0"><i class="fa-regular fa-lightbulb text-warning me-2"></i>ศูนย์รับแจ้งซ่อมไฟฟ้าสาธารณะ</h6>
+                        <span class="badge bg-danger">ด่วน 2 รายการ</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0">
+                            <thead><tr>
+                                <th class="ps-4">หมายเลขเสา</th><th>สถานที่</th>
+                                <th>ผู้แจ้ง</th><th>วันที่แจ้ง</th><th>สถานะ</th><th class="pe-4">จัดการ</th>
+                            </tr></thead>
+                            <tbody>
+                                <tr>
+                                    <td class="ps-4 fw-bold">PL-045</td>
+                                    <td>ซอยสุขเจริญ 3</td>
+                                    <td>วิชัย มานะ <i class="fa-brands fa-line text-success"></i></td>
+                                    <td class="text-xs text-muted">28 เม.ย. 09:30</td>
+                                    <td><span class="badge bg-danger">รอมอบหมาย</span></td>
+                                    <td class="pe-4">
+                                        <button class="btn btn-xs btn-primary" onclick="showToast('มอบหมายงานให้ นายสมหมาย แล้ว','success')">จ่ายงาน</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4 fw-bold">PL-112</td>
+                                    <td>หน้าตลาดสด</td>
+                                    <td>สมรักษ์ ยินดี <i class="fa-brands fa-line text-success"></i></td>
+                                    <td class="text-xs text-muted">27 เม.ย. 14:15</td>
+                                    <td><span class="badge bg-warning text-dark">กำลังซ่อม</span></td>
+                                    <td class="pe-4">
+                                        <button class="btn btn-xs btn-success" onclick="showToast('อัปโหลดรูปก่อน/หลังสำเร็จ','success')"><i class="fa-solid fa-camera me-1"></i>อัปเดต</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4 fw-bold">PL-089</td>
+                                    <td>ถนนเลียบคลอง</td>
+                                    <td>กิตติพงษ์ <i class="fa-brands fa-line text-success"></i></td>
+                                    <td class="text-xs text-muted">25 เม.ย. 10:00</td>
+                                    <td><span class="badge bg-success">เสร็จแล้ว</span></td>
+                                    <td class="pe-4">
+                                        <button class="btn btn-xs btn-outline-secondary">ดูรูป</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- E-Permit Panel -->
+            <div class="col-lg-4">
+                <div class="card h-100" style="background:#111928;">
+                    <div class="card-header" style="border-color:rgba(255,255,255,0.1) !important; background:rgba(0,0,0,0.2) !important;">
+                        <h6 class="fw-bold mb-0 text-white"><i class="fa-solid fa-file-signature text-warning me-2"></i>E-Permit การก่อสร้าง</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="p-3 mb-3 rounded" style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1);">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="text-white fw-semibold text-sm">EP-66-0089</span>
+                                <span class="badge bg-primary">รอตรวจแบบ</span>
+                            </div>
+                            <p class="text-sm mb-1" style="color:rgba(255,255,255,0.7);">ก่อสร้างอาคารพักอาศัย 2 ชั้น</p>
+                            <p class="text-xs mb-3" style="color:rgba(255,255,255,0.5);">บจก. พร็อพเพอร์ตี้ ดีเวลลอปเมนท์</p>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-xs btn-light" onclick="showToast('เปิดไฟล์แบบแปลน PDF','info')"><i class="fa-solid fa-file-pdf text-danger me-1"></i>แบบแปลน</button>
+                                <button class="btn btn-xs btn-warning text-dark fw-semibold" onclick="showToast('อนุมัติคำขอ EP-66-0089 สำเร็จ','success')">อนุมัติ</button>
+                                <button class="btn btn-xs btn-outline-danger" onclick="showToast('ส่งคืนเพื่อแก้ไขแบบแปลน','warning')">ส่งคืน</button>
+                            </div>
+                        </div>
+                        <div class="p-3 rounded" style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1);">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="text-white fw-semibold text-sm">EP-66-0088</span>
+                                <span class="badge bg-success">ออกใบอนุญาต</span>
+                            </div>
+                            <p class="text-sm mb-0" style="color:rgba(255,255,255,0.7);">ต่อเติมอาคารพาณิชย์ — นายสมคิด การค้า</p>
+                        </div>
+                        <button class="btn btn-sm btn-outline-warning w-100 mt-3 text-warning" onclick="showToast('เปิดระบบ E-Permit ทั้งหมด','info')">
+                            <i class="fa-solid fa-list me-1"></i> ดูคำขอทั้งหมด
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Infrastructure GIS Registry Card -->
+        <div class="card">
+            <div class="card-body p-4 d-flex align-items-center gap-4 flex-wrap">
+                <div class="text-center" style="min-width:80px;">
+                    <i class="fa-solid fa-map-location-dot fa-3x text-warning"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h5 class="fw-bold mb-1">ระบบแผนที่โครงสร้างพื้นฐาน (GIS Registry)</h5>
+                    <p class="text-muted mb-0 text-sm">บันทึกพิกัด GPS ถนน · ท่อระบายน้ำ · ไฟถนน · พื้นที่สาธารณะ เชื่อมโยงกับคำร้องซ่อมแซมแบบ Real-time</p>
+                </div>
+                <button class="btn btn-warning fw-semibold text-dark" onclick="showToast('กำลังโหลดแผนที่ GIS กองช่าง...','info')">
+                    <i class="fa-solid fa-layer-group me-2"></i>เปิดแผนที่ GIS
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- New Repair Modal -->
+<div class="modal fade" id="newRepairModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-14 shadow-lg">
+            <div class="modal-header border-0">
+                <h6 class="modal-title fw-bold">รับแจ้งซ่อมใหม่</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">ประเภทงาน</label>
+                    <select class="form-select">
+                        <option>ไฟถนนดับ</option>
+                        <option>ถนนชำรุด</option>
+                        <option>ท่อระบายน้ำอุดตัน</option>
+                        <option>ป้ายสาธารณะชำรุด</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">สถานที่/รายละเอียด</label>
+                    <textarea class="form-control" rows="3" placeholder="ระบุสถานที่และอาการ..."></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ระดับความเร่งด่วน</label>
+                    <select class="form-select">
+                        <option>ปกติ</option>
+                        <option>เร่งด่วน</option>
+                        <option>วิกฤต (ต้องดำเนินการทันที)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" onclick="showToast('บันทึกคำร้องซ่อมสำเร็จ!','success'); bootstrap.Modal.getInstance(document.getElementById('newRepairModal')).hide();">
+                    <i class="fa-solid fa-save me-1"></i> บันทึก
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+    <script src="assets/js/responsive.js"></script>
+</body>
+</html>

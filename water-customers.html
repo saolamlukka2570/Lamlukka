@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ทะเบียนผู้ใช้น้ำ - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .map-container {
+            height: 300px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 15px;
+        }
+        .nav-tabs .nav-link {
+            color: #495057;
+            font-weight: 500;
+        }
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+        }
+        .summary-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-left: 4px solid var(--primary-color);
+        }
+        .summary-card .label {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        .summary-card .value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #212529;
+        }
+        .badge-status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .status-active { background-color: #d1e7dd; color: #0f5132; }
+        .status-suspended { background-color: #fff3cd; color: #856404; }
+        .status-cancelled { background-color: #f8d7da; color: #842029; }
+        .status-overdue { background-color: #fce4e4; color: #dc3545; }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ทะเบียนผู้ใช้น้ำ (Water Customer Registry)"></div>
+    <div class="page-content">
+        <!-- Breadcrumb -->
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-users me-2 text-primary"></i>ทะเบียนผู้ใช้น้ำ</h4>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                        <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                        <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                        <li class="breadcrumb-item"><a href="water-dashboard.html" class="text-decoration-none">ระบบประปา</a></li>
+                        <li class="breadcrumb-item active">ทะเบียนผู้ใช้น้ำ</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary" onclick="openSettingsModal()"><i class="fa-solid fa-cog me-1"></i> ตั้งค่าประเภทผู้ใช้น้ำ</button>
+                <div class="dropdown">
+                    <button class="btn btn-outline-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fa-solid fa-file-excel me-1"></i> Excel
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="triggerImport()"><i class="fa-solid fa-file-import me-2"></i> Import Excel</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="exportExcel()"><i class="fa-solid fa-file-export me-2"></i> Export Excel</a></li>
+                    </ul>
+                </div>
+                <input type="file" id="excelFileInput" style="display: none;" accept=".xlsx, .xls">
+                <button class="btn btn-primary" onclick="openAddModal()"><i class="fa-solid fa-plus me-1"></i> เพิ่มผู้ใช้น้ำ</button>
+            </div>
+        </div>
+
+        <!-- Moo Summary Dashboard -->
+        <div class="row g-2 mb-4" id="mooSummaryDashboard">
+            <!-- Dynamically populated -->
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">ค้นหา</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0 ps-0" id="searchInput" placeholder="ชื่อ, รหัส, บ้านเลขที่, เบอร์โทร...">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">หมู่</label>
+                        <select class="form-select" id="filterMoo">
+                            <option value="">ทั้งหมด</option>
+                            <!-- Generated -->
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">ประเภท</label>
+                        <select class="form-select" id="filterType">
+                            <option value="">ทั้งหมด</option>
+                            <option value="บ้านพักอาศัย">บ้านพักอาศัย</option>
+                            <option value="ร้านค้า">ร้านค้า</option>
+                            <option value="หน่วยงานราชการ">หน่วยงานราชการ</option>
+                            <option value="ธุรกิจ">ธุรกิจ</option>
+                            <option value="อื่นๆ">อื่นๆ</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">สถานะ</label>
+                        <select class="form-select" id="filterStatus">
+                            <option value="">ทั้งหมด</option>
+                            <option value="ใช้งาน">ใช้งาน</option>
+                            <option value="ระงับชั่วคราว">ระงับชั่วคราว</option>
+                            <option value="ยกเลิก">ยกเลิก</option>
+                            <option value="ค้างชำระ">ค้างชำระ</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex justify-content-end align-items-center pb-2">
+                        <span class="badge bg-primary rounded-pill px-3 py-2 fs-6">พบ <span id="countLabel">0</span> รายการ</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-4 pb-0">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-list me-2"></i>รายชื่อผู้ใช้น้ำ</h6>
+            </div>
+            <div class="card-body p-0 mt-3">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">รหัส</th>
+                                <th>ชื่อ-นามสกุล</th>
+                                <th>บ้านเลขที่</th>
+                                <th>หมู่</th>
+                                <th>ประเภท</th>
+                                <th>เบอร์โทร</th>
+                                <th>สถานะ</th>
+                                <th class="text-end pe-4">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customerTableBody">
+                            <!-- Data -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-white border-0 py-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <span class="text-muted small" id="pageInfo">แสดง 0 ถึง 0 จาก 0 รายการ</span>
+                    <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customer Add/Edit Modal -->
+<div class="modal fade" id="customerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="customerModalTitle">เพิ่มผู้ใช้น้ำใหม่</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="customerForm">
+                    <input type="hidden" id="customerId">
+                    
+                    <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">ข้อมูลส่วนตัว</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label">รหัสผู้ใช้น้ำ</label>
+                            <input type="text" class="form-control bg-light" id="customerCode" readonly placeholder="สร้างอัตโนมัติ">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">สถานะ <span class="text-danger">*</span></label>
+                            <select class="form-select" id="customerStatus" required>
+                                <option value="ใช้งาน" selected>ใช้งาน</option>
+                                <option value="ระงับชั่วคราว">ระงับชั่วคราว</option>
+                                <option value="ยกเลิก">ยกเลิก</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">วันที่เริ่มใช้น้ำ</label>
+                            <input type="date" class="form-control" id="startDate">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">ประเภทผู้ใช้น้ำ <span class="text-danger">*</span></label>
+                            <select class="form-select" id="customerType" required>
+                                <option value="">- เลือกประเภท -</option>
+                                <option value="บ้านพักอาศัย">บ้านพักอาศัย</option>
+                                <option value="ร้านค้า">ร้านค้า</option>
+                                <option value="หน่วยงานราชการ">หน่วยงานราชการ</option>
+                                <option value="ธุรกิจ">ธุรกิจ</option>
+                                <option value="อื่นๆ">อื่นๆ</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">ชื่อ-นามสกุล / ชื่อองค์กร <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="customerName" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">เลขบัตรประชาชน</label>
+                            <input type="text" class="form-control" id="idCard" maxlength="13" pattern="\d{13}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">เบอร์โทรศัพท์</label>
+                            <input type="text" class="form-control" id="phone" maxlength="10">
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">ข้อมูลที่อยู่</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label">บ้านเลขที่ <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="houseNo" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">หมู่ที่ <span class="text-danger">*</span></label>
+                            <select class="form-select" id="mooNo" required>
+                                <option value="">- เลือก -</option>
+                                <!-- JS will populate 1-20 -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">ชื่อหมู่บ้าน/ชุมชน</label>
+                            <input type="text" class="form-control" id="villageName">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">ตำบล</label>
+                            <input type="text" class="form-control" id="subdistrict" value="ในเมือง">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">อำเภอ</label>
+                            <input type="text" class="form-control" id="district" value="เมือง">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">จังหวัด</label>
+                            <input type="text" class="form-control" id="province" value="นครราชสีมา">
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">พิกัดสถานที่ใช้น้ำ</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-12">
+                            <div class="d-flex justify-content-end mb-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="getCurrentLocation()">
+                                    <i class="fa-solid fa-location-crosshairs"></i> ดึงพิกัดปัจจุบัน
+                                </button>
+                            </div>
+                            <div id="map" class="map-container"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ละติจูด (Latitude)</label>
+                            <input type="text" class="form-control" id="latitude">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ลองจิจูด (Longitude)</label>
+                            <input type="text" class="form-control" id="longitude">
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">อื่นๆ</h6>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">หมายเหตุ</label>
+                            <textarea class="form-control" id="note" rows="2"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" onclick="saveCustomer()">บันทึกข้อมูล</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Full-screen Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content bg-light">
+            <div class="modal-header bg-white border-bottom shadow-sm z-1">
+                <h5 class="modal-title fw-bold">
+                    <i class="fa-solid fa-user-circle text-primary me-2"></i> 
+                    ข้อมูลผู้ใช้น้ำ: <span id="detailCustomerCode" class="text-secondary"></span> - <span id="detailCustomerName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="container-fluid">
+                    <div class="row">
+                        <!-- Left sidebar for info -->
+                        <div class="col-lg-3 mb-4">
+                            <div class="card border-0 shadow-sm mb-3">
+                                <div class="card-body">
+                                    <div class="text-center mb-3">
+                                        <div class="display-1 text-muted mb-2"><i class="fa-solid fa-house-user"></i></div>
+                                        <h5 class="fw-bold mb-1" id="sideName">-</h5>
+                                        <span class="badge bg-primary" id="sideCode">-</span>
+                                        <span class="badge" id="sideStatus">-</span>
+                                    </div>
+                                    <hr>
+                                    <ul class="list-unstyled mb-0 small">
+                                        <li class="mb-2"><i class="fa-solid fa-id-card text-muted me-2" style="width:16px;"></i> <span id="sideIdCard">-</span></li>
+                                        <li class="mb-2"><i class="fa-solid fa-phone text-muted me-2" style="width:16px;"></i> <span id="sidePhone">-</span></li>
+                                        <li class="mb-2"><i class="fa-solid fa-location-dot text-muted me-2" style="width:16px;"></i> <span id="sideAddress">-</span></li>
+                                        <li class="mb-2"><i class="fa-solid fa-tint text-muted me-2" style="width:16px;"></i> <span id="sideType">-</span></li>
+                                        <li><i class="fa-solid fa-calendar-alt text-muted me-2" style="width:16px;"></i> เริ่ม: <span id="sideStartDate">-</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Right content for tabs -->
+                        <div class="col-lg-9">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white border-bottom pt-3 pb-0">
+                                    <ul class="nav nav-tabs border-bottom-0" id="detailTabs" role="tablist">
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-general" type="button">ข้อมูลทั่วไป</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-meter" type="button">มิเตอร์</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-reading" type="button">ประวัติการจดมิเตอร์</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-bill" type="button">ประวัติบิล</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-payment" type="button">ประวัติการชำระ</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-arrears" type="button">ยอดค้าง</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-receipt" type="button">ใบเสร็จ</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-timeline" type="button">Timeline</button>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="card-body">
+                                    <div class="tab-content" id="detailTabsContent">
+                                        <!-- General Tab -->
+                                        <div class="tab-pane fade show active" id="tab-general" role="tabpanel">
+                                            <h6 class="fw-bold mb-3"><i class="fa-solid fa-circle-info me-2 text-primary"></i>รายละเอียดข้อมูล</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered table-sm w-75">
+                                                    <tbody>
+                                                        <tr><th width="30%" class="bg-light">รหัสผู้ใช้น้ำ</th><td id="infoCode">-</td></tr>
+                                                        <tr><th class="bg-light">ชื่อ-นามสกุล</th><td id="infoName">-</td></tr>
+                                                        <tr><th class="bg-light">เลขบัตรประชาชน</th><td id="infoIdCard">-</td></tr>
+                                                        <tr><th class="bg-light">ประเภท</th><td id="infoType">-</td></tr>
+                                                        <tr><th class="bg-light">ที่อยู่</th><td id="infoAddress">-</td></tr>
+                                                        <tr><th class="bg-light">เบอร์โทรศัพท์</th><td id="infoPhone">-</td></tr>
+                                                        <tr><th class="bg-light">วันที่เริ่มใช้น้ำ</th><td id="infoStart">-</td></tr>
+                                                        <tr><th class="bg-light">สถานะปัจจุบัน</th><td id="infoStatus">-</td></tr>
+                                                        <tr><th class="bg-light">พิกัด GPS</th><td id="infoGps">-</td></tr>
+                                                        <tr><th class="bg-light">หมายเหตุ</th><td id="infoNote">-</td></tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Other tabs placeholders -->
+                                        <div class="tab-pane fade" id="tab-meter" role="tabpanel">
+                                            <div class="alert alert-info"><i class="fa-solid fa-info-circle me-2"></i> ยังไม่มีข้อมูลมิเตอร์</div>
+                                        </div>
+                                        <div class="tab-pane fade" id="tab-reading" role="tabpanel">
+                                            <div class="alert alert-info"><i class="fa-solid fa-info-circle me-2"></i> ยังไม่มีประวัติการจดมิเตอร์</div>
+                                        </div>
+                                        <div class="tab-pane fade" id="tab-bill" role="tabpanel">
+                                            <div class="alert alert-info"><i class="fa-solid fa-info-circle me-2"></i> ยังไม่มีประวัติบิล</div>
+                                        </div>
+                                        <div class="tab-pane fade" id="tab-payment" role="tabpanel">
+                                            <div class="alert alert-info"><i class="fa-solid fa-info-circle me-2"></i> ยังไม่มีประวัติการชำระเงิน</div>
+                                        </div>
+                                        <div class="tab-pane fade" id="tab-arrears" role="tabpanel">
+                                            <div class="alert alert-success"><i class="fa-solid fa-check-circle me-2"></i> ไม่มียอดค้างชำระ</div>
+                                        </div>
+                                        <div class="tab-pane fade" id="tab-receipt" role="tabpanel">
+                                            <div class="alert alert-info"><i class="fa-solid fa-info-circle me-2"></i> ยังไม่มีประวัติใบเสร็จ</div>
+                                        </div>
+                                        <div class="tab-pane fade" id="tab-timeline" role="tabpanel">
+                                            <ul class="list-group list-group-flush" id="timelineList">
+                                                <li class="list-group-item px-0 py-3">
+                                                    <div class="d-flex w-100 justify-content-between">
+                                                        <h6 class="mb-1"><i class="fa-solid fa-user-plus text-success me-2"></i>ลงทะเบียนผู้ใช้น้ำ</h6>
+                                                        <small class="text-muted" id="timelineCreated">-</small>
+                                                    </div>
+                                                    <p class="mb-1 small text-muted">เพิ่มข้อมูลเข้าระบบ</p>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/water.js"></script>
+<script src="assets/js/responsive.js"></script>
+
+<script>
+    // Variables
+    let allCustomers = [];
+    let filteredCustomers = [];
+    let currentPage = 1;
+    let itemsPerPage = 10;
+    
+    let map = null;
+    let marker = null;
+    const defaultLat = 14.9799;
+    const defaultLng = 102.0978;
+
+    // Supabase table
+    const TBL = 'water_customers';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        showLoading();
+        
+        // Populate dropdowns
+        populateMooDropdowns();
+
+        // Check if map container exists
+        initMap();
+
+        // Fetch data
+        await fetchWaterCustomers();
+
+        // Setup event listeners
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('filterMoo').addEventListener('change', applyFilters);
+        document.getElementById('filterType').addEventListener('change', applyFilters);
+        document.getElementById('filterStatus').addEventListener('change', applyFilters);
+
+        document.getElementById('excelFileInput').addEventListener('change', handleExcelImport);
+
+        hideLoading();
+    });
+
+    function populateMooDropdowns() {
+        const mooNoSelect = document.getElementById('mooNo');
+        const filterMooSelect = document.getElementById('filterMoo');
+        
+        for (let i = 1; i <= 20; i++) {
+            mooNoSelect.add(new Option(`หมู่ ${i}`, i));
+            filterMooSelect.add(new Option(`หมู่ ${i}`, i));
+        }
+    }
+
+    async function fetchWaterCustomers() {
+        try {
+            const { data, error } = await supabaseClient
+                .from(TBL)
+                .select('*')
+                .order('code', { ascending: true });
+                
+            if (error) {
+                // Ignore missing table error for demo purposes
+                if (error.code !== '42P01') {
+                    console.error('Error fetching data:', error);
+                }
+                allCustomers = [];
+            } else {
+                allCustomers = data || [];
+            }
+            
+            applyFilters();
+            updateMooSummary();
+            
+        } catch (err) {
+            console.error('Catch error:', err);
+            showToast('ไม่สามารถโหลดข้อมูลได้', 'error');
+        }
+    }
+
+    function applyFilters() {
+        const search = document.getElementById('searchInput').value.toLowerCase().trim();
+        const moo = document.getElementById('filterMoo').value;
+        const type = document.getElementById('filterType').value;
+        const status = document.getElementById('filterStatus').value;
+
+        filteredCustomers = allCustomers.filter(c => {
+            const matchSearch = !search || 
+                (c.name && c.name.toLowerCase().includes(search)) ||
+                (c.code && c.code.toLowerCase().includes(search)) ||
+                (c.house_no && c.house_no.toLowerCase().includes(search)) ||
+                (c.id_card && c.id_card.includes(search)) ||
+                (c.phone && c.phone.includes(search));
+                
+            const matchMoo = !moo || c.moo == moo;
+            const matchType = !type || c.type === type;
+            const matchStatus = !status || c.status === status;
+
+            return matchSearch && matchMoo && matchType && matchStatus;
+        });
+
+        document.getElementById('countLabel').innerText = filteredCustomers.length;
+        currentPage = 1;
+        renderTable();
+    }
+
+    function updateMooSummary() {
+        const container = document.getElementById('mooSummaryDashboard');
+        container.innerHTML = '';
+        
+        // Count total
+        const total = allCustomers.length;
+        
+        // Group by Moo
+        const mooCounts = {};
+        allCustomers.forEach(c => {
+            const m = c.moo || 'ไม่ระบุ';
+            mooCounts[m] = (mooCounts[m] || 0) + 1;
+        });
+
+        // Add Total card
+        container.innerHTML += `
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="summary-card" style="border-left-color:#0d6efd">
+                    <div>
+                        <div class="label">ทั้งหมด</div>
+                        <div class="value">${total}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add Moo cards
+        Object.keys(mooCounts).sort((a,b) => parseInt(a) - parseInt(b)).forEach(m => {
+            if (m === 'ไม่ระบุ') return;
+            container.innerHTML += `
+                <div class="col-6 col-md-3 col-lg-2">
+                    <div class="summary-card" style="border-left-color:#198754">
+                        <div>
+                            <div class="label">หมู่ ${m}</div>
+                            <div class="value">${mooCounts[m]}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('customerTableBody');
+        tbody.innerHTML = '';
+
+        if (filteredCustomers.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">ไม่พบข้อมูลผู้ใช้น้ำ</td></tr>`;
+            document.getElementById('pageInfo').innerText = 'แสดง 0 ถึง 0 จาก 0 รายการ';
+            document.getElementById('pagination').innerHTML = '';
+            return;
+        }
+
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = Math.min(startIndex + itemsPerPage, filteredCustomers.length);
+        const paginatedData = filteredCustomers.slice(startIndex, endIndex);
+
+        paginatedData.forEach(c => {
+            let statusBadge = '';
+            if (c.status === 'ใช้งาน') statusBadge = '<span class="badge badge-status status-active">ใช้งาน</span>';
+            else if (c.status === 'ระงับชั่วคราว') statusBadge = '<span class="badge badge-status status-suspended">ระงับชั่วคราว</span>';
+            else if (c.status === 'ค้างชำระ') statusBadge = '<span class="badge badge-status status-overdue">ค้างชำระ</span>';
+            else statusBadge = '<span class="badge badge-status status-cancelled">ยกเลิก</span>';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="ps-4 fw-bold text-primary">${c.code || '-'}</td>
+                <td>${c.name || '-'}</td>
+                <td>${c.house_no || '-'}</td>
+                <td>${c.moo ? 'ม.'+c.moo : '-'}</td>
+                <td>${c.type || '-'}</td>
+                <td>${c.phone || '-'}</td>
+                <td>${statusBadge}</td>
+                <td class="text-end pe-4">
+                    <button class="btn btn-sm btn-outline-info me-1" onclick="openDetailModal('${c.id}')" title="รายละเอียด">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning me-1" onclick="openEditModal('${c.id}')" title="แก้ไข">
+                        <i class="fa-solid fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteCustomer('${c.id}')" title="ลบ">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('pageInfo').innerText = `แสดง ${startIndex + 1} ถึง ${endIndex} จาก ${filteredCustomers.length} รายการ`;
+        renderPagination();
+    }
+
+    function renderPagination() {
+        const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+        const ul = document.getElementById('pagination');
+        ul.innerHTML = '';
+
+        if (totalPages <= 1) return;
+
+        // Prev
+        ul.innerHTML += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage - 1})"><i class="fa-solid fa-chevron-left"></i></a>
+        </li>`;
+
+        // Pages
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                ul.innerHTML += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+                </li>`;
+            } else if (i === currentPage - 2 || i === currentPage + 2) {
+                ul.innerHTML += `<li class="page-item disabled"><a class="page-link" href="#">...</a></li>`;
+            }
+        }
+
+        // Next
+        ul.innerHTML += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage + 1})"><i class="fa-solid fa-chevron-right"></i></a>
+        </li>`;
+    }
+
+    function changePage(page) {
+        if (page < 1 || page > Math.ceil(filteredCustomers.length / itemsPerPage)) return;
+        currentPage = page;
+        renderTable();
+    }
+
+    // Modal Operations
+    function initMap() {
+        if (!map) {
+            map = L.map('map').setView([defaultLat, defaultLng], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+
+            marker.on('dragend', function(e) {
+                const pos = marker.getLatLng();
+                document.getElementById('latitude').value = pos.lat.toFixed(6);
+                document.getElementById('longitude').value = pos.lng.toFixed(6);
+            });
+
+            map.on('click', function(e) {
+                marker.setLatLng(e.latlng);
+                document.getElementById('latitude').value = e.latlng.lat.toFixed(6);
+                document.getElementById('longitude').value = e.latlng.lng.toFixed(6);
+            });
+        }
+    }
+
+    // Fix map rendering issue in modal
+    document.getElementById('customerModal').addEventListener('shown.bs.modal', function () {
+        if (map) {
+            map.invalidateSize();
+        }
+    });
+
+    function getCurrentLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    document.getElementById('latitude').value = lat.toFixed(6);
+                    document.getElementById('longitude').value = lng.toFixed(6);
+                    
+                    map.setView([lat, lng], 15);
+                    marker.setLatLng([lat, lng]);
+                },
+                (error) => {
+                    showToast('ไม่สามารถดึงพิกัดได้: ' + error.message, 'error');
+                }
+            );
+        } else {
+            showToast('เบราว์เซอร์ของคุณไม่รองรับการดึงพิกัด', 'error');
+        }
+    }
+
+    function generateCustomerCode() {
+        if (allCustomers.length === 0) return 'W-00001';
+        
+        // Find max code W-XXXXX
+        let maxNum = 0;
+        allCustomers.forEach(c => {
+            if (c.code && c.code.startsWith('W-')) {
+                const num = parseInt(c.code.substring(2));
+                if (!isNaN(num) && num > maxNum) maxNum = num;
+            }
+        });
+        
+        const nextNum = maxNum + 1;
+        return 'W-' + nextNum.toString().padStart(5, '0');
+    }
+
+    function openAddModal() {
+        document.getElementById('customerForm').reset();
+        document.getElementById('customerId').value = '';
+        document.getElementById('customerCode').value = generateCustomerCode();
+        document.getElementById('customerModalTitle').innerText = 'เพิ่มผู้ใช้น้ำใหม่';
+        
+        // Default values
+        document.getElementById('startDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('subdistrict').value = 'ในเมือง';
+        document.getElementById('district').value = 'เมือง';
+        document.getElementById('province').value = 'นครราชสีมา';
+        document.getElementById('customerStatus').value = 'ใช้งาน';
+        
+        // Reset map
+        document.getElementById('latitude').value = '';
+        document.getElementById('longitude').value = '';
+        marker.setLatLng([defaultLat, defaultLng]);
+        map.setView([defaultLat, defaultLng], 13);
+        
+        new bootstrap.Modal(document.getElementById('customerModal')).show();
+    }
+
+    function openEditModal(id) {
+        const c = allCustomers.find(x => x.id === id);
+        if (!c) return;
+
+        document.getElementById('customerId').value = c.id;
+        document.getElementById('customerCode').value = c.code || '';
+        document.getElementById('customerStatus').value = c.status || 'ใช้งาน';
+        document.getElementById('startDate').value = c.start_date || '';
+        document.getElementById('customerType').value = c.type || '';
+        
+        document.getElementById('customerName').value = c.name || '';
+        document.getElementById('idCard').value = c.id_card || '';
+        document.getElementById('phone').value = c.phone || '';
+        
+        document.getElementById('houseNo').value = c.house_no || '';
+        document.getElementById('mooNo').value = c.moo || '';
+        document.getElementById('villageName').value = c.village || '';
+        document.getElementById('subdistrict').value = c.subdistrict || 'ในเมือง';
+        document.getElementById('district').value = c.district || 'เมือง';
+        document.getElementById('province').value = c.province || 'นครราชสีมา';
+        
+        document.getElementById('latitude').value = c.lat || '';
+        document.getElementById('longitude').value = c.lng || '';
+        document.getElementById('note').value = c.note || '';
+        
+        document.getElementById('customerModalTitle').innerText = 'แก้ไขข้อมูลผู้ใช้น้ำ';
+        
+        if (c.lat && c.lng) {
+            const lat = parseFloat(c.lat);
+            const lng = parseFloat(c.lng);
+            marker.setLatLng([lat, lng]);
+            map.setView([lat, lng], 15);
+        } else {
+            marker.setLatLng([defaultLat, defaultLng]);
+            map.setView([defaultLat, defaultLng], 13);
+        }
+
+        new bootstrap.Modal(document.getElementById('customerModal')).show();
+    }
+
+    async function saveCustomer() {
+        const id = document.getElementById('customerId').value;
+        const form = document.getElementById('customerForm');
+        
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const data = {
+            code: document.getElementById('customerCode').value,
+            status: document.getElementById('customerStatus').value,
+            start_date: document.getElementById('startDate').value || null,
+            type: document.getElementById('customerType').value,
+            name: document.getElementById('customerName').value,
+            id_card: document.getElementById('idCard').value,
+            phone: document.getElementById('phone').value,
+            house_no: document.getElementById('houseNo').value,
+            moo: document.getElementById('mooNo').value,
+            village: document.getElementById('villageName').value,
+            subdistrict: document.getElementById('subdistrict').value,
+            district: document.getElementById('district').value,
+            province: document.getElementById('province').value,
+            lat: document.getElementById('latitude').value || null,
+            lng: document.getElementById('longitude').value || null,
+            note: document.getElementById('note').value
+        };
+
+        showLoading();
+        try {
+            if (id) {
+                const { error } = await supabaseClient.from(TBL).update(data).eq('id', id);
+                if (error) throw error;
+                showToast('อัปเดตข้อมูลสำเร็จ', 'success');
+            } else {
+                const { error } = await supabaseClient.from(TBL).insert([data]);
+                if (error) throw error;
+                showToast('บันทึกข้อมูลสำเร็จ', 'success');
+            }
+            
+            bootstrap.Modal.getInstance(document.getElementById('customerModal')).hide();
+            await fetchWaterCustomers();
+            
+        } catch (error) {
+            console.error('Save error:', error);
+            showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    function deleteCustomer(id) {
+        Swal.fire({
+            title: 'ยืนยันการลบ?',
+            text: "คุณจะไม่สามารถกู้คืนข้อมูลนี้ได้!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'ใช่, ลบเลย!',
+            cancelButtonText: 'ยกเลิก'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                showLoading();
+                try {
+                    const { error } = await supabaseClient.from(TBL).delete().eq('id', id);
+                    if (error) throw error;
+                    
+                    showToast('ลบข้อมูลสำเร็จ', 'success');
+                    await fetchWaterCustomers();
+                } catch (error) {
+                    console.error('Delete error:', error);
+                    showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+                } finally {
+                    hideLoading();
+                }
+            }
+        });
+    }
+
+    // Detail Modal Functionality
+    function maskIdCard(id) {
+        if (!id) return '-';
+        const clean = id.replace(/\D/g, '');
+        if (clean.length === 13) {
+            return `X-XXXX-XXXXX-XX-${clean.slice(-1)}`;
+        }
+        return clean.length > 4 ? 'X'.repeat(clean.length - 4) + clean.slice(-4) : clean;
+    }
+
+    function openDetailModal(id) {
+        const c = allCustomers.find(x => x.id === id);
+        if (!c) return;
+
+        // Modal Title
+        document.getElementById('detailCustomerCode').innerText = c.code || '-';
+        document.getElementById('detailCustomerName').innerText = c.name || '-';
+
+        // Sidebar Info
+        document.getElementById('sideName').innerText = c.name || '-';
+        document.getElementById('sideCode').innerText = c.code || '-';
+        
+        const sideStatus = document.getElementById('sideStatus');
+        sideStatus.innerText = c.status || '-';
+        sideStatus.className = 'badge';
+        if (c.status === 'ใช้งาน') sideStatus.classList.add('bg-success');
+        else if (c.status === 'ระงับชั่วคราว') sideStatus.classList.add('bg-warning');
+        else if (c.status === 'ค้างชำระ') sideStatus.classList.add('bg-danger');
+        else sideStatus.classList.add('bg-secondary');
+
+        document.getElementById('sideIdCard').innerText = maskIdCard(c.id_card);
+        document.getElementById('sidePhone').innerText = c.phone || '-';
+        document.getElementById('sideAddress').innerText = `${c.house_no} ม.${c.moo} ต.${c.subdistrict} อ.${c.district} จ.${c.province}`;
+        document.getElementById('sideType').innerText = c.type || '-';
+        
+        let startDisplay = '-';
+        if (c.start_date) {
+            const d = new Date(c.start_date);
+            startDisplay = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()+543}`;
+        }
+        document.getElementById('sideStartDate').innerText = startDisplay;
+
+        // Tab General
+        document.getElementById('infoCode').innerText = c.code || '-';
+        document.getElementById('infoName').innerText = c.name || '-';
+        document.getElementById('infoIdCard').innerText = maskIdCard(c.id_card);
+        document.getElementById('infoType').innerText = c.type || '-';
+        document.getElementById('infoAddress').innerText = `${c.house_no} ${c.village ? 'หมู่บ้าน'+c.village : ''} ม.${c.moo} ต.${c.subdistrict} อ.${c.district} จ.${c.province}`;
+        document.getElementById('infoPhone').innerText = c.phone || '-';
+        document.getElementById('infoStart').innerText = startDisplay;
+        document.getElementById('infoStatus').innerText = c.status || '-';
+        document.getElementById('infoGps').innerText = (c.lat && c.lng) ? `${c.lat}, ${c.lng}` : 'ไม่ได้ระบุ';
+        document.getElementById('infoNote').innerText = c.note || '-';
+
+        // Set timeline date
+        let createdStr = '-';
+        if (c.created_at) {
+            const cd = new Date(c.created_at);
+            createdStr = `${cd.getDate()}/${cd.getMonth()+1}/${cd.getFullYear()+543} ${cd.getHours().toString().padStart(2,'0')}:${cd.getMinutes().toString().padStart(2,'0')} น.`;
+        }
+        document.getElementById('timelineCreated').innerText = createdStr;
+
+        // Reset tabs to first one
+        const triggerEl = document.querySelector('#detailTabs button[data-bs-target="#tab-general"]');
+        bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+
+        new bootstrap.Modal(document.getElementById('detailModal')).show();
+    }
+
+    // Excel Operations
+    function exportExcel() {
+        if (allCustomers.length === 0) {
+            showToast('ไม่มีข้อมูลสำหรับส่งออก', 'warning');
+            return;
+        }
+
+        const data = allCustomers.map(c => ({
+            'รหัสผู้ใช้น้ำ': c.code || '',
+            'ชื่อ-นามสกุล': c.name || '',
+            'เลขบัตรประชาชน': c.id_card || '',
+            'บ้านเลขที่': c.house_no || '',
+            'หมู่': c.moo || '',
+            'หมู่บ้าน/ชุมชน': c.village || '',
+            'ตำบล': c.subdistrict || '',
+            'อำเภอ': c.district || '',
+            'จังหวัด': c.province || '',
+            'เบอร์โทร': c.phone || '',
+            'ประเภท': c.type || '',
+            'สถานะ': c.status || '',
+            'วันที่เริ่มใช้': c.start_date || '',
+            'Latitude': c.lat || '',
+            'Longitude': c.lng || '',
+            'หมายเหตุ': c.note || ''
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Customers");
+        
+        // Generate buffer
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        
+        saveAs(blob, `Water_Customers_${new Date().toISOString().split('T')[0]}.xlsx`);
+    }
+
+    function triggerImport() {
+        document.getElementById('excelFileInput').click();
+    }
+
+    function handleExcelImport(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                showLoading();
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheet];
+                
+                const json = XLSX.utils.sheet_to_json(worksheet);
+                
+                if (json.length === 0) {
+                    showToast('ไม่พบข้อมูลในไฟล์', 'warning');
+                    return;
+                }
+
+                // Map data to insert
+                const insertData = json.map(row => ({
+                    code: row['รหัสผู้ใช้น้ำ'] || generateCustomerCode(),
+                    name: row['ชื่อ-นามสกุล'] || '-',
+                    id_card: row['เลขบัตรประชาชน'] || null,
+                    house_no: row['บ้านเลขที่'] || '-',
+                    moo: row['หมู่'] || null,
+                    village: row['หมู่บ้าน/ชุมชน'] || null,
+                    subdistrict: row['ตำบล'] || 'ในเมือง',
+                    district: row['อำเภอ'] || 'เมือง',
+                    province: row['จังหวัด'] || 'นครราชสีมา',
+                    phone: row['เบอร์โทร'] || null,
+                    type: row['ประเภท'] || 'บ้านพักอาศัย',
+                    status: row['สถานะ'] || 'ใช้งาน',
+                    start_date: row['วันที่เริ่มใช้'] || new Date().toISOString().split('T')[0],
+                    lat: row['Latitude'] || null,
+                    lng: row['Longitude'] || null,
+                    note: row['หมายเหตุ'] || null
+                }));
+
+                const { error } = await supabaseClient.from(TBL).insert(insertData);
+                if (error) throw error;
+
+                showToast(`นำเข้าข้อมูล ${insertData.length} รายการสำเร็จ`, 'success');
+                await fetchWaterCustomers();
+            } catch (error) {
+                console.error('Import error:', error);
+                showToast('เกิดข้อผิดพลาดในการนำเข้า: ' + error.message, 'error');
+            } finally {
+                document.getElementById('excelFileInput').value = '';
+                hideLoading();
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+    
+    function openSettingsModal() {
+        Swal.fire({
+            title: 'ตั้งค่าประเภทผู้ใช้น้ำ',
+            text: 'ฟังก์ชันนี้อยู่ในระหว่างการพัฒนา',
+            icon: 'info'
+        });
+    }
+</script>
+</body>
+</html>

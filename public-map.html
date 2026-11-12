@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GOOD GOV Citizen - แผนที่เมืองอัจฉริยะ</title>
+    
+    <meta name="theme-color" content="#1e40af">
+    
+    <!-- Dependencies -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/public-map.css">
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div id="splashScreen" class="splash-screen">
+        <div class="splash-content">
+            <i class="fa-solid fa-map-location-dot text-6xl text-white mb-4"></i>
+            <h1 class="text-3xl font-bold text-white mb-2">GOOD GOV</h1>
+            <p class="text-white text-opacity-80">Citizen Smart Map</p>
+            <div class="spinner-border text-light mt-4" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div class="app-container">
+        <!-- Top Bar (Glassmorphism) -->
+        <header class="top-bar glass-panel">
+            <div class="d-flex justify-content-between align-items-center w-100">
+                <div class="d-flex align-items-center gap-3">
+                    <a href="index.html" class="btn btn-sm btn-icon"><i class="fa-solid fa-arrow-left text-white"></i></a>
+                    <div>
+                        <h1 class="h6 mb-0 text-white font-bold" style="letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                            <img src="assets/images/logo.png" style="width: 20px; height: 20px; object-fit: contain; filter: brightness(0) invert(1);" onerror="this.style.display='none'">
+                            แผนที่เมืองอัจฉริยะ
+                        </h1>
+                        <p class="text-white text-opacity-70 mb-0" style="font-size: 0.7rem; font-family: sans-serif; letter-spacing: 0.5px;">Smart City Map (Public GIS)</p>
+                    </div>
+                </div>
+                <div class="d-md-none"> <!-- Only show GPS on mobile here, on desktop we can put it elsewhere or keep it -->
+                    <button class="btn btn-sm btn-icon" onclick="locateUser()"><i class="fa-solid fa-location-crosshairs text-white"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Search Bar Overlay -->
+        <div class="search-overlay glass-panel collapsed" id="searchOverlay" style="flex-direction: column; gap: 0.5rem; padding: 0.5rem; align-items: stretch; border-radius: 1rem;">
+            <div class="input-group flex-nowrap w-100">
+                <span class="input-group-text bg-transparent border-0 text-white opacity-90 cursor-pointer" id="searchToggleBtn"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" class="form-control bg-transparent border-0 text-white shadow-none placeholder-white search-input-field" placeholder="ค้นหาสถานที่ พิกัด หรือชื่อถนน..." id="searchInput">
+                <button class="btn border-0 text-white opacity-90 search-action-btn" id="searchSubmitBtn" title="ค้นหาและซูมไปที่ตำแหน่ง"><i class="fa-solid fa-arrow-right-long"></i></button>
+                <button class="btn border-0 text-white opacity-70 d-none d-md-block search-action-btn" onclick="locateUser()" title="My Location"><i class="fa-solid fa-location-crosshairs"></i></button>
+            </div>
+            <!-- House Number specific filter -->
+            <div id="houseNumberFilterContainer" class="w-100 d-none" style="padding-left: 2.5rem; padding-right: 0.5rem;">
+                <select class="form-select bg-dark text-white border-secondary form-select-sm" id="mooFilter" onchange="filterHouseNumbers()">
+                    <option value="">ทุกหมู่บ้าน (Moo All)</option>
+                    <option value="1">หมู่ 1</option>
+                    <option value="2">หมู่ 2</option>
+                    <option value="3">หมู่ 3</option>
+                    <option value="4">หมู่ 4</option>
+                    <option value="5">หมู่ 5</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- The Map -->
+        <div id="publicMap" class="map-container"></div>
+
+        <!-- Dashboard Widgets (Hidden on small mobile, visible on tablet/desktop, or toggled) -->
+        <div class="dashboard-widgets glass-panel d-none d-md-flex flex-column gap-2">
+            <h6 class="text-white font-bold text-sm border-b border-white border-opacity-20 pb-2 mb-1"><i class="fa-solid fa-chart-pie me-1"></i> ภาพรวมโครงสร้างพื้นฐาน</h6>
+            <div class="d-flex justify-content-between align-items-center text-white text-sm">
+                <span><i class="fa-solid fa-road text-warning me-1"></i> ถนน/ซอย</span>
+                <span id="stat-roads" class="font-bold">...</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center text-white text-sm">
+                <span><i class="fa-solid fa-lightbulb text-yellow-300 me-1"></i> ไฟฟ้าส่องสว่าง</span>
+                <span id="stat-lighting" class="font-bold">...</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center text-white text-sm">
+                <span><i class="fa-solid fa-water text-info me-1"></i> แหล่งน้ำ</span>
+                <span id="stat-water" class="font-bold">...</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center text-white text-sm">
+                <span><i class="fa-solid fa-building text-success me-1"></i> สถานที่ราชการ</span>
+                <span id="stat-publicland" class="font-bold">...</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center text-white text-sm">
+                <span><i class="fa-solid fa-faucet-drip text-blue-400 me-1"></i> มาตรน้ำประปา</span>
+                <span id="stat-watermeter" class="font-bold">...</span>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation / Layer Toggle -->
+        <div class="bottom-sheet glass-panel">
+            <div class="drag-handle"></div>
+            <div class="d-flex justify-content-between align-items-center mb-1 px-3">
+                <h5 class="text-white font-bold mb-0">หมวดหมู่ข้อมูลสาธารณะ</h5>
+                <button id="toggleLayerGridBtn" class="btn btn-sm btn-link text-slate-300 hover:text-white p-0 text-decoration-none d-flex align-items-center gap-2">
+                    <span id="toggleLayerGridText" style="font-size: 0.75rem; font-weight: 500;">ย่อแถบแสดงข้อมูล</span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
+            </div>
+            <div class="px-3 mb-3 text-slate-400" style="font-size: 0.8rem;">แตะเพื่อเปิดชั้นข้อมูล</div>
+            <div class="layer-grid px-2 pb-4">
+                <button class="layer-btn active" data-layer="boundarySubdistrict">
+                    <i class="fa-solid fa-draw-polygon text-purple-600"></i>
+                    <span>แนวเขตตำบล</span>
+                </button>
+                <button class="layer-btn" data-layer="boundaryMarker">
+                    <i class="fa-solid fa-location-pin text-indigo-600"></i>
+                    <span>หมุดหลักเขต</span>
+                </button>
+                <button class="layer-btn" data-layer="boundaryVillage">
+                    <i class="fa-solid fa-draw-polygon text-emerald-600"></i>
+                    <span>ขอบเขตหมู่บ้าน</span>
+                </button>
+                <button class="layer-btn" data-layer="roads">
+                    <i class="fa-solid fa-road text-danger"></i>
+                    <span>ทะเบียนถนนสายทาง</span>
+                </button>
+                <button class="layer-btn d-none" data-layer="plannedRoads">
+                    <i class="fa-solid fa-road-circle-exclamation text-warning"></i>
+                    <span>ถนนในแผนพัฒนา</span>
+                </button>
+                <button class="layer-btn" data-layer="lighting">
+                    <i class="fa-solid fa-lightbulb text-warning"></i>
+                    <span>ไฟฟ้าส่องสว่าง</span>
+                </button>
+                <button class="layer-btn d-none" data-layer="water">
+                    <i class="fa-solid fa-circle text-sky-500"></i>
+                    <span>แหล่งน้ำ & สระ</span>
+                </button>
+                <button class="layer-btn d-none" data-layer="waterways">
+                    <i class="fa-solid fa-droplet text-sky-600"></i>
+                    <span>ลำคลอง & ลำห้วย</span>
+                </button>
+                <button class="layer-btn d-none" data-layer="drainage">
+                    <i class="fa-solid fa-circle text-emerald-500"></i>
+                    <span>ราง & ฝาท่อระบายน้ำ</span>
+                </button>
+                <button class="layer-btn d-none" data-layer="publicLand">
+                    <i class="fa-solid fa-square text-success"></i>
+                    <span>ที่ดินสาธารณะ</span>
+                </button>
+                <button class="layer-btn" data-layer="waterMeter">
+                    <i class="fa-solid fa-faucet-drip text-blue-400"></i>
+                    <span>มาตรน้ำประปา</span>
+                </button>
+                <button class="layer-btn" data-layer="houseNumbers">
+                    <i class="fa-solid fa-house-chimney text-orange-500"></i>
+                    <span>บ้านเลขที่</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Image Preview -->
+    <div class="modal fade" id="publicImagePreviewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-header border-0 pb-0 text-end d-block">
+                    <button type="button" class="btn-close btn-close-white bg-dark p-2 rounded-circle" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0 text-center">
+                    <img id="publicPreviewImageSrc" src="" class="img-fluid rounded-xl shadow-lg" style="max-height: 85vh; object-fit: contain;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
+    <!-- Supabase Connection & Existing Services -->
+    <script src="assets/js/supabase-client.js"></script>
+    <script src="services/gisSpatialService.js"></script>
+    <script src="services/waterSpatialService.js"></script>
+    <script src="services/publicLandSpatialService.js"></script>
+    <script src="services/boundarySpatialService.js"></script>
+    <script src="assets/js/digital-infrastructure.js"></script>
+    
+    <!-- Public Map Logic -->
+    <script>
+        document.write('<script src="assets/js/public-map.js?v=' + new Date().getTime() + '"><\/script>');
+    </script>
+    
+
+</body>
+</html>

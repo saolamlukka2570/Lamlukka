@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบประปาหมู่บ้าน (Water Billing) - เทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ระบบมาตรวัดน้ำประปาหมู่บ้าน (Water Billing)"></div>
+    <div class="page-content">
+
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">ระบบประปาหมู่บ้าน</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                    <li class="breadcrumb-item active">ประปาหมู่บ้าน</li>
+                </ol></nav>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-info" onclick="showToast('ส่ง E-Invoice ผ่าน LINE/Email ทั้งหมดสำเร็จ','success')">
+                    <i class="fa-solid fa-paper-plane me-1"></i>ส่ง E-Invoice ทั้งหมด
+                </button>
+                <button class="btn btn-sm btn-outline-success" onclick="showToast('Export รายงานน้ำประปาสำเร็จ','info')">
+                    <i class="fa-solid fa-file-excel me-1"></i>Export
+                </button>
+            </div>
+        </div>
+
+        <!-- Abnormal Alert -->
+        <div class="alert border-0 d-flex align-items-center gap-3 mb-4" style="background:#fff7ed; border-left:4px solid #f97316 !important; border-radius:12px; padding:1rem 1.25rem;">
+            <i class="fa-solid fa-droplet-slash fa-2x text-warning flex-shrink-0"></i>
+            <div class="flex-grow-1">
+                <div class="fw-bold text-warning">แจ้งเตือนการใช้น้ำผิดปกติ (Abnormal Usage Alert)</div>
+                <div class="text-sm text-muted">พบ 2 บัญชีที่มีการใช้น้ำสูงกว่าค่าเฉลี่ย 200%+ ในรอบนี้ — อาจมีท่อรั่ว กรุณาตรวจสอบด่วน</div>
+            </div>
+            <button class="btn btn-sm btn-warning text-dark fw-semibold flex-shrink-0" onclick="showToast('เปิดรายงานการใช้น้ำผิดปกติ','warning')">
+                <i class="fa-solid fa-magnifying-glass me-1"></i>ตรวจสอบ
+            </button>
+        </div>
+
+        <!-- KPI -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-xl-3"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">บัญชีผู้ใช้น้ำทั้งหมด</div><div class="kpi-value">3,850</div></div><div class="kpi-icon bg-info bg-opacity-10 text-info"><i class="fa-solid fa-faucet-drip"></i></div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">จดมาตรแล้วเดือนนี้</div><div class="kpi-value text-success">3,820</div></div><div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-circle-check"></i></div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ยังไม่ได้จดมาตร</div><div class="kpi-value text-warning">30</div></div><div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-clock"></i></div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">รายได้เดือนนี้ (บาท)</div><div class="kpi-value text-primary">243K</div></div><div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-coins"></i></div></div></div></div>
+        </div>
+
+        <div class="row g-3">
+            <!-- Meter Input Form -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header border-0">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-pen-to-square text-info me-2"></i>บันทึกการจดมาตรน้ำ</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">เลขที่ผู้ใช้น้ำ (Account ID)</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="accountId" placeholder="W-XXXXX">
+                                <button class="btn btn-outline-primary" type="button" onclick="loadAccount()"><i class="fa-solid fa-search"></i></button>
+                            </div>
+                        </div>
+
+                        <div class="p-3 rounded mb-3 fade-in-up" style="background:#f0f5ff; border:1px solid #c7d9f8;" id="accountInfo">
+                            <div class="fw-semibold text-sm mb-1">กรุณาพิมพ์รหัสผู้ใช้น้ำ</div>
+                            <div class="text-xs text-muted">แล้วกดค้นหาเพื่อโหลดข้อมูล</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold text-danger">เลขมาตรปัจจุบัน (ลบ.ม.)</label>
+                            <input type="number" class="form-control form-control-lg text-end fs-4 fw-bold" id="currentReading" placeholder="0" min="0" oninput="calculateBill()">
+                        </div>
+
+                        <div class="p-3 rounded mb-4" style="background:#f0fdf4; border:1px solid #bbf7d0;" id="billCalc">
+                            <div class="text-xs text-muted mb-2">ผลการคำนวณ</div>
+                            <div class="d-flex justify-content-between text-sm"><span>หน่วยที่ใช้:</span><span class="fw-bold" id="usageResult">— ลบ.ม.</span></div>
+                            <div class="d-flex justify-content-between text-sm"><span>ยอดที่ต้องชำระ:</span><span class="fw-bold text-success" id="billResult">— บาท</span></div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-info text-white" onclick="saveMeterReading()">
+                                <i class="fa-solid fa-save me-1"></i>บันทึกและออกใบแจ้งหนี้
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="showToast('เปิดโหมดสแกน QR มาตร','info')">
+                                <i class="fa-solid fa-qrcode me-1"></i>สแกน QR มาตร
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History & Chart -->
+            <div class="col-lg-8">
+                <div class="card mb-3">
+                    <div class="card-header border-0">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-chart-line text-info me-2"></i>กราฟแนวโน้มการใช้น้ำ (บัญชี W-00142)</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="waterChart" height="120"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-clock-rotate-left text-muted me-2"></i>ประวัติการจดมาตรล่าสุด</h6>
+                        <input class="form-control form-control-sm" style="width:160px;" placeholder="ค้นหา...">
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">รหัส</th><th>ชื่อ-สกุล</th><th class="text-end">มาตรก่อน</th>
+                                    <th class="text-end">มาตรปัจจุบัน</th><th class="text-end">หน่วย</th>
+                                    <th class="text-end">ยอดเงิน</th><th>สถานะ</th><th class="pe-4">E-Invoice</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="ps-4 fw-semibold text-xs">W-00140</td><td>นางสมบูรณ์ ดีพร้อม</td>
+                                    <td class="text-end text-muted text-xs">1,435</td><td class="text-end fw-semibold">1,450</td>
+                                    <td class="text-end"><span class="badge bg-secondary">15</span></td>
+                                    <td class="text-end fw-semibold text-success">฿150.00</td>
+                                    <td><span class="badge bg-success">ชำระแล้ว</span></td>
+                                    <td class="pe-4">
+                                        <button class="btn btn-xs btn-outline-success rounded-circle me-1" onclick="showToast('ส่ง LINE Invoice W-00140 สำเร็จ','success')"><i class="fa-brands fa-line"></i></button>
+                                        <button class="btn btn-xs btn-outline-primary rounded-circle" onclick="showToast('ส่ง Email Invoice W-00140 สำเร็จ','info')"><i class="fa-solid fa-envelope"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4 fw-semibold text-xs">W-00141</td><td>นายธนภูมิ สร้างสรรค์</td>
+                                    <td class="text-end text-muted text-xs">1,210</td><td class="text-end fw-semibold">1,232</td>
+                                    <td class="text-end"><span class="badge bg-secondary">22</span></td>
+                                    <td class="text-end fw-semibold text-success">฿230.00</td>
+                                    <td><span class="badge bg-warning text-dark">ยังไม่ชำระ</span></td>
+                                    <td class="pe-4">
+                                        <button class="btn btn-xs btn-outline-success rounded-circle me-1" onclick="showToast('ส่ง LINE Invoice W-00141 สำเร็จ','success')"><i class="fa-brands fa-line"></i></button>
+                                        <button class="btn btn-xs btn-outline-primary rounded-circle" onclick="showToast('ส่ง Email Invoice W-00141 สำเร็จ','info')"><i class="fa-solid fa-envelope"></i></button>
+                                    </td>
+                                </tr>
+                                <tr class="table-warning">
+                                    <td class="ps-4 fw-semibold text-xs">W-00089</td><td>นายอุดม มีทรัพย์ <i class="fa-solid fa-triangle-exclamation text-danger"></i></td>
+                                    <td class="text-end text-muted text-xs">850</td><td class="text-end fw-bold text-danger">1,120</td>
+                                    <td class="text-end"><span class="badge bg-danger">270 !</span></td>
+                                    <td class="text-end fw-semibold text-danger">฿3,200.00</td>
+                                    <td><span class="badge bg-danger">ผิดปกติ</span></td>
+                                    <td class="pe-4">
+                                        <button class="btn btn-xs btn-warning text-dark fw-semibold" onclick="showToast('แจ้งเตือนการใช้น้ำผิดปกติไปยัง W-00089 สำเร็จ','warning')"><i class="fa-solid fa-bell me-1"></i>แจ้งเตือน</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script>
+    const PREV_READING = 1450;
+    const RATE = 10; // 10 baht per unit (simplified)
+
+    function loadAccount() {
+        const id = document.getElementById('accountId').value;
+        document.getElementById('accountInfo').innerHTML = `
+            <p class="mb-1 text-sm"><strong>ผู้ใช้น้ำ:</strong> นายอนุรักษ์ รักษ์น้ำ</p>
+            <p class="mb-1 text-sm"><strong>ที่อยู่:</strong> 55/2 หมู่ 3</p>
+            <p class="mb-0 text-sm"><strong>มาตรเดือนก่อน:</strong> <span class="text-primary fw-bold">${PREV_READING.toLocaleString()} ลบ.ม.</span></p>
+        `;
+        showToast(`โหลดข้อมูลบัญชี ${id||'W-00142'} สำเร็จ`,'success');
+    }
+
+    function calculateBill() {
+        const cur = parseFloat(document.getElementById('currentReading').value) || 0;
+        const usage = Math.max(0, cur - PREV_READING);
+        const bill  = usage * RATE;
+        document.getElementById('usageResult').textContent = `${usage} ลบ.ม.`;
+        document.getElementById('billResult').textContent  = `฿${bill.toLocaleString('th-TH', {minimumFractionDigits:2})}`;
+    }
+
+    function saveMeterReading() {
+        const cur = parseFloat(document.getElementById('currentReading').value);
+        if (!cur) { showToast('กรุณากรอกเลขมาตรปัจจุบัน','warning'); return; }
+        showToast('บันทึกการจดมาตรและออก E-Invoice สำเร็จ!','success');
+        document.getElementById('currentReading').value = '';
+        document.getElementById('usageResult').textContent = '— ลบ.ม.';
+        document.getElementById('billResult').textContent  = '— บาท';
+    }
+
+    // Usage Trend Chart
+    const ctx = document.getElementById('waterChart').getContext('2d');
+    new Chart(ctx, {
+        type:'line',
+        data: {
+            labels:['พ.ย.','ธ.ค.','ม.ค.','ก.พ.','มี.ค.','เม.ย.'],
+            datasets:[{
+                label:'การใช้น้ำ (ลบ.ม.)',
+                data:[14,16,13,17,15,15],
+                borderColor:'#0694a2', backgroundColor:'rgba(6,148,162,0.1)',
+                fill:true, tension:0.4, pointBackgroundColor:'#0694a2'
+            }]
+        },
+        options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{ labels:{ font:{ family:'Prompt' }, boxRadius:4 } } },
+            scales:{
+                x:{ grid:{ display:false }, ticks:{ font:{ family:'Prompt', size:11 } } },
+                y:{ grid:{ color:'#f3f4f6' }, ticks:{ font:{ family:'Prompt', size:11 } } }
+            }
+        }
+    });
+</script>
+    <script src="assets/js/responsive.js"></script>
+</body>
+</html>

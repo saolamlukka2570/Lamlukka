@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รับชำระค่าน้ำ - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .search-results-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1050;
+        }
+        .search-result-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        .search-result-item:hover {
+            background-color: #f8f9fa;
+        }
+        .customer-info-box {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid #0d6efd;
+        }
+        .payment-summary-box {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+        }
+        .bill-checkbox {
+            width: 1.2rem;
+            height: 1.2rem;
+            cursor: pointer;
+        }
+        
+        /* Print Styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printReceiptArea, #printReceiptArea * {
+                visibility: visible;
+            }
+            #printReceiptArea {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 20px;
+            }
+            .modal-dialog {
+                margin: 0;
+                width: 100%;
+                max-width: 100%;
+            }
+            .modal-content {
+                border: none;
+                box-shadow: none;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px dashed #ccc;
+            padding-bottom: 15px;
+        }
+        .receipt-logo {
+            width: 60px;
+            height: 60px;
+            background-color: #0d6efd;
+            color: white;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="รับชำระค่าน้ำ"></div>
+    
+    <div class="page-content">
+        <!-- Breadcrumb & Header -->
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-hand-holding-dollar me-2 text-primary"></i>รับชำระค่าน้ำ</h4>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                        <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                        <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                        <li class="breadcrumb-item"><a href="water-dashboard.html" class="text-decoration-none">ระบบประปา</a></li>
+                        <li class="breadcrumb-item active">รับชำระค่าน้ำ</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+                <div class="kpi-card fade-in-up" style="animation-delay: 0.1s;">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="kpi-label mb-1">รับชำระวันนี้</div>
+                            <div class="kpi-value text-primary" id="kpiTodayPayments">฿0.00</div>
+                        </div>
+                        <div class="kpi-icon bg-primary-subtle text-primary">
+                            <i class="fa-solid fa-calendar-day"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="kpi-card fade-in-up" style="animation-delay: 0.2s;">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="kpi-label mb-1">รับชำระเดือนนี้</div>
+                            <div class="kpi-value text-info" id="kpiMonthPayments">฿0.00</div>
+                        </div>
+                        <div class="kpi-icon bg-info-subtle text-info">
+                            <i class="fa-solid fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="kpi-card fade-in-up" style="animation-delay: 0.3s;">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="kpi-label mb-1">รอตรวจสอบ</div>
+                            <div class="kpi-value text-warning" id="kpiPendingPayments">0 รายการ</div>
+                        </div>
+                        <div class="kpi-icon bg-warning-subtle text-warning">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="kpi-card fade-in-up" style="animation-delay: 0.4s;">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="kpi-label mb-1">ยอดค้างชำระรวม</div>
+                            <div class="kpi-value text-danger" id="kpiTotalDebt">฿0.00</div>
+                        </div>
+                        <div class="kpi-icon bg-danger-subtle text-danger">
+                            <i class="fa-solid fa-coins"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Section -->
+        <div class="card shadow-sm border-0 mb-4 fade-in-up" style="animation-delay: 0.5s;">
+            <div class="card-body p-4">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <h5 class="fw-bold mb-3 text-center"><i class="fa-solid fa-search me-2"></i>ค้นหาผู้ใช้น้ำเพื่อรับชำระ</h5>
+                        <div class="position-relative">
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-white text-primary border-end-0"><i class="fa-solid fa-magnifying-glass"></i></span>
+                                <input type="text" id="searchInput" class="form-control border-start-0 ps-0" placeholder="พิมพ์ชื่อ, รหัสผู้ใช้น้ำ หรือบ้านเลขที่..." autocomplete="off">
+                                <button class="btn btn-primary px-4" type="button" id="btnSearch">ค้นหา</button>
+                            </div>
+                            <div id="searchResults" class="search-results-dropdown d-none">
+                                <!-- Results injected via JS -->
+                            </div>
+                        </div>
+                        <div class="text-center mt-2 text-muted small">
+                            สามารถค้นหาจาก: รหัสผู้ใช้น้ำ (เช่น W0001), ชื่อ-นามสกุล, หรือบ้านเลขที่
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Flow Section (Hidden initially) -->
+        <div id="paymentSection" class="card shadow-sm border-0 mb-4 d-none fade-in-up">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-primary"><i class="fa-solid fa-file-invoice-dollar me-2"></i>ทำรายการรับชำระ</h6>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetPaymentFlow()">
+                    <i class="fa-solid fa-times me-1"></i>ยกเลิก
+                </button>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <!-- Left: Customer Info & Bills -->
+                    <div class="col-lg-7 col-xl-8">
+                        <!-- Customer Info -->
+                        <div class="customer-info-box mb-4">
+                            <div class="row">
+                                <div class="col-md-6 mb-2 mb-md-0">
+                                    <div class="text-muted small">รหัสผู้ใช้น้ำ</div>
+                                    <div class="fw-bold fs-5" id="lblCustomerCode">-</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">ชื่อ-นามสกุล</div>
+                                    <div class="fw-bold fs-5" id="lblCustomerName">-</div>
+                                </div>
+                                <div class="col-md-6 mt-3">
+                                    <div class="text-muted small">ที่อยู่</div>
+                                    <div id="lblCustomerAddress">-</div>
+                                </div>
+                                <div class="col-md-3 mt-3">
+                                    <div class="text-muted small">ประเภท</div>
+                                    <div id="lblCustomerType">-</div>
+                                </div>
+                                <div class="col-md-3 mt-3">
+                                    <div class="text-muted small">สถานะ</div>
+                                    <div id="lblCustomerStatus">-</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Unpaid Bills Table -->
+                        <h6 class="fw-bold mb-3">รายการค้างชำระ</h6>
+                        <div class="table-responsive border rounded">
+                            <table class="table table-hover table-striped mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3 text-center" style="width: 50px;">
+                                            <input class="form-check-input bill-checkbox" type="checkbox" id="checkAllBills" checked>
+                                        </th>
+                                        <th>รอบบิล</th>
+                                        <th>เลขที่ใบแจ้งหนี้</th>
+                                        <th class="text-end">ค่าน้ำ</th>
+                                        <th class="text-end">ค่าปรับ</th>
+                                        <th class="pe-3 text-end">รวมสุทธิ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="unpaidBillsBody">
+                                    <!-- Injected via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Right: Payment Form -->
+                    <div class="col-lg-5 col-xl-4">
+                        <div class="payment-summary-box h-100 d-flex flex-column">
+                            <h6 class="fw-bold mb-3 border-bottom pb-2">สรุปการชำระเงิน</h6>
+                            
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">จำนวนรายการที่เลือก:</span>
+                                <span class="fw-bold" id="summaryCount">0 รายการ</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">รวมค่าน้ำ:</span>
+                                <span id="summaryWater">฿0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3">
+                                <span class="text-muted">รวมค่าปรับ:</span>
+                                <span id="summaryPenalty">฿0.00</span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-white rounded border border-primary">
+                                <span class="fw-bold fs-5">ยอดที่ต้องชำระ:</span>
+                                <span class="fw-bold fs-4 text-primary" id="summaryTotal">฿0.00</span>
+                            </div>
+
+                            <form id="paymentForm" onsubmit="processPayment(event)" class="mt-auto">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small">ช่องทางการชำระเงิน <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="paymentMethod" required>
+                                        <option value="cash">เงินสด (Cash)</option>
+                                        <option value="transfer">โอนผ่านธนาคาร (Bank Transfer)</option>
+                                        <option value="promptpay">พร้อมเพย์ (PromptPay)</option>
+                                        <option value="qrcode">Thai QR Payment</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small">จำนวนเงินที่รับ <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">฿</span>
+                                        <input type="number" class="form-control fw-bold text-end" id="amountReceived" step="0.01" required>
+                                    </div>
+                                    <div class="form-text text-danger d-none" id="amountError">จำนวนเงินไม่เพียงพอ</div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold small">หมายเหตุ (ถ้ามี)</label>
+                                    <input type="text" class="form-control" id="paymentNote" placeholder="เช่น ชำระบางส่วน, โอนต่างธนาคาร">
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 py-2 fs-5 fw-bold" id="btnProcessPayment" disabled>
+                                    <i class="fa-solid fa-check-circle me-2"></i>ยืนยันรับชำระเงิน
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Payments Table -->
+        <div class="card shadow-sm border-0 fade-in-up" style="animation-delay: 0.6s;">
+            <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-clock-rotate-left me-2"></i>รายการรับชำระล่าสุด</h6>
+                <button class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-download me-1"></i>ส่งออกรายงาน</button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">วันที่ / เวลา</th>
+                                <th>เลขที่ใบเสร็จ</th>
+                                <th>รหัสผู้ใช้</th>
+                                <th>ชื่อ-นามสกุล</th>
+                                <th>จำนวนเงิน</th>
+                                <th>ช่องทาง</th>
+                                <th>สถานะ</th>
+                                <th class="pe-4 text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentPaymentsBody">
+                            <!-- Injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-3 border-top d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">แสดง 1 ถึง 10 จาก 45 รายการ</span>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item disabled"><a class="page-link" href="#">ก่อนหน้า</a></li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item"><a class="page-link" href="#">ถัดไป</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal fade" id="receiptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0 no-print">
+                <h5 class="modal-title fw-bold">พิมพ์ใบเสร็จรับเงิน</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" id="printReceiptArea">
+                <!-- Printable Receipt Content -->
+                <div class="receipt-header">
+                    <div class="receipt-logo"><i class="fa-solid fa-droplet"></i></div>
+                    <h4 class="fw-bold mb-1">เทศบาลตำบลตัวอย่าง</h4>
+                    <div>ระบบจัดการน้ำประปาอัจฉริยะ (Smart Water)</div>
+                    <div class="mt-3 fw-bold fs-5">ใบเสร็จรับเงิน / ใบกำกับภาษีอย่างย่อ</div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-6">
+                        <div><strong>ผู้ใช้น้ำ:</strong> <span id="receiptCustName">นาย สมชาย ใจดี</span></div>
+                        <div><strong>รหัสผู้ใช้:</strong> <span id="receiptCustCode">W0001</span></div>
+                        <div><strong>ที่อยู่:</strong> <span id="receiptCustAddress">123 ม.1 ต.ตัวอย่าง อ.เมือง</span></div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div><strong>เลขที่ใบเสร็จ:</strong> <span id="receiptNo">REC-66090001</span></div>
+                        <div><strong>วันที่:</strong> <span id="receiptDate">22/09/2566 14:30</span></div>
+                        <div><strong>พนักงานรับเงิน:</strong> Admin System</div>
+                    </div>
+                </div>
+                
+                <table class="table table-bordered mb-4">
+                    <thead>
+                        <tr class="bg-light">
+                            <th class="text-center" style="width: 50px;">#</th>
+                            <th>รายการ (รอบบิล)</th>
+                            <th class="text-end">ค่าน้ำ</th>
+                            <th class="text-end">ค่าปรับ</th>
+                            <th class="text-end">จำนวนเงิน</th>
+                        </tr>
+                    </thead>
+                    <tbody id="receiptItemsBody">
+                        <!-- Items injected here -->
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" class="text-end fw-bold">ยอดรวมสุทธิ</td>
+                            <td class="text-end fw-bold fs-5" id="receiptTotal">฿0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                
+                <div class="row mt-4">
+                    <div class="col-6">
+                        <div><strong>ชำระโดย:</strong> <span id="receiptMethod">เงินสด</span></div>
+                        <div><strong>จำนวนเงินรับ:</strong> <span id="receiptReceived">฿0.00</span></div>
+                        <div><strong>เงินทอน:</strong> <span id="receiptChange">฿0.00</span></div>
+                    </div>
+                    <div class="col-6 text-center mt-3">
+                        <div>.......................................................</div>
+                        <div class="mt-1">(ผู้รับเงิน)</div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-5 text-muted small">
+                    เอกสารฉบับนี้จะสมบูรณ์เมื่อเรียกเก็บเงินได้เรียบร้อยแล้ว<br>
+                    ขอบคุณที่ใช้บริการ
+                </div>
+            </div>
+            <div class="modal-footer border-0 no-print">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+                <button type="button" class="btn btn-primary" onclick="window.print()">
+                    <i class="fa-solid fa-print me-2"></i>พิมพ์ใบเสร็จ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/water.js"></script>
+<script src="assets/js/responsive.js"></script>
+
+<script>
+    // --- Mock Data ---
+    const mockCustomers = [
+        { id: 'W0001', name: 'นาย สมชาย ใจดี', address: '123 ม.1 ต.สมมติ อ.เมือง', phone: '081-111-1111', type: 'ที่พักอาศัย', status: 'ปกติ' },
+        { id: 'W0002', name: 'นาง สมหญิง รักสงบ', address: '45/2 ม.2 ต.สมมติ อ.เมือง', phone: '082-222-2222', type: 'พาณิชย์', status: 'ปกติ' },
+        { id: 'W0003', name: 'บจก. น้ำดื่มสะอาด', address: '99 ม.3 ต.สมมติ อ.เมือง', phone: '083-333-3333', type: 'อุตสาหกรรม', status: 'ปกติ' }
+    ];
+
+    const mockUnpaidBills = [
+        { id: 'INV-6608-001', customerId: 'W0001', period: 'ส.ค. 2566', waterAmount: 120.00, penalty: 20.00 },
+        { id: 'INV-6609-001', customerId: 'W0001', period: 'ก.ย. 2566', waterAmount: 150.00, penalty: 0.00 },
+        { id: 'INV-6609-002', customerId: 'W0002', period: 'ก.ย. 2566', waterAmount: 340.50, penalty: 0.00 },
+    ];
+
+    const mockRecentPayments = [
+        { id: 'REC-6609005', date: '22/09/2566 11:30', custId: 'W0015', custName: 'นาย วิทยา มาดี', amount: 180.00, method: 'พร้อมเพย์', status: 'สำเร็จ' },
+        { id: 'REC-6609004', date: '22/09/2566 10:15', custId: 'W0042', custName: 'นาง มะลิ หอมจันทร์', amount: 210.50, method: 'เงินสด', status: 'สำเร็จ' },
+        { id: 'REC-6609003', date: '22/09/2566 09:45', custId: 'W0008', custName: 'ร้าน ค้าเจริญ', amount: 850.00, method: 'โอนเงิน', status: 'รอตรวจสอบ' },
+        { id: 'REC-6609002', date: '21/09/2566 15:20', custId: 'W0022', custName: 'นาย สุรชัย ใจสู้', amount: 135.00, method: 'เงินสด', status: 'สำเร็จ' },
+    ];
+
+    // --- State ---
+    let currentCustomer = null;
+    let customerBills = [];
+    let selectedTotal = 0;
+    
+    // --- Utilities ---
+    const formatMoney = (amount) => '฿' + parseFloat(amount).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        initPage();
+        setupSearchListeners();
+    });
+
+    function initPage() {
+        // Init KPIs
+        document.getElementById('kpiTodayPayments').innerText = '฿3,250.00';
+        document.getElementById('kpiMonthPayments').innerText = '฿145,800.00';
+        document.getElementById('kpiPendingPayments').innerText = '12 รายการ';
+        document.getElementById('kpiTotalDebt').innerText = '฿45,210.00';
+
+        renderRecentPayments();
+    }
+
+    function setupSearchListeners() {
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        let timeout = null;
+
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(timeout);
+            const val = e.target.value.trim().toLowerCase();
+            
+            if (val.length < 2) {
+                searchResults.classList.add('d-none');
+                return;
+            }
+
+            timeout = setTimeout(() => {
+                const results = mockCustomers.filter(c => 
+                    c.id.toLowerCase().includes(val) || 
+                    c.name.toLowerCase().includes(val) || 
+                    c.address.toLowerCase().includes(val)
+                );
+                
+                renderSearchResults(results);
+            }, 300);
+        });
+
+        // Hide dropdown when clicked outside
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.classList.add('d-none');
+            }
+        });
+    }
+
+    function renderSearchResults(results) {
+        const dropdown = document.getElementById('searchResults');
+        
+        if (results.length === 0) {
+            dropdown.innerHTML = '<div class="p-3 text-center text-muted">ไม่พบข้อมูลผู้ใช้น้ำ</div>';
+        } else {
+            dropdown.innerHTML = results.map(c => `
+                <div class="search-result-item" onclick="selectCustomer('${c.id}')">
+                    <div class="fw-bold">${c.id} - ${c.name}</div>
+                    <div class="small text-muted">${c.address}</div>
+                </div>
+            `).join('');
+        }
+        
+        dropdown.classList.remove('d-none');
+    }
+
+    function selectCustomer(id) {
+        // Hide dropdown and clear input
+        document.getElementById('searchResults').classList.add('d-none');
+        document.getElementById('searchInput').value = '';
+
+        // Find customer & bills
+        currentCustomer = mockCustomers.find(c => c.id === id);
+        customerBills = mockUnpaidBills.filter(b => b.customerId === id);
+
+        if(!currentCustomer) return;
+
+        // Render Info
+        document.getElementById('lblCustomerCode').innerText = currentCustomer.id;
+        document.getElementById('lblCustomerName').innerText = currentCustomer.name;
+        document.getElementById('lblCustomerAddress').innerText = currentCustomer.address;
+        document.getElementById('lblCustomerType').innerText = currentCustomer.type;
+        document.getElementById('lblCustomerStatus').innerHTML = `<span class="badge bg-success">${currentCustomer.status}</span>`;
+
+        // Render Bills
+        const billsBody = document.getElementById('unpaidBillsBody');
+        if (customerBills.length === 0) {
+            billsBody.innerHTML = `<tr><td colspan="6" class="text-center text-success py-4"><i class="fa-solid fa-circle-check fs-2 mb-2"></i><br>ไม่มีรายการค้างชำระ</td></tr>`;
+            document.getElementById('btnProcessPayment').disabled = true;
+        } else {
+            billsBody.innerHTML = customerBills.map((b, index) => {
+                const total = b.waterAmount + b.penalty;
+                return `
+                    <tr>
+                        <td class="text-center">
+                            <input class="form-check-input bill-checkbox item-check" type="checkbox" value="${b.id}" data-water="${b.waterAmount}" data-penalty="${b.penalty}" checked onchange="calculateTotal()">
+                        </td>
+                        <td>${b.period}</td>
+                        <td>${b.id}</td>
+                        <td class="text-end">${formatMoney(b.waterAmount)}</td>
+                        <td class="text-end text-danger">${b.penalty > 0 ? formatMoney(b.penalty) : '-'}</td>
+                        <td class="text-end fw-bold">${formatMoney(total)}</td>
+                    </tr>
+                `;
+            }).join('');
+            document.getElementById('btnProcessPayment').disabled = false;
+        }
+
+        // Check All listener
+        const checkAll = document.getElementById('checkAllBills');
+        checkAll.checked = true;
+        checkAll.onchange = function() {
+            document.querySelectorAll('.item-check').forEach(cb => {
+                cb.checked = this.checked;
+            });
+            calculateTotal();
+        };
+
+        // Show section
+        document.getElementById('paymentSection').classList.remove('d-none');
+        calculateTotal();
+    }
+
+    function calculateTotal() {
+        const checks = document.querySelectorAll('.item-check:checked');
+        let totalWater = 0;
+        let totalPenalty = 0;
+        
+        checks.forEach(cb => {
+            totalWater += parseFloat(cb.dataset.water);
+            totalPenalty += parseFloat(cb.dataset.penalty);
+        });
+        
+        selectedTotal = totalWater + totalPenalty;
+
+        document.getElementById('summaryCount').innerText = `${checks.length} รายการ`;
+        document.getElementById('summaryWater').innerText = formatMoney(totalWater);
+        document.getElementById('summaryPenalty').innerText = formatMoney(totalPenalty);
+        document.getElementById('summaryTotal').innerText = formatMoney(selectedTotal);
+        
+        // Auto fill amount received if not manually changed or is smaller
+        const amountInput = document.getElementById('amountReceived');
+        amountInput.value = selectedTotal.toFixed(2);
+        
+        document.getElementById('btnProcessPayment').disabled = checks.length === 0;
+
+        // Sync check all state
+        const allChecks = document.querySelectorAll('.item-check');
+        document.getElementById('checkAllBills').checked = (checks.length === allChecks.length && allChecks.length > 0);
+    }
+
+    function resetPaymentFlow() {
+        document.getElementById('paymentSection').classList.add('d-none');
+        currentCustomer = null;
+        customerBills = [];
+        document.getElementById('paymentForm').reset();
+    }
+
+    function processPayment(e) {
+        e.preventDefault();
+        
+        const received = parseFloat(document.getElementById('amountReceived').value);
+        if (received < selectedTotal) {
+            document.getElementById('amountError').classList.remove('d-none');
+            return;
+        }
+        document.getElementById('amountError').classList.add('d-none');
+
+        const methodSelect = document.getElementById('paymentMethod');
+        const methodText = methodSelect.options[methodSelect.selectedIndex].text;
+        
+        Swal.fire({
+            title: 'ยืนยันการรับชำระเงิน',
+            html: `รับชำระค่าน้ำ <b>${currentCustomer.name}</b><br>
+                   ยอดชำระ: <span class="text-primary fw-bold fs-4">${formatMoney(selectedTotal)}</span><br>
+                   ช่องทาง: ${methodText}`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยันชำระเงิน',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#0d6efd'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Mock API Call
+                Swal.fire({
+                    title: 'กำลังประมวลผล',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+                
+                setTimeout(() => {
+                    Swal.fire({
+                        title: 'ชำระเงินสำเร็จ!',
+                        text: 'ระบบบันทึกข้อมูลเรียบร้อยแล้ว',
+                        icon: 'success',
+                        confirmButtonText: 'พิมพ์ใบเสร็จ'
+                    }).then(() => {
+                        generateReceipt(received, methodText);
+                    });
+                }, 800);
+            }
+        });
+    }
+
+    function generateReceipt(receivedAmount, methodName) {
+        const change = receivedAmount - selectedTotal;
+        const checks = document.querySelectorAll('.item-check:checked');
+        const selectedIds = Array.from(checks).map(cb => cb.value);
+        
+        const selectedItems = customerBills.filter(b => selectedIds.includes(b.id));
+        
+        // Populate modal
+        document.getElementById('receiptCustName').innerText = currentCustomer.name;
+        document.getElementById('receiptCustCode').innerText = currentCustomer.id;
+        document.getElementById('receiptCustAddress').innerText = currentCustomer.address;
+        
+        const now = new Date();
+        document.getElementById('receiptNo').innerText = 'REC-' + now.getTime().toString().slice(-8);
+        document.getElementById('receiptDate').innerText = now.toLocaleString('th-TH');
+        
+        const tbody = document.getElementById('receiptItemsBody');
+        tbody.innerHTML = selectedItems.map((item, idx) => `
+            <tr>
+                <td class="text-center">${idx + 1}</td>
+                <td>ค่าน้ำประปา ${item.period}</td>
+                <td class="text-end">${formatMoney(item.waterAmount)}</td>
+                <td class="text-end">${formatMoney(item.penalty)}</td>
+                <td class="text-end">${formatMoney(item.waterAmount + item.penalty)}</td>
+            </tr>
+        `).join('');
+        
+        document.getElementById('receiptTotal').innerText = formatMoney(selectedTotal);
+        document.getElementById('receiptMethod').innerText = methodName;
+        document.getElementById('receiptReceived').innerText = formatMoney(receivedAmount);
+        document.getElementById('receiptChange').innerText = formatMoney(change);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('receiptModal'));
+        modal.show();
+        
+        // Reset flow after receipt is shown
+        resetPaymentFlow();
+    }
+
+    function renderRecentPayments() {
+        const tbody = document.getElementById('recentPaymentsBody');
+        tbody.innerHTML = mockRecentPayments.map(p => {
+            let badgeClass = 'bg-success';
+            if (p.status === 'รอตรวจสอบ') badgeClass = 'bg-warning text-dark';
+            
+            return `
+                <tr>
+                    <td class="ps-4">${p.date}</td>
+                    <td>${p.id}</td>
+                    <td>${p.custId}</td>
+                    <td>${p.custName}</td>
+                    <td class="fw-bold text-primary">${formatMoney(p.amount)}</td>
+                    <td>${p.method}</td>
+                    <td><span class="badge ${badgeClass}">${p.status}</span></td>
+                    <td class="pe-4 text-center">
+                        <button class="btn btn-sm btn-outline-primary" title="พิมพ์ใบเสร็จ" onclick="alert('แสดงใบเสร็จ ${p.id}')">
+                            <i class="fa-solid fa-print"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+</script>
+</body>
+</html>

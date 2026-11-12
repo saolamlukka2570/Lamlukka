@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานระบบประปา - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-area, #printable-area * {
+                visibility: visible;
+            }
+            #printable-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        .report-card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border-radius: 0.5rem;
+            border: none;
+            margin-bottom: 1.5rem;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        .nav-tabs .nav-link {
+            color: #495057;
+            font-weight: 500;
+        }
+        .nav-tabs .nav-link.active {
+            color: #0d6efd;
+            border-bottom: 2px solid #0d6efd;
+            background-color: transparent;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+        }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="รายงานระบบประปา"></div>
+    <div class="page-content">
+        <!-- Breadcrumb -->
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2 no-print">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-chart-bar me-2"></i>รายงานระบบประปา</h4>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                        <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                        <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                        <li class="breadcrumb-item"><a href="water-dashboard.html" class="text-decoration-none">ระบบประปา</a></li>
+                        <li class="breadcrumb-item active">รายงาน</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-success" onclick="exportToExcel()"><i class="fa-solid fa-file-excel me-2"></i>Export Excel</button>
+                <button class="btn btn-outline-secondary" onclick="window.print()"><i class="fa-solid fa-print me-2"></i>พิมพ์/PDF</button>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="card border-0 shadow-sm mb-4 no-print">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">ปีงบประมาณ</label>
+                        <select class="form-select" id="filterYear">
+                            <option value="2568">2568</option>
+                            <option value="2567" selected>2567</option>
+                            <option value="2566">2566</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">เดือน</label>
+                        <select class="form-select" id="filterMonth">
+                            <option value="all">ทั้งหมด</option>
+                            <option value="01">มกราคม</option>
+                            <option value="02">กุมภาพันธ์</option>
+                            <option value="03">มีนาคม</option>
+                            <option value="04">เมษายน</option>
+                            <option value="05">พฤษภาคม</option>
+                            <option value="06">มิถุนายน</option>
+                            <option value="07">กรกฎาคม</option>
+                            <option value="08">สิงหาคม</option>
+                            <option value="09" selected>กันยายน</option>
+                            <option value="10">ตุลาคม</option>
+                            <option value="11">พฤศจิกายน</option>
+                            <option value="12">ธันวาคม</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">หมู่ที่</label>
+                        <select class="form-select" id="filterMoo">
+                            <option value="all">ทุกหมู่</option>
+                            <option value="1">หมู่ 1</option>
+                            <option value="2">หมู่ 2</option>
+                            <option value="3">หมู่ 3</option>
+                            <option value="4">หมู่ 4</option>
+                            <option value="5">หมู่ 5</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="btn btn-primary w-100" onclick="generateReports()">
+                            <i class="fa-solid fa-filter me-2"></i>สร้างรายงาน
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="printable-area">
+            <!-- Tabs -->
+            <ul class="nav nav-tabs mb-4 no-print" id="reportTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="revenue-tab" data-bs-toggle="tab" data-bs-target="#revenue" type="button" role="tab">รายรับประจำเดือน</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="usage-tab" data-bs-toggle="tab" data-bs-target="#usage" type="button" role="tab">การใช้น้ำ</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="debtor-tab" data-bs-toggle="tab" data-bs-target="#debtor" type="button" role="tab">รายงานลูกหนี้</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="annual-tab" data-bs-toggle="tab" data-bs-target="#annual" type="button" role="tab">สรุปประจำปี</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="moo-tab" data-bs-toggle="tab" data-bs-target="#moo" type="button" role="tab">แยกตามหมู่</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="reportTabsContent">
+                <!-- Tab 1: รายรับประจำเดือน -->
+                <div class="tab-pane fade show active" id="revenue" role="tabpanel">
+                    <div class="text-center mb-4 d-none d-print-block">
+                        <h4>รายงานรายรับประจำเดือน</h4>
+                        <p id="print-revenue-period">ปีงบประมาณ 2567</p>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card report-card bg-primary text-white h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">ยอดเรียกเก็บรวม</h6>
+                                    <h3 class="mb-0" id="rev-total-bill">฿45,200</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card report-card bg-success text-white h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">ยอดชำระแล้ว</h6>
+                                    <h3 class="mb-0" id="rev-total-paid">฿38,400</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card report-card bg-danger text-white h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">ยอดคงค้าง</h6>
+                                    <h3 class="mb-0" id="rev-total-unpaid">฿6,800</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card report-card">
+                                <div class="card-body">
+                                    <h6 class="fw-bold"><i class="fa-solid fa-chart-line me-2"></i>เปรียบเทียบยอดเรียกเก็บและยอดชำระ</h6>
+                                    <div class="chart-container">
+                                        <canvas id="revenueChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card report-card">
+                        <div class="card-header bg-white border-0 pt-3 pb-0">
+                            <h6 class="fw-bold mb-0">ข้อมูลรายเดือน</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-bordered mb-0" id="revenueTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>เดือน</th>
+                                            <th class="text-end">ยอดเรียกเก็บ (บาท)</th>
+                                            <th class="text-end">ยอดชำระ (บาท)</th>
+                                            <th class="text-end">คงค้าง (บาท)</th>
+                                            <th class="text-center">อัตราการจัดเก็บ (%)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Data populated by JS -->
+                                    </tbody>
+                                    <tfoot class="table-light fw-bold" id="revenueTableFoot">
+                                        <!-- Data populated by JS -->
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: การใช้น้ำ -->
+                <div class="tab-pane fade" id="usage" role="tabpanel">
+                    <div class="text-center mb-4 d-none d-print-block">
+                        <h4>รายงานการใช้น้ำ</h4>
+                        <p id="print-usage-period">ปีงบประมาณ 2567</p>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card report-card">
+                                <div class="card-body">
+                                    <h6 class="fw-bold"><i class="fa-solid fa-chart-area me-2"></i>แนวโน้มการใช้น้ำ (หน่วย)</h6>
+                                    <div class="chart-container">
+                                        <canvas id="usageChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card report-card">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-bordered mb-0" id="usageTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>เดือน</th>
+                                            <th class="text-end">หน่วยรวม (ลบ.ม.)</th>
+                                            <th class="text-end">เฉลี่ย/ครัวเรือน</th>
+                                            <th class="text-end">ใช้น้ำสูงสุด</th>
+                                            <th class="text-end">ใช้น้ำต่ำสุด</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Data populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: รายงานลูกหนี้ -->
+                <div class="tab-pane fade" id="debtor" role="tabpanel">
+                    <div class="text-center mb-4 d-none d-print-block">
+                        <h4>รายงานลูกหนี้ค้างชำระ</h4>
+                        <p id="print-debtor-period">ณ วันที่ <span id="currentDatePrint"></span></p>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card report-card h-100">
+                                <div class="card-body">
+                                    <h6 class="fw-bold"><i class="fa-solid fa-chart-pie me-2"></i>อายุหนี้ค้างชำระ</h6>
+                                    <div class="chart-container" style="height: 250px;">
+                                        <canvas id="debtAgingChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row g-3 h-100">
+                                <div class="col-6">
+                                    <div class="card bg-light border-0 h-100 p-3 text-center">
+                                        <div class="text-muted small mb-1">ยอดค้างรวมทั้งหมด</div>
+                                        <h4 class="text-danger mb-0 fw-bold" id="debt-total">฿45,600</h4>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="card bg-light border-0 h-100 p-3 text-center">
+                                        <div class="text-muted small mb-1">ค้าง 1-3 เดือน</div>
+                                        <h4 class="text-warning mb-0 fw-bold" id="debt-1-3">฿12,400</h4>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="card bg-light border-0 h-100 p-3 text-center">
+                                        <div class="text-muted small mb-1">ค้าง 4-6 เดือน</div>
+                                        <h4 class="text-orange mb-0 fw-bold" style="color: #fd7e14;" id="debt-4-6">฿18,200</h4>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="card bg-light border-0 h-100 p-3 text-center">
+                                        <div class="text-muted small mb-1">ค้าง > 6 เดือน</div>
+                                        <h4 class="text-dark mb-0 fw-bold" id="debt-over-6">฿15,000</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card report-card">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-bordered mb-0" id="debtorTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>รหัสผู้ใช้</th>
+                                            <th>ชื่อ-นามสกุล</th>
+                                            <th>หมู่/บ้านเลขที่</th>
+                                            <th class="text-center">จำนวนเดือนที่ค้าง</th>
+                                            <th class="text-end">ยอดค้างชำระ (บาท)</th>
+                                            <th class="text-center">สถานะ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Data populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 4: สรุปประจำปี -->
+                <div class="tab-pane fade" id="annual" role="tabpanel">
+                    <div class="text-center mb-4 d-none d-print-block">
+                        <h4>รายงานสรุปผลการดำเนินงานประจำปี</h4>
+                        <p id="print-annual-period">ปีงบประมาณ 2567</p>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary bg-opacity-10 border-primary border-start border-4 h-100">
+                                <div class="card-body">
+                                    <div class="text-muted small fw-bold">รายรับรวมทั้งปี</div>
+                                    <h4 class="text-primary mt-2 mb-0">฿452,000</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info bg-opacity-10 border-info border-start border-4 h-100">
+                                <div class="card-body">
+                                    <div class="text-muted small fw-bold">ปริมาณน้ำที่ผลิต (ลบ.ม.)</div>
+                                    <h4 class="text-info mt-2 mb-0">125,400</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success bg-opacity-10 border-success border-start border-4 h-100">
+                                <div class="card-body">
+                                    <div class="text-muted small fw-bold">ปริมาณน้ำที่จำหน่าย (ลบ.ม.)</div>
+                                    <h4 class="text-success mt-2 mb-0">98,200</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning bg-opacity-10 border-warning border-start border-4 h-100">
+                                <div class="card-body">
+                                    <div class="text-muted small fw-bold">น้ำสูญเสีย (%)</div>
+                                    <h4 class="text-warning mt-2 mb-0">21.69%</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card report-card mb-4">
+                        <div class="card-body">
+                            <h6 class="fw-bold"><i class="fa-solid fa-chart-bar me-2"></i>สรุปผลการดำเนินงาน 12 เดือน</h6>
+                            <div class="chart-container">
+                                <canvas id="annualChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 5: แยกตามหมู่ -->
+                <div class="tab-pane fade" id="moo" role="tabpanel">
+                    <div class="text-center mb-4 d-none d-print-block">
+                        <h4>รายงานแยกตามหมู่บ้าน</h4>
+                        <p id="print-moo-period">ปีงบประมาณ 2567</p>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card report-card">
+                                <div class="card-body">
+                                    <h6 class="fw-bold">สัดส่วนผู้ใช้น้ำตามหมู่</h6>
+                                    <div class="chart-container" style="height: 250px;">
+                                        <canvas id="mooUserChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card report-card">
+                                <div class="card-body">
+                                    <h6 class="fw-bold">สัดส่วนรายได้ตามหมู่</h6>
+                                    <div class="chart-container" style="height: 250px;">
+                                        <canvas id="mooRevenueChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card report-card">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-bordered mb-0" id="mooTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>หมู่ที่</th>
+                                            <th class="text-center">จำนวนผู้ใช้น้ำ</th>
+                                            <th class="text-end">ปริมาณน้ำที่ใช้ (ลบ.ม.)</th>
+                                            <th class="text-end">ยอดเรียกเก็บ (บาท)</th>
+                                            <th class="text-end">ยอดชำระแล้ว (บาท)</th>
+                                            <th class="text-center">อัตราการจัดเก็บ (%)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Data populated by JS -->
+                                    </tbody>
+                                    <tfoot class="table-light fw-bold" id="mooTableFoot">
+                                        <!-- Data populated by JS -->
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/water.js"></script>
+<script src="assets/js/responsive.js"></script>
+
+<script>
+    const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+    let charts = {};
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('currentDatePrint').textContent = new Date().toLocaleDateString('th-TH');
+        initCharts();
+        generateReports();
+        
+        // Resize charts on tab change
+        const tabEls = document.querySelectorAll('button[data-bs-toggle="tab"]');
+        tabEls.forEach(tabEl => {
+            tabEl.addEventListener('shown.bs.tab', event => {
+                Object.values(charts).forEach(chart => {
+                    if (chart) chart.resize();
+                });
+            });
+        });
+    });
+
+    function initCharts() {
+        Chart.defaults.font.family = "'Prompt', sans-serif";
+        Chart.defaults.color = '#6c757d';
+
+        // Revenue Chart
+        const revCtx = document.getElementById('revenueChart').getContext('2d');
+        charts.revenue = new Chart(revCtx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'ยอดเรียกเก็บ',
+                        data: [],
+                        backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                        borderColor: '#0d6efd',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'ยอดชำระ',
+                        data: [],
+                        backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                        borderColor: '#198754',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: { y: { beginAtZero: true, ticks: { callback: function(value) { return '฿' + value.toLocaleString(); } } } }
+            }
+        });
+
+        // Usage Chart
+        const usageCtx = document.getElementById('usageChart').getContext('2d');
+        charts.usage = new Chart(usageCtx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'ปริมาณการใช้น้ำ (ลบ.ม.)',
+                    data: [],
+                    borderColor: '#0dcaf0',
+                    backgroundColor: 'rgba(13, 202, 240, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        // Debt Aging Chart
+        const debtCtx = document.getElementById('debtAgingChart').getContext('2d');
+        charts.debt = new Chart(debtCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['1-3 เดือน', '4-6 เดือน', 'มากกว่า 6 เดือน'],
+                datasets: [{
+                    data: [35, 40, 25], // Demo
+                    backgroundColor: ['#ffc107', '#fd7e14', '#343a40']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        // Annual Chart
+        const annCtx = document.getElementById('annualChart').getContext('2d');
+        charts.annual = new Chart(annCtx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'รายรับ (บาท)',
+                        data: [],
+                        type: 'line',
+                        borderColor: '#198754',
+                        backgroundColor: '#198754',
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'ปริมาณน้ำที่ผลิต (ลบ.ม.)',
+                        data: [],
+                        backgroundColor: 'rgba(13, 110, 253, 0.5)',
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { type: 'linear', display: true, position: 'left', ticks: { callback: v => '฿'+v.toLocaleString() } },
+                    y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+
+        // Moo Charts
+        const mooUCtx = document.getElementById('mooUserChart').getContext('2d');
+        charts.mooUser = new Chart(mooUCtx, {
+            type: 'pie',
+            data: {
+                labels: ['หมู่ 1', 'หมู่ 2', 'หมู่ 3', 'หมู่ 4', 'หมู่ 5'],
+                datasets: [{ data: [], backgroundColor: ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#dc3545'] }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        const mooRCtx = document.getElementById('mooRevenueChart').getContext('2d');
+        charts.mooRev = new Chart(mooRCtx, {
+            type: 'pie',
+            data: {
+                labels: ['หมู่ 1', 'หมู่ 2', 'หมู่ 3', 'หมู่ 4', 'หมู่ 5'],
+                datasets: [{ data: [], backgroundColor: ['#198754', '#20c997', '#0dcaf0', '#ffc107', '#fd7e14'] }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    function generateReports() {
+        const year = document.getElementById('filterYear').value;
+        const month = document.getElementById('filterMonth').value;
+        const moo = document.getElementById('filterMoo').value;
+        
+        let periodText = `ปีงบประมาณ ${year}`;
+        if (month !== 'all') {
+            periodText = `เดือน ${months[parseInt(month)-1]} ปีงบประมาณ ${year}`;
+        }
+        if (moo !== 'all') {
+            periodText += ` (หมู่ที่ ${moo})`;
+        }
+        
+        document.querySelectorAll('[id^="print-"]').forEach(el => el.textContent = periodText);
+
+        Swal.fire({
+            title: 'กำลังประมวลผล',
+            text: 'กรุณารอสักครู่...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        setTimeout(() => {
+            loadRevenueData();
+            loadUsageData();
+            loadDebtorData();
+            loadAnnualData();
+            loadMooData();
+            setTimeout(() => Swal.close(), 600);
+            if (typeof showToast === 'function') {
+                showToast('สร้างรายงานสำเร็จ', 'success');
+            }
+        }, 800);
+    }
+
+    function loadRevenueData() {
+        const tbody = document.querySelector('#revenueTable tbody');
+        const tfoot = document.getElementById('revenueTableFoot');
+        let html = '';
+        let tBill = 0, tPaid = 0, tUnpaid = 0;
+        
+        const billData = [];
+        const paidData = [];
+
+        for (let i = 0; i < 12; i++) {
+            const bill = Math.floor(Math.random() * 20000) + 30000;
+            const paid = bill - Math.floor(Math.random() * 5000);
+            const unpaid = bill - paid;
+            const pct = ((paid/bill)*100).toFixed(2);
+            
+            tBill += bill; tPaid += paid; tUnpaid += unpaid;
+            
+            billData.push(bill);
+            paidData.push(paid);
+
+            html += `<tr>
+                <td>${months[i]}</td>
+                <td class="text-end">${bill.toLocaleString()}</td>
+                <td class="text-end text-success">${paid.toLocaleString()}</td>
+                <td class="text-end text-danger">${unpaid.toLocaleString()}</td>
+                <td class="text-center">
+                    <div class="progress" style="height: 10px; width: 100px; margin: 0 auto;">
+                        <div class="progress-bar bg-${pct >= 90 ? 'success' : (pct >= 80 ? 'warning' : 'danger')}" style="width: ${pct}%"></div>
+                    </div>
+                    <small>${pct}%</small>
+                </td>
+            </tr>`;
+        }
+        
+        tbody.innerHTML = html;
+        tfoot.innerHTML = `<tr>
+            <td>รวมทั้งสิ้น</td>
+            <td class="text-end">${tBill.toLocaleString()}</td>
+            <td class="text-end text-success">${tPaid.toLocaleString()}</td>
+            <td class="text-end text-danger">${tUnpaid.toLocaleString()}</td>
+            <td class="text-center">${((tPaid/tBill)*100).toFixed(2)}%</td>
+        </tr>`;
+
+        document.getElementById('rev-total-bill').textContent = '฿' + tBill.toLocaleString();
+        document.getElementById('rev-total-paid').textContent = '฿' + tPaid.toLocaleString();
+        document.getElementById('rev-total-unpaid').textContent = '฿' + tUnpaid.toLocaleString();
+
+        charts.revenue.data.datasets[0].data = billData;
+        charts.revenue.data.datasets[1].data = paidData;
+        charts.revenue.update();
+    }
+
+    function loadUsageData() {
+        const tbody = document.querySelector('#usageTable tbody');
+        let html = '';
+        const usageData = [];
+
+        for (let i = 0; i < 12; i++) {
+            const total = Math.floor(Math.random() * 5000) + 8000;
+            const avg = (total / 450).toFixed(1);
+            const max = Math.floor(Math.random() * 50) + 80;
+            const min = Math.floor(Math.random() * 10) + 5;
+            
+            usageData.push(total);
+
+            html += `<tr>
+                <td>${months[i]}</td>
+                <td class="text-end">${total.toLocaleString()}</td>
+                <td class="text-end">${avg}</td>
+                <td class="text-end">${max}</td>
+                <td class="text-end">${min}</td>
+            </tr>`;
+        }
+        
+        tbody.innerHTML = html;
+        charts.usage.data.datasets[0].data = usageData;
+        charts.usage.update();
+    }
+
+    function loadDebtorData() {
+        const tbody = document.querySelector('#debtorTable tbody');
+        let html = '';
+        const names = ['สมชาย ใจดี', 'สมศรี รักชาติ', 'วิชัย มานะ', 'มาลี สวยงาม', 'สมปอง ทองดี'];
+        
+        for (let i = 0; i < 15; i++) {
+            const months = Math.floor(Math.random() * 8) + 1;
+            const debt = months * (Math.floor(Math.random() * 200) + 100);
+            const status = months > 6 ? 'ระงับการใช้น้ำ' : (months > 3 ? 'เตือนครั้งที่ 2' : 'ค้างชำระ');
+            const badge = months > 6 ? 'danger' : (months > 3 ? 'warning' : 'secondary');
+
+            html += `<tr>
+                <td>W-${1000 + i}</td>
+                <td>${names[i%5]}</td>
+                <td>หมู่ ${Math.floor(Math.random()*5)+1} / ${Math.floor(Math.random()*90)+10}</td>
+                <td class="text-center text-danger fw-bold">${months}</td>
+                <td class="text-end">${debt.toLocaleString()}</td>
+                <td class="text-center"><span class="badge bg-${badge}">${status}</span></td>
+            </tr>`;
+        }
+        
+        tbody.innerHTML = html;
+    }
+
+    function loadAnnualData() {
+        const revData = [];
+        const prodData = [];
+        for (let i = 0; i < 12; i++) {
+            revData.push(Math.floor(Math.random() * 20000) + 30000);
+            prodData.push(Math.floor(Math.random() * 3000) + 8000);
+        }
+        charts.annual.data.datasets[0].data = revData;
+        charts.annual.data.datasets[1].data = prodData;
+        charts.annual.update();
+    }
+
+    function loadMooData() {
+        const tbody = document.querySelector('#mooTable tbody');
+        const tfoot = document.getElementById('mooTableFoot');
+        let html = '';
+        
+        const users = [120, 95, 150, 85, 110];
+        const uData = [];
+        const rData = [];
+        
+        let tUser = 0, tVol = 0, tBill = 0, tPaid = 0;
+
+        for (let i = 0; i < 5; i++) {
+            const vol = users[i] * 20;
+            const bill = vol * 10;
+            const paid = bill - (Math.floor(Math.random() * 5000));
+            const pct = ((paid/bill)*100).toFixed(2);
+            
+            uData.push(users[i]);
+            rData.push(paid);
+            
+            tUser += users[i]; tVol += vol; tBill += bill; tPaid += paid;
+
+            html += `<tr>
+                <td>หมู่ ${i+1}</td>
+                <td class="text-center">${users[i]}</td>
+                <td class="text-end">${vol.toLocaleString()}</td>
+                <td class="text-end">${bill.toLocaleString()}</td>
+                <td class="text-end text-success">${paid.toLocaleString()}</td>
+                <td class="text-center">${pct}%</td>
+            </tr>`;
+        }
+        
+        tbody.innerHTML = html;
+        tfoot.innerHTML = `<tr>
+            <td>รวม</td>
+            <td class="text-center">${tUser}</td>
+            <td class="text-end">${tVol.toLocaleString()}</td>
+            <td class="text-end">${tBill.toLocaleString()}</td>
+            <td class="text-end text-success">${tPaid.toLocaleString()}</td>
+            <td class="text-center">${((tPaid/tBill)*100).toFixed(2)}%</td>
+        </tr>`;
+
+        charts.mooUser.data.datasets[0].data = uData;
+        charts.mooUser.update();
+        charts.mooRev.data.datasets[0].data = rData;
+        charts.mooRev.update();
+    }
+
+    function exportToExcel() {
+        // Find active tab to export
+        const activeTab = document.querySelector('.tab-pane.active').id;
+        let tableId = '';
+        let fileName = '';
+
+        if (activeTab === 'revenue') { tableId = 'revenueTable'; fileName = 'รายงานรายรับระบบประปา'; }
+        else if (activeTab === 'usage') { tableId = 'usageTable'; fileName = 'รายงานการใช้น้ำ'; }
+        else if (activeTab === 'debtor') { tableId = 'debtorTable'; fileName = 'รายงานลูกหนี้ประปา'; }
+        else if (activeTab === 'moo') { tableId = 'mooTable'; fileName = 'รายงานประปาแยกตามหมู่'; }
+        else {
+            Swal.fire('ข้อผิดพลาด', 'ไม่มีตารางข้อมูลสำหรับส่งออกในหน้านี้', 'error');
+            return;
+        }
+
+        const table = document.getElementById(tableId);
+        if (!table) return;
+
+        const wb = XLSX.utils.table_to_book(table, {sheet: "Sheet 1"});
+        XLSX.writeFile(wb, `${fileName}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    }
+</script>
+</body>
+</html>

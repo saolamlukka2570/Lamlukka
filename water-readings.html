@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จดเลขมาตรน้ำ - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .numpad-friendly {
+            font-size: 2rem;
+            text-align: center;
+            height: 60px;
+            font-weight: bold;
+        }
+        .progress {
+            height: 10px;
+            border-radius: 5px;
+        }
+        .table-responsive {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="จดเลขมาตรน้ำ"></div>
+    <div class="page-content">
+        <!-- Breadcrumb -->
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-clipboard-check me-2"></i>จดเลขมาตรน้ำ</h4>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                        <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                        <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                        <li class="breadcrumb-item"><a href="water-dashboard.html" class="text-decoration-none">ระบบประปา</a></li>
+                        <li class="breadcrumb-item active">จดเลขมาตรน้ำ</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-success" onclick="exportExcel()">
+                    <i class="fa-solid fa-file-excel me-1"></i> Export Excel
+                </button>
+                <button class="btn btn-primary" onclick="generateAllBills()">
+                    <i class="fa-solid fa-file-invoice-dollar me-1"></i> สร้างใบแจ้งค่าน้ำทั้งหมด
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter/Status Bar -->
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-2">
+                        <label class="form-label mb-1 small text-muted">ปีงบประมาณ</label>
+                        <select class="form-select form-select-sm" id="filterYear">
+                            <option value="2567">2567</option>
+                            <option value="2566">2566</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1 small text-muted">เดือน</label>
+                        <select class="form-select form-select-sm" id="filterMonth">
+                            <option value="1">มกราคม</option>
+                            <option value="2">กุมภาพันธ์</option>
+                            <option value="3">มีนาคม</option>
+                            <option value="4">เมษายน</option>
+                            <option value="5">พฤษภาคม</option>
+                            <option value="6">มิถุนายน</option>
+                            <option value="7">กรกฎาคม</option>
+                            <option value="8">สิงหาคม</option>
+                            <option value="9">กันยายน</option>
+                            <option value="10" selected>ตุลาคม</option>
+                            <option value="11">พฤศจิกายน</option>
+                            <option value="12">ธันวาคม</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1 small text-muted">หมู่ที่</label>
+                        <select class="form-select form-select-sm" id="filterMoo">
+                            <option value="">ทั้งหมด</option>
+                            <option value="1">หมู่ 1</option>
+                            <option value="2">หมู่ 2</option>
+                            <option value="3">หมู่ 3</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between align-items-end mb-1">
+                            <span class="small text-muted fw-bold">ความคืบหน้าการจดมาตร</span>
+                            <span class="small fw-bold text-primary" id="progressText">0/0 มิเตอร์ (0%)</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-primary" id="progressBar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4 KPI Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+                <div class="kpi-card fade-in-up" style="animation-delay: 0.1s;">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="kpi-label mb-1">รอจดมิเตอร์</div>
+                            <div class="kpi-value text-warning" id="kpiPending">0</div>
+                        </div>
+                        <div class="kpi-icon bg-warning text-white">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="kpi-card fade-in-up" style="animation-delay: 0.2s;">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="kpi-label mb-1">จดแล้ว</div>
+                            <div class="kpi-value text-success" id="kpiRead">0</div>
+                        </div>
+                        <div class="kpi-icon bg-success text-white">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="kpi-card fade-in-up" style="animation-delay: 0.3s;">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="kpi-label mb-1">ผิดปกติ</div>
+                            <div class="kpi-value text-danger" id="kpiAnomaly">0</div>
+                        </div>
+                        <div class="kpi-icon bg-danger text-white">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="kpi-card fade-in-up" style="animation-delay: 0.4s;">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="kpi-label mb-1">หน่วยรวมเดือนนี้</div>
+                            <div class="kpi-value text-primary" id="kpiTotalUsage">0</div>
+                        </div>
+                        <div class="kpi-icon bg-primary text-white">
+                            <i class="fa-solid fa-droplet"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reading Table -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header border-0 bg-white d-flex justify-content-between align-items-center py-3">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-list text-primary me-2"></i>รายการมาตรน้ำ</h6>
+                <div class="input-group" style="max-width: 250px;">
+                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0 bg-light" id="searchInput" placeholder="ค้นหารหัส/ชื่อผู้ใช้...">
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="min-width: 900px;">
+                        <thead class="table-light text-muted small">
+                            <tr>
+                                <th class="ps-4">ลำดับ</th>
+                                <th>รหัสมิเตอร์</th>
+                                <th>ผู้ใช้น้ำ</th>
+                                <th>บ้านเลขที่/หมู่</th>
+                                <th class="text-end">เลขก่อน</th>
+                                <th class="text-end">เลขหลัง</th>
+                                <th class="text-end">หน่วย</th>
+                                <th>วันที่อ่าน</th>
+                                <th>สถานะ</th>
+                                <th class="pe-4 text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="readingTableBody">
+                            <!-- Data will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-3 border-top d-flex justify-content-between align-items-center">
+                    <div class="small text-muted">แสดง <span id="startRecord">1</span> ถึง <span id="endRecord">10</span> จาก <span id="totalRecords">0</span> รายการ</div>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0" id="pagination">
+                            <li class="page-item disabled"><a class="page-link" href="#">ก่อนหน้า</a></li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">ถัดไป</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick-Read Modal -->
+<div class="modal fade" id="readingModal" tabindex="-1" aria-labelledby="readingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="readingModalLabel"><i class="fa-solid fa-pen-to-square me-2"></i>บันทึกเลขมาตรน้ำ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- User Info -->
+                <div class="bg-light p-3 rounded mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small class="text-muted">รหัสมิเตอร์:</small>
+                        <strong id="modalMeterCode">-</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <small class="text-muted">ผู้ใช้น้ำ:</small>
+                        <strong id="modalUserName">-</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">ที่อยู่:</small>
+                        <span id="modalAddress">-</span>
+                    </div>
+                </div>
+
+                <form id="readingForm">
+                    <input type="hidden" id="modalReadingId">
+                    <input type="hidden" id="modalMeterId">
+                    <input type="hidden" id="modalUserId">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label text-muted small mb-1">เลขมาตรก่อน</label>
+                            <input type="number" class="form-control bg-light text-end" id="modalPrevReading" readonly>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-muted small mb-1">หน่วยที่ใช้</label>
+                            <input type="number" class="form-control bg-light text-end text-primary fw-bold" id="modalUsage" readonly>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold mb-1">เลขมาตรปัจจุบัน <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control numpad-friendly" id="modalCurrentReading" required min="0" oninput="calculateUsage()">
+                    </div>
+
+                    <!-- Anomaly Banner -->
+                    <div class="alert alert-danger py-2 d-none align-items-center" id="modalAnomalyBanner">
+                        <i class="fa-solid fa-triangle-exclamation fs-4 me-3"></i>
+                        <div>
+                            <strong>ผิดปกติ!</strong> <br>
+                            <span class="small">การใช้น้ำมากกว่า 200% ของค่าเฉลี่ย</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small mb-1">วันที่อ่าน</label>
+                        <input type="date" class="form-control" id="modalReadDate" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small mb-1">สถานะมาตร</label>
+                        <select class="form-select" id="modalMeterStatus">
+                            <option value="ปกติ">ปกติ</option>
+                            <option value="ชำรุด">ชำรุด</option>
+                            <option value="มิเตอร์หมุนกลับ">มิเตอร์หมุนกลับ</option>
+                            <option value="หาไม่พบ">หาไม่พบ</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small mb-1">รูปถ่าย (ถ้ามี)</label>
+                        <div class="input-group">
+                            <input type="file" class="form-control" id="modalPhoto" accept="image/*" capture="environment">
+                            <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('modalPhoto').click()"><i class="fa-solid fa-camera"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label text-muted small mb-1">หมายเหตุ</label>
+                        <input type="text" class="form-control" id="modalNote" placeholder="เพิ่มหมายเหตุ (ถ้ามี)">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer justify-content-between bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <div>
+                    <button type="button" class="btn btn-primary" onclick="saveReading(false)">บันทึก</button>
+                    <button type="button" class="btn btn-success" onclick="saveReading(true)">บันทึก & ถัดไป <i class="fa-solid fa-arrow-right ms-1"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/water.js"></script>
+<script src="assets/js/responsive.js"></script>
+
+<script>
+    // Mock Data for Demo
+    let demoMeters = [
+        { id: 1, meter_code: 'M-001', user_name: 'นายสมชาย ใจดี', address: '123 ม.1', moo: 1, prev_reading: 1050, current_reading: null, usage: null, read_date: null, status: 'pending', anomaly: false },
+        { id: 2, meter_code: 'M-002', user_name: 'นางสมหญิง รักสวย', address: '124 ม.1', moo: 1, prev_reading: 2010, current_reading: 2045, usage: 35, read_date: '2023-10-01', status: 'read', anomaly: false },
+        { id: 3, meter_code: 'M-003', user_name: 'นายบุญมา พาโชค', address: '125 ม.2', moo: 2, prev_reading: 550, current_reading: 850, usage: 300, read_date: '2023-10-02', status: 'anomaly', anomaly: true },
+        { id: 4, meter_code: 'M-004', user_name: 'นางสาวมาลี สีสด', address: '126 ม.2', moo: 2, prev_reading: 890, current_reading: null, usage: null, read_date: null, status: 'pending', anomaly: false },
+        { id: 5, meter_code: 'M-005', user_name: 'นายวิชัย ใจกล้า', address: '127 ม.3', moo: 3, prev_reading: 1200, current_reading: 1215, usage: 15, read_date: '2023-10-03', status: 'read', anomaly: false }
+    ];
+
+    let currentEditIndex = -1;
+    let readingModal;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        readingModal = new bootstrap.Modal(document.getElementById('readingModal'));
+        
+        // Set today date as default
+        document.getElementById('modalReadDate').valueAsDate = new Date();
+
+        document.getElementById('filterMoo').addEventListener('change', renderTable);
+        document.getElementById('searchInput').addEventListener('input', renderTable);
+
+        renderTable();
+    });
+
+    function renderTable() {
+        const tbody = document.getElementById('readingTableBody');
+        const filterMoo = document.getElementById('filterMoo').value;
+        const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+        
+        let pending = 0, read = 0, anomaly = 0, totalUsage = 0;
+        let filteredData = demoMeters.filter(m => {
+            let matchMoo = filterMoo === "" || m.moo == filterMoo;
+            let matchSearch = m.meter_code.toLowerCase().includes(searchQuery) || m.user_name.toLowerCase().includes(searchQuery);
+            return matchMoo && matchSearch;
+        });
+
+        tbody.innerHTML = '';
+        
+        filteredData.forEach((meter, index) => {
+            if(meter.status === 'pending') pending++;
+            if(meter.status === 'read') read++;
+            if(meter.status === 'anomaly') anomaly++;
+            if(meter.usage) totalUsage += meter.usage;
+
+            let tr = document.createElement('tr');
+            
+            let bgStyle = "";
+            let statusBadge = "";
+            if (meter.status === 'pending') {
+                bgStyle = "background-color: rgba(255, 193, 7, 0.1);";
+                statusBadge = '<span class="badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i>รอจด</span>';
+            } else if (meter.status === 'anomaly') {
+                bgStyle = "background-color: rgba(220, 53, 69, 0.1);";
+                statusBadge = '<span class="badge bg-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i>ผิดปกติ</span>';
+            } else {
+                bgStyle = "background-color: rgba(25, 135, 84, 0.1);";
+                statusBadge = '<span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>จดแล้ว</span>';
+            }
+
+            tr.style.cssText = bgStyle;
+
+            tr.innerHTML = `
+                <td class="ps-4">${index + 1}</td>
+                <td><strong>${meter.meter_code}</strong></td>
+                <td>${meter.user_name}</td>
+                <td>${meter.address} หมู่ ${meter.moo}</td>
+                <td class="text-end text-muted">${meter.prev_reading}</td>
+                <td class="text-end fw-bold">${meter.current_reading || '-'}</td>
+                <td class="text-end text-primary fw-bold">${meter.usage !== null ? meter.usage : '-'}</td>
+                <td>${meter.read_date ? formatDateThai(meter.read_date) : '-'}</td>
+                <td>${statusBadge}</td>
+                <td class="pe-4 text-center">
+                    <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="openReadingModal(${meter.id})">
+                        <i class="fa-solid fa-pen"></i> จดเลข
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Update KPIs
+        document.getElementById('kpiPending').textContent = pending;
+        document.getElementById('kpiRead').textContent = read;
+        document.getElementById('kpiAnomaly').textContent = anomaly;
+        document.getElementById('kpiTotalUsage').textContent = totalUsage.toLocaleString();
+
+        // Progress Bar
+        let total = pending + read + anomaly;
+        let completed = read + anomaly;
+        let percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+        
+        document.getElementById('progressText').textContent = `จดแล้ว ${completed}/${total} มิเตอร์ (${percent}%)`;
+        document.getElementById('progressBar').style.width = percent + '%';
+        document.getElementById('progressBar').setAttribute('aria-valuenow', percent);
+        
+        // Update pagination text
+        document.getElementById('totalRecords').textContent = filteredData.length;
+        document.getElementById('endRecord').textContent = filteredData.length;
+    }
+
+    function openReadingModal(id) {
+        let index = demoMeters.findIndex(m => m.id === id);
+        if (index === -1) return;
+        
+        currentEditIndex = index;
+        let meter = demoMeters[index];
+
+        document.getElementById('modalMeterCode').textContent = meter.meter_code;
+        document.getElementById('modalUserName').textContent = meter.user_name;
+        document.getElementById('modalAddress').textContent = `${meter.address} หมู่ ${meter.moo}`;
+        
+        document.getElementById('modalPrevReading').value = meter.prev_reading;
+        document.getElementById('modalCurrentReading').value = meter.current_reading || '';
+        document.getElementById('modalUsage').value = meter.usage !== null ? meter.usage : '';
+        if(meter.read_date) {
+            document.getElementById('modalReadDate').value = meter.read_date;
+        } else {
+            document.getElementById('modalReadDate').valueAsDate = new Date();
+        }
+
+        document.getElementById('modalMeterStatus').value = 'ปกติ';
+        document.getElementById('modalNote').value = '';
+        document.getElementById('modalAnomalyBanner').classList.add('d-none');
+        
+        readingModal.show();
+        
+        setTimeout(() => {
+            document.getElementById('modalCurrentReading').focus();
+        }, 500);
+    }
+
+    function calculateUsage() {
+        let prev = parseFloat(document.getElementById('modalPrevReading').value) || 0;
+        let curr = parseFloat(document.getElementById('modalCurrentReading').value);
+        let usageField = document.getElementById('modalUsage');
+        let anomalyBanner = document.getElementById('modalAnomalyBanner');
+        
+        if (isNaN(curr) || curr === '') {
+            usageField.value = '';
+            anomalyBanner.classList.add('d-none');
+            return;
+        }
+
+        let usage = curr - prev;
+        usageField.value = usage >= 0 ? usage : 0; // Prevent negative display
+
+        // Anomaly logic: > 200% of avg
+        let avgUsage = 30; // Mock average
+        if (usage > avgUsage * 2 || curr < prev) {
+            anomalyBanner.classList.remove('d-none');
+        } else {
+            anomalyBanner.classList.add('d-none');
+        }
+    }
+
+    function saveReading(isNext) {
+        let currStr = document.getElementById('modalCurrentReading').value;
+        if (!currStr) {
+            Swal.fire({icon: 'warning', title: 'กรุณาระบุเลขมาตรปัจจุบัน', confirmButtonText: 'ตกลง'});
+            return;
+        }
+
+        let meter = demoMeters[currentEditIndex];
+        let curr = parseFloat(currStr);
+        let usage = curr - meter.prev_reading;
+        
+        if (usage < 0) {
+            Swal.fire({icon: 'error', title: 'เลขปัจจุบันน้อยกว่าเลขก่อนหน้า!', text: 'โปรดตรวจสอบอีกครั้ง หรือเปลี่ยนสถานะเป็นมิเตอร์หมุนกลับ', confirmButtonText: 'ตกลง'});
+            return;
+        }
+
+        let date = document.getElementById('modalReadDate').value;
+        
+        // Update mock data
+        meter.current_reading = curr;
+        meter.usage = usage;
+        meter.read_date = date;
+        
+        let avgUsage = 30;
+        if (usage > avgUsage * 2) {
+            meter.status = 'anomaly';
+            meter.anomaly = true;
+        } else {
+            meter.status = 'read';
+            meter.anomaly = false;
+        }
+
+        if (typeof showToast === 'function') {
+            showToast('บันทึกข้อมูลเรียบร้อย', 'success');
+        } else {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'บันทึกข้อมูลเรียบร้อย',
+                showConfirmButton: false,
+                timer: 1500
+            });
+        }
+
+        renderTable();
+
+        if (isNext) {
+            let nextIndex = currentEditIndex + 1;
+            if (nextIndex < demoMeters.length) {
+                openReadingModal(demoMeters[nextIndex].id);
+            } else {
+                readingModal.hide();
+                Swal.fire({icon: 'success', title: 'จดครบทุกมิเตอร์แล้ว!', showConfirmButton: false, timer: 1500});
+            }
+        } else {
+            readingModal.hide();
+        }
+    }
+
+    function generateAllBills() {
+        Swal.fire({
+            title: 'ยืนยันการสร้างใบแจ้งค่าน้ำ',
+            text: "ระบบจะสร้างใบแจ้งค่าน้ำสำหรับมิเตอร์ที่จดแล้วในเดือนนี้ทั้งหมด",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#0d6efd',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'ใช่, สร้างเลย',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'กำลังสร้าง...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+                
+                setTimeout(() => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'สร้างใบแจ้งค่าน้ำสำเร็จ',
+                        text: 'ระบบสร้างใบแจ้งค่าน้ำจำนวน 3 รายการ',
+                        confirmButtonText: 'ตกลง'
+                    });
+                }, 1500);
+            }
+        });
+    }
+
+    function exportExcel() {
+        if (typeof showToast === 'function') {
+            showToast('กำลังดาวน์โหลดไฟล์ Excel', 'info');
+        } else {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'info',
+                title: 'กำลังดาวน์โหลดไฟล์ Excel',
+                showConfirmButton: false,
+                timer: 1500
+            });
+        }
+    }
+
+    function formatDateThai(dateStr) {
+        if (!dateStr) return '-';
+        const d = new Date(dateStr);
+        const day = d.getDate();
+        const monthNames = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+        const month = monthNames[d.getMonth()];
+        const year = d.getFullYear() + 543;
+        return `${day} ${month} ${year}`;
+    }
+</script>
+</body>
+</html>

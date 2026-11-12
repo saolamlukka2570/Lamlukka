@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ทะเบียนมาตรวัดน้ำ - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .map-container { height: 300px; width: 100%; border-radius: 8px; z-index: 1; }
+        .filter-bar { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 20px; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        .meter-status-active { color: #198754; background-color: #d1e7dd; padding: 4px 8px; border-radius: 20px; font-size: 0.85rem; }
+        .meter-status-faulty { color: #dc3545; background-color: #f8d7da; padding: 4px 8px; border-radius: 20px; font-size: 0.85rem; }
+        .meter-status-removed { color: #6c757d; background-color: #e2e3e5; padding: 4px 8px; border-radius: 20px; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ทะเบียนมาตรวัดน้ำ"></div>
+    <div class="page-content">
+        <!-- Breadcrumb & Header -->
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-gauge-high me-2 text-primary"></i>ทะเบียนมาตรวัดน้ำ</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                    <li class="breadcrumb-item"><a href="water-dashboard.html" class="text-decoration-none">ระบบประปา</a></li>
+                    <li class="breadcrumb-item active">ทะเบียนมาตรวัดน้ำ</li>
+                </ol></nav>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-success btn-sm" onclick="exportExcel()"><i class="fa-solid fa-file-excel me-1"></i> Export Excel</button>
+                <button class="btn btn-outline-primary btn-sm" onclick="importExcel()"><i class="fa-solid fa-file-import me-1"></i> Import Excel</button>
+                <button class="btn btn-warning btn-sm text-dark" onclick="openChangeModal()"><i class="fa-solid fa-right-left me-1"></i> เปลี่ยนมาตรวัด</button>
+                <button class="btn btn-primary btn-sm" onclick="openAddModal()"><i class="fa-solid fa-plus me-1"></i> เพิ่มมาตรวัด</button>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+                <div class="kpi-card fade-in-up">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="kpi-label mb-1">มิเตอร์ทั้งหมด</div>
+                            <div class="kpi-value text-primary" id="kpiTotalMeters">0</div>
+                        </div>
+                        <div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-gauge"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="kpi-card fade-in-up" style="animation-delay: 0.1s">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="kpi-label mb-1">ใช้งานอยู่</div>
+                            <div class="kpi-value text-success" id="kpiActiveMeters">0</div>
+                        </div>
+                        <div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-check-circle"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="kpi-card fade-in-up" style="animation-delay: 0.2s">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="kpi-label mb-1">ชำรุด</div>
+                            <div class="kpi-value text-danger" id="kpiFaultyMeters">0</div>
+                        </div>
+                        <div class="kpi-icon bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-wrench"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="kpi-card fade-in-up" style="animation-delay: 0.3s">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="kpi-label mb-1">ถอดแล้ว</div>
+                            <div class="kpi-value text-secondary" id="kpiRemovedMeters">0</div>
+                        </div>
+                        <div class="kpi-icon bg-secondary bg-opacity-10 text-secondary"><i class="fa-solid fa-xmark"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-3">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white"><i class="fa-solid fa-search text-muted"></i></span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="รหัส / หมายเลข / ชื่อผู้ใช้">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" id="filterMoo">
+                        <option value="">ทุกหมู่</option>
+                        <option value="1">หมู่ 1</option>
+                        <option value="2">หมู่ 2</option>
+                        <option value="3">หมู่ 3</option>
+                        <option value="4">หมู่ 4</option>
+                        <option value="5">หมู่ 5</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" id="filterSize">
+                        <option value="">ทุกขนาด</option>
+                        <option value="1/2 นิ้ว">1/2 นิ้ว</option>
+                        <option value="3/4 นิ้ว">3/4 นิ้ว</option>
+                        <option value="1 นิ้ว">1 นิ้ว</option>
+                        <option value="1.5 นิ้ว">1.5 นิ้ว</option>
+                        <option value="2 นิ้ว">2 นิ้ว</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" id="filterStatus">
+                        <option value="">ทุกสถานะ</option>
+                        <option value="ใช้งาน">ใช้งาน</option>
+                        <option value="ชำรุด">ชำรุด</option>
+                        <option value="ถอดแล้ว">ถอดแล้ว</option>
+                    </select>
+                </div>
+                <div class="col-md-3 text-end">
+                    <span class="me-2 text-muted small" id="countLabel">พบ 0 รายการ</span>
+                    <button class="btn btn-light btn-sm" onclick="clearFilters()"><i class="fa-solid fa-rotate-left"></i> ล้าง</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card">
+            <div class="card-header border-0 d-flex justify-content-between align-items-center bg-white pt-3 pb-0">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-table-list me-2"></i>รายการมาตรวัดน้ำ</h6>
+            </div>
+            <div class="card-body p-0 mt-3">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">รหัสมิเตอร์</th>
+                                <th>หมายเลขมิเตอร์</th>
+                                <th>ผู้ใช้น้ำ</th>
+                                <th>บ้านเลขที่</th>
+                                <th>หมู่</th>
+                                <th>ขนาด</th>
+                                <th>เลขล่าสุด</th>
+                                <th>วันติดตั้ง</th>
+                                <th>สถานะ</th>
+                                <th class="pe-4 text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="meterTableBody">
+                            <!-- JS Populated -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex justify-content-between align-items-center p-3 border-top">
+                    <div class="text-muted small" id="pageInfo">แสดง 1-10 จาก 0 รายการ</div>
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-sm mb-0" id="pagination">
+                            <!-- JS Populated -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="meterModal" tabindex="-1" aria-labelledby="meterModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="meterModalLabel"><i class="fa-solid fa-gauge-high me-2 text-primary"></i>เพิ่มมาตรวัดน้ำ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="meterForm">
+                    <input type="hidden" id="meterId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">รหัสมิเตอร์ (Auto-generate)</label>
+                            <input type="text" class="form-control" id="meterCode" readonly placeholder="WM-XXXXX">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">หมายเลขมิเตอร์ (Serial Number) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="serialNumber" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">ผู้ใช้น้ำ <span class="text-danger">*</span></label>
+                            <select class="form-select" id="customerSelect" required>
+                                <option value="">เลือกผู้ใช้น้ำ...</option>
+                                <option value="C001">สมชาย ใจดี (บ้านเลขที่ 12/3 ม.1)</option>
+                                <option value="C002">สมหญิง รักสวย (บ้านเลขที่ 45 ม.2)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ขนาดมิเตอร์ <span class="text-danger">*</span></label>
+                            <select class="form-select" id="meterSize" required>
+                                <option value="1/2 นิ้ว">1/2 นิ้ว</option>
+                                <option value="3/4 นิ้ว">3/4 นิ้ว</option>
+                                <option value="1 นิ้ว">1 นิ้ว</option>
+                                <option value="1.5 นิ้ว">1.5 นิ้ว</option>
+                                <option value="2 นิ้ว">2 นิ้ว</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ยี่ห้อ/รุ่น</label>
+                            <input type="text" class="form-control" id="meterBrand" placeholder="เช่น Asahi, Sanwa">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">เลขมาตรตั้งต้น <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="initialReading" min="0" required value="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">วันที่ติดตั้ง <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="installDate" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">ตำแหน่งติดตั้ง</label>
+                            <input type="text" class="form-control" id="installLocation" placeholder="รายละเอียดจุดติดตั้ง">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Latitude</label>
+                            <input type="text" class="form-control" id="latitude">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Longitude</label>
+                            <input type="text" class="form-control" id="longitude">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">แผนที่จุดติดตั้ง</label>
+                            <div id="map" class="map-container"></div>
+                            <small class="text-muted mt-1 d-block"><i class="fa-solid fa-info-circle"></i> คลิกบนแผนที่เพื่อระบุพิกัด</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">สถานะ</label>
+                            <select class="form-select" id="meterStatus">
+                                <option value="ใช้งาน">ใช้งาน</option>
+                                <option value="ชำรุด">ชำรุด</option>
+                                <option value="ถอดแล้ว">ถอดแล้ว</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">หมายเหตุ</label>
+                            <textarea class="form-control" id="meterNote" rows="2"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" onclick="saveMeter()">บันทึก</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change Meter Modal -->
+<div class="modal fade" id="changeMeterModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-right-left me-2 text-warning"></i>เปลี่ยนมาตรวัดน้ำ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="changeMeterForm">
+                    <h6 class="fw-bold mb-3 border-bottom pb-2">ข้อมูลมิเตอร์เดิม</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-8">
+                            <label class="form-label">เลือกมิเตอร์เดิมที่จะเปลี่ยน <span class="text-danger">*</span></label>
+                            <select class="form-select" id="oldMeterSelect" required onchange="populateOldMeterInfo()">
+                                <option value="">เลือกมาตรวัดน้ำ...</option>
+                                <!-- JS Populated -->
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">เลขมาตรสุดท้าย</label>
+                            <input type="number" class="form-control bg-light" id="oldMeterLastReading" readonly>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">สาเหตุการเปลี่ยน <span class="text-danger">*</span></label>
+                            <select class="form-select" id="changeReason" required>
+                                <option value="ชำรุด">มิเตอร์ชำรุด / เสีย</option>
+                                <option value="เปลี่ยนตามรอบ">เปลี่ยนตามรอบอายุการใช้งาน</option>
+                                <option value="อื่นๆ">อื่นๆ</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold mb-3 border-bottom pb-2">ข้อมูลมิเตอร์ใหม่</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">หมายเลขมิเตอร์ใหม่ (Serial Number) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="newSerialNumber" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ขนาดมิเตอร์ใหม่</label>
+                            <select class="form-select" id="newMeterSize">
+                                <option value="1/2 นิ้ว">1/2 นิ้ว</option>
+                                <option value="3/4 นิ้ว">3/4 นิ้ว</option>
+                                <option value="1 นิ้ว">1 นิ้ว</option>
+                                <option value="1.5 นิ้ว">1.5 นิ้ว</option>
+                                <option value="2 นิ้ว">2 นิ้ว</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ยี่ห้อ/รุ่น</label>
+                            <input type="text" class="form-control" id="newMeterBrand">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">เลขมาตรตั้งต้นใหม่ <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="newInitialReading" value="0" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">วันที่เปลี่ยน <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="changeDate" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">หมายเหตุ</label>
+                            <input type="text" class="form-control" id="changeNote">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-warning text-dark" onclick="processMeterChange()">บันทึกการเปลี่ยนมาตร</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-fullscreen-lg-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-circle-info me-2 text-info"></i>รายละเอียดมาตรวัดน้ำ <span id="detailTitleId" class="text-muted ms-2 fs-6"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <div class="row g-4">
+                    <div class="col-lg-4">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body">
+                                <h6 class="fw-bold mb-3 border-bottom pb-2">ข้อมูลมาตรวัด</h6>
+                                <table class="table table-sm table-borderless">
+                                    <tbody>
+                                        <tr><td class="text-muted" width="120">รหัสมิเตอร์:</td><td id="dtCode" class="fw-bold">-</td></tr>
+                                        <tr><td class="text-muted">Serial No:</td><td id="dtSerial">-</td></tr>
+                                        <tr><td class="text-muted">ขนาด/ยี่ห้อ:</td><td id="dtSizeBrand">-</td></tr>
+                                        <tr><td class="text-muted">วันติดตั้ง:</td><td id="dtInstallDate">-</td></tr>
+                                        <tr><td class="text-muted">สถานะ:</td><td id="dtStatus">-</td></tr>
+                                        <tr><td class="text-muted">ตำแหน่ง:</td><td id="dtLocation">-</td></tr>
+                                    </tbody>
+                                </table>
+                                
+                                <h6 class="fw-bold mb-3 mt-4 border-bottom pb-2">ข้อมูลผู้ใช้น้ำ</h6>
+                                <table class="table table-sm table-borderless">
+                                    <tbody>
+                                        <tr><td class="text-muted" width="120">ชื่อ-สกุล:</td><td id="dtCustomerName" class="fw-bold">-</td></tr>
+                                        <tr><td class="text-muted">บ้านเลขที่:</td><td id="dtAddress">-</td></tr>
+                                        <tr><td class="text-muted">หมู่:</td><td id="dtMoo">-</td></tr>
+                                    </tbody>
+                                </table>
+                                
+                                <div class="mt-4">
+                                    <div id="detailMap" class="map-container" style="height: 200px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-8">
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-body">
+                                <h6 class="fw-bold mb-3"><i class="fa-solid fa-chart-line me-2 text-primary"></i>ประวัติการใช้น้ำ (6 เดือนย้อนหลัง)</h6>
+                                <div class="chart-container">
+                                    <canvas id="usageChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <ul class="nav nav-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabReadings" type="button" role="tab">ประวัติจดเลขมาตร</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabChanges" type="button" role="tab">ประวัติเปลี่ยนมาตร</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content bg-white border border-top-0 p-3 rounded-bottom shadow-sm">
+                            <div class="tab-pane fade show active" id="tabReadings" role="tabpanel">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>รอบบิล</th>
+                                                <th>วันที่จด</th>
+                                                <th>เลขมาตร</th>
+                                                <th>หน่วยที่ใช้</th>
+                                                <th>ผู้จด</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="dtReadingsTable">
+                                            <!-- Mock data -->
+                                            <tr><td>08/2023</td><td>25/08/2023</td><td>1,245</td><td>22</td><td>สมศักดิ์</td></tr>
+                                            <tr><td>07/2023</td><td>26/07/2023</td><td>1,223</td><td>20</td><td>สมศักดิ์</td></tr>
+                                            <tr><td>06/2023</td><td>25/06/2023</td><td>1,203</td><td>25</td><td>สมศักดิ์</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="tabChanges" role="tabpanel">
+                                <div class="text-center text-muted p-4">
+                                    <i class="fa-solid fa-clock-rotate-left fa-3x mb-3 text-light"></i>
+                                    <p>ยังไม่มีประวัติการเปลี่ยนมาตรวัดน้ำ</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/water.js"></script>
+<script src="assets/js/responsive.js"></script>
+<script>
+    // Mock Data
+    let mockMeters = [];
+    for(let i=1; i<=35; i++) {
+        let statuses = ['ใช้งาน', 'ใช้งาน', 'ใช้งาน', 'ใช้งาน', 'ชำรุด', 'ถอดแล้ว'];
+        let sizes = ['1/2 นิ้ว', '3/4 นิ้ว', '1 นิ้ว'];
+        mockMeters.push({
+            id: i,
+            code: `WM-${String(i).padStart(5, '0')}`,
+            serial: `SN${Math.floor(Math.random() * 1000000)}`,
+            customerName: `ชาวบ้าน คนที่${i}`,
+            address: `${Math.floor(Math.random()*100)+1}/${Math.floor(Math.random()*10)+1}`,
+            moo: String(Math.floor(Math.random()*5) + 1),
+            size: sizes[Math.floor(Math.random()*sizes.length)],
+            brand: 'Asahi',
+            lastReading: Math.floor(Math.random()*2000) + 100,
+            installDate: `2022-0${Math.floor(Math.random()*9)+1}-15`,
+            status: statuses[Math.floor(Math.random()*statuses.length)],
+            lat: 13.7 + (Math.random() * 0.1),
+            lng: 100.5 + (Math.random() * 0.1)
+        });
+    }
+
+    let filteredMeters = [...mockMeters];
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    
+    // Maps & Charts
+    let map, marker;
+    let detailMap, detailMarker;
+    let usageChart;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        initFilters();
+        updateTable();
+        updateKPIs();
+        
+        // Modal Events for maps
+        document.getElementById('meterModal').addEventListener('shown.bs.modal', function () {
+            if(!map) {
+                map = L.map('map').setView([13.7563, 100.5018], 10);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                
+                map.on('click', function(e) {
+                    document.getElementById('latitude').value = e.latlng.lat.toFixed(6);
+                    document.getElementById('longitude').value = e.latlng.lng.toFixed(6);
+                    if(marker) map.removeLayer(marker);
+                    marker = L.marker(e.latlng).addTo(map);
+                });
+            } else {
+                map.invalidateSize();
+            }
+        });
+
+        document.getElementById('detailModal').addEventListener('shown.bs.modal', function () {
+            if(detailMap) detailMap.invalidateSize();
+            initChart();
+        });
+    });
+
+    function initFilters() {
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('filterMoo').addEventListener('change', applyFilters);
+        document.getElementById('filterSize').addEventListener('change', applyFilters);
+        document.getElementById('filterStatus').addEventListener('change', applyFilters);
+    }
+
+    function applyFilters() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const moo = document.getElementById('filterMoo').value;
+        const size = document.getElementById('filterSize').value;
+        const status = document.getElementById('filterStatus').value;
+
+        filteredMeters = mockMeters.filter(m => {
+            const matchSearch = m.code.toLowerCase().includes(search) || 
+                                m.serial.toLowerCase().includes(search) || 
+                                m.customerName.toLowerCase().includes(search);
+            const matchMoo = moo === '' || m.moo === moo;
+            const matchSize = size === '' || m.size === size;
+            const matchStatus = status === '' || m.status === status;
+            return matchSearch && matchMoo && matchSize && matchStatus;
+        });
+
+        currentPage = 1;
+        updateTable();
+    }
+
+    function clearFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('filterMoo').value = '';
+        document.getElementById('filterSize').value = '';
+        document.getElementById('filterStatus').value = '';
+        applyFilters();
+    }
+
+    function updateKPIs() {
+        document.getElementById('kpiTotalMeters').innerText = mockMeters.length;
+        document.getElementById('kpiActiveMeters').innerText = mockMeters.filter(m => m.status === 'ใช้งาน').length;
+        document.getElementById('kpiFaultyMeters').innerText = mockMeters.filter(m => m.status === 'ชำรุด').length;
+        document.getElementById('kpiRemovedMeters').innerText = mockMeters.filter(m => m.status === 'ถอดแล้ว').length;
+    }
+
+    function updateTable() {
+        const tbody = document.getElementById('meterTableBody');
+        tbody.innerHTML = '';
+        
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const paginated = filteredMeters.slice(start, end);
+
+        if(paginated.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted">ไม่พบข้อมูลมาตรวัดน้ำ</td></tr>`;
+        }
+
+        paginated.forEach(m => {
+            let statusBadge = '';
+            if(m.status === 'ใช้งาน') statusBadge = `<span class="meter-status-active"><i class="fa-solid fa-check-circle me-1"></i>ใช้งาน</span>`;
+            else if(m.status === 'ชำรุด') statusBadge = `<span class="meter-status-faulty"><i class="fa-solid fa-wrench me-1"></i>ชำรุด</span>`;
+            else statusBadge = `<span class="meter-status-removed"><i class="fa-solid fa-xmark me-1"></i>ถอดแล้ว</span>`;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td class="ps-4 fw-bold text-primary">${m.code}</td>
+                    <td>${m.serial}</td>
+                    <td>${m.customerName}</td>
+                    <td>${m.address}</td>
+                    <td>หมู่ ${m.moo}</td>
+                    <td>${m.size}</td>
+                    <td class="fw-bold">${m.lastReading.toLocaleString()}</td>
+                    <td>${formatDate(m.installDate)}</td>
+                    <td>${statusBadge}</td>
+                    <td class="pe-4 text-center">
+                        <button class="btn btn-sm btn-light text-primary" onclick="viewDetails(${m.id})" title="ดูรายละเอียด"><i class="fa-solid fa-eye"></i></button>
+                        <button class="btn btn-sm btn-light text-warning" onclick="openEditModal(${m.id})" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+                        <button class="btn btn-sm btn-light text-danger" onclick="deleteMeter(${m.id})" title="ลบ"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('countLabel').innerText = `พบ ${filteredMeters.length} รายการ`;
+        renderPagination();
+    }
+
+    function renderPagination() {
+        const totalPages = Math.ceil(filteredMeters.length / itemsPerPage);
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+        
+        const startText = filteredMeters.length > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0;
+        const endText = Math.min(currentPage * itemsPerPage, filteredMeters.length);
+        document.getElementById('pageInfo').innerText = `แสดง ${startText}-${endText} จาก ${filteredMeters.length} รายการ`;
+
+        if (totalPages <= 1) return;
+
+        pagination.innerHTML += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="javascript:void(0)" onclick="goToPage(${currentPage - 1})">ก่อนหน้า</a></li>`;
+        
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                pagination.innerHTML += `<li class="page-item ${currentPage === i ? 'active' : ''}"><a class="page-link" href="javascript:void(0)" onclick="goToPage(${i})">${i}</a></li>`;
+            } else if (i === currentPage - 2 || i === currentPage + 2) {
+                pagination.innerHTML += `<li class="page-item disabled"><a class="page-link">...</a></li>`;
+            }
+        }
+        
+        pagination.innerHTML += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="javascript:void(0)" onclick="goToPage(${currentPage + 1})">ถัดไป</a></li>`;
+    }
+
+    function goToPage(page) {
+        currentPage = page;
+        updateTable();
+    }
+
+    function formatDate(dateString) {
+        if(!dateString) return '-';
+        const d = new Date(dateString);
+        return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()+543}`;
+    }
+
+    function openAddModal() {
+        document.getElementById('meterForm').reset();
+        document.getElementById('meterId').value = '';
+        document.getElementById('meterCode').value = `WM-${String(mockMeters.length+1).padStart(5, '0')}`;
+        document.getElementById('installDate').value = new Date().toISOString().split('T')[0];
+        
+        const modal = new bootstrap.Modal(document.getElementById('meterModal'));
+        modal.show();
+    }
+
+    function openEditModal(id) {
+        const meter = mockMeters.find(m => m.id === id);
+        if(!meter) return;
+
+        document.getElementById('meterId').value = meter.id;
+        document.getElementById('meterCode').value = meter.code;
+        document.getElementById('serialNumber').value = meter.serial;
+        document.getElementById('meterSize').value = meter.size;
+        document.getElementById('meterBrand').value = meter.brand;
+        document.getElementById('installDate').value = meter.installDate;
+        document.getElementById('meterStatus').value = meter.status;
+        
+        if(meter.lat) {
+            document.getElementById('latitude').value = meter.lat;
+            document.getElementById('longitude').value = meter.lng;
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('meterModal'));
+        modal.show();
+    }
+
+    function saveMeter() {
+        const id = document.getElementById('meterId').value;
+        const code = document.getElementById('meterCode').value;
+        const serial = document.getElementById('serialNumber').value;
+        const size = document.getElementById('meterSize').value;
+        const status = document.getElementById('meterStatus').value;
+
+        if(!serial) {
+            Swal.fire('ข้อผิดพลาด', 'กรุณากรอกหมายเลขมิเตอร์', 'error');
+            return;
+        }
+
+        if(id) {
+            const idx = mockMeters.findIndex(m => m.id == id);
+            mockMeters[idx].serial = serial;
+            mockMeters[idx].size = size;
+            mockMeters[idx].status = status;
+        } else {
+            mockMeters.unshift({
+                id: Date.now(),
+                code: code,
+                serial: serial,
+                customerName: 'ลูกค้าใหม่',
+                address: '-',
+                moo: '1',
+                size: size,
+                brand: document.getElementById('meterBrand').value,
+                lastReading: document.getElementById('initialReading').value,
+                installDate: document.getElementById('installDate').value,
+                status: status,
+                lat: document.getElementById('latitude').value,
+                lng: document.getElementById('longitude').value
+            });
+        }
+
+        bootstrap.Modal.getInstance(document.getElementById('meterModal')).hide();
+        if(typeof showToast === 'function') showToast('บันทึกข้อมูลสำเร็จ', 'success');
+        applyFilters();
+        updateKPIs();
+    }
+
+    function deleteMeter(id) {
+        Swal.fire({
+            title: 'ยืนยันการลบ',
+            text: "คุณต้องการลบข้อมูลมาตรวัดน้ำนี้ใช่หรือไม่?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'ใช่, ลบเลย',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                mockMeters = mockMeters.filter(m => m.id !== id);
+                applyFilters();
+                updateKPIs();
+                if(typeof showToast === 'function') showToast('ลบข้อมูลสำเร็จ', 'success');
+            }
+        });
+    }
+
+    function openChangeModal() {
+        // Populate select
+        const select = document.getElementById('oldMeterSelect');
+        select.innerHTML = '<option value="">เลือกมาตรวัดน้ำ...</option>';
+        mockMeters.filter(m => m.status === 'ใช้งาน' || m.status === 'ชำรุด').forEach(m => {
+            select.innerHTML += `<option value="${m.id}">${m.code} - ${m.serial} (${m.customerName})</option>`;
+        });
+        
+        document.getElementById('changeMeterForm').reset();
+        document.getElementById('changeDate').value = new Date().toISOString().split('T')[0];
+        
+        const modal = new bootstrap.Modal(document.getElementById('changeMeterModal'));
+        modal.show();
+    }
+
+    function populateOldMeterInfo() {
+        const id = document.getElementById('oldMeterSelect').value;
+        if(!id) return;
+        const meter = mockMeters.find(m => m.id == id);
+        if(meter) {
+            document.getElementById('oldMeterLastReading').value = meter.lastReading;
+        }
+    }
+
+    function processMeterChange() {
+        const oldId = document.getElementById('oldMeterSelect').value;
+        if(!oldId) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกมาตรวัดน้ำเดิม', 'warning');
+
+        Swal.fire({
+            title: 'กำลังบันทึก...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        setTimeout(() => {
+            // Logic to update old meter to "ถอดแล้ว" and create new meter
+            const oldIdx = mockMeters.findIndex(m => m.id == oldId);
+            mockMeters[oldIdx].status = 'ถอดแล้ว';
+
+            const newMeter = { ...mockMeters[oldIdx] };
+            newMeter.id = Date.now();
+            newMeter.code = `WM-${String(mockMeters.length+1).padStart(5, '0')}`;
+            newMeter.serial = document.getElementById('newSerialNumber').value;
+            newMeter.size = document.getElementById('newMeterSize').value;
+            newMeter.brand = document.getElementById('newMeterBrand').value;
+            newMeter.lastReading = document.getElementById('newInitialReading').value;
+            newMeter.installDate = document.getElementById('changeDate').value;
+            newMeter.status = 'ใช้งาน';
+
+            mockMeters.unshift(newMeter);
+            setTimeout(() => Swal.close(), 600);
+            bootstrap.Modal.getInstance(document.getElementById('changeMeterModal')).hide();
+            if(typeof showToast === 'function') showToast('เปลี่ยนมาตรวัดน้ำสำเร็จ', 'success');
+            
+            applyFilters();
+            updateKPIs();
+        }, 800);
+    }
+
+    function viewDetails(id) {
+        const meter = mockMeters.find(m => m.id === id);
+        if(!meter) return;
+
+        document.getElementById('detailTitleId').innerText = `(${meter.code})`;
+        document.getElementById('dtCode').innerText = meter.code;
+        document.getElementById('dtSerial').innerText = meter.serial;
+        document.getElementById('dtSizeBrand').innerText = `${meter.size} / ${meter.brand || '-'}`;
+        document.getElementById('dtInstallDate').innerText = formatDate(meter.installDate);
+        
+        let statusHtml = '';
+        if(meter.status === 'ใช้งาน') statusHtml = `<span class="badge bg-success">ใช้งาน</span>`;
+        else if(meter.status === 'ชำรุด') statusHtml = `<span class="badge bg-danger">ชำรุด</span>`;
+        else statusHtml = `<span class="badge bg-secondary">ถอดแล้ว</span>`;
+        document.getElementById('dtStatus').innerHTML = statusHtml;
+        
+        document.getElementById('dtLocation').innerText = meter.lat ? `${meter.lat}, ${meter.lng}` : 'ไม่ได้ระบุ';
+        document.getElementById('dtCustomerName').innerText = meter.customerName;
+        document.getElementById('dtAddress').innerText = meter.address;
+        document.getElementById('dtMoo').innerText = `หมู่ ${meter.moo}`;
+
+        const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+        modal.show();
+
+        // Setup detail map
+        setTimeout(() => {
+            if(!detailMap) {
+                detailMap = L.map('detailMap').setView([13.7563, 100.5018], 14);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(detailMap);
+            }
+            if(detailMarker) detailMap.removeLayer(detailMarker);
+            
+            if(meter.lat && meter.lng) {
+                detailMarker = L.marker([meter.lat, meter.lng]).addTo(detailMap);
+                detailMap.setView([meter.lat, meter.lng], 16);
+            }
+        }, 300);
+    }
+
+    function initChart() {
+        const ctx = document.getElementById('usageChart');
+        if(usageChart) usageChart.destroy();
+        
+        usageChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.'],
+                datasets: [{
+                    label: 'หน่วยน้ำที่ใช้',
+                    data: [15, 18, 22, 25, 20, 22],
+                    backgroundColor: 'rgba(13, 110, 253, 0.5)',
+                    borderColor: '#0d6efd',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    function exportExcel() {
+        const ws = XLSX.utils.json_to_sheet(mockMeters.map(m => ({
+            "รหัสมิเตอร์": m.code,
+            "หมายเลข": m.serial,
+            "ผู้ใช้น้ำ": m.customerName,
+            "บ้านเลขที่": m.address,
+            "หมู่": m.moo,
+            "ขนาด": m.size,
+            "เลขล่าสุด": m.lastReading,
+            "สถานะ": m.status
+        })));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Meters");
+        XLSX.writeFile(wb, "Water_Meters.xlsx");
+    }
+
+    function importExcel() {
+        Swal.fire({
+            title: 'นำเข้าข้อมูล',
+            text: 'ฟังก์ชันนี้กำลังอยู่ระหว่างการพัฒนา',
+            icon: 'info'
+        });
+    }
+</script>
+</body>
+</html>

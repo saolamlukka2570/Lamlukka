@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คลังอุปกรณ์ไฟฟ้า - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Prompt', sans-serif; }
+        .low-stock { background: #fef2f2 !important; }
+        .stock-bar { height: 6px; border-radius: 3px; background: #e5e7eb; overflow: hidden; }
+        .stock-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+    </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body class="bg-slate-50">
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="คลังอุปกรณ์ไฟฟ้า"></div>
+    <div class="page-content p-4">
+
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <a href="publicworks-electric.html" class="btn btn-light rounded-circle shadow-sm border" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; text-decoration: none;">
+                    <i class="fa-solid fa-arrow-left text-slate-600"></i>
+                </a>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-800 mb-1"><i class="fa-solid fa-boxes-stacked text-amber-500 me-2"></i>คลังอุปกรณ์ไฟฟ้า</h1>
+                    <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                        <li class="breadcrumb-item"><a href="publicworks-electric.html" class="text-decoration-none">ซ่อมบำรุงไฟฟ้า</a></li>
+                        <li class="breadcrumb-item active">คลังอุปกรณ์</li>
+                    </ol></nav>
+                </div>
+            </div>
+            <button class="btn btn-sm btn-warning text-dark fw-semibold" data-bs-toggle="modal" data-bs-target="#itemModal"><i class="fa-solid fa-plus me-1"></i>เพิ่มอุปกรณ์</button>
+        </div>
+
+        <!-- KPI -->
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="bg-blue-50 p-3 rounded-xl text-blue-600"><i class="fa-solid fa-box text-xl"></i></div>
+                </div>
+                <h3 class="text-slate-500 text-sm font-medium mb-1">รายการอุปกรณ์ทั้งหมด</h3>
+                <p class="text-2xl font-bold text-slate-800" id="kpiTotal">-</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="bg-red-50 p-3 rounded-xl text-red-600"><i class="fa-solid fa-exclamation-triangle text-xl"></i></div>
+                </div>
+                <h3 class="text-slate-500 text-sm font-medium mb-1">Stock ต่ำ (ต้องสั่งซื้อ)</h3>
+                <p class="text-2xl font-bold text-red-600" id="kpiLow">-</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="bg-green-50 p-3 rounded-xl text-green-600"><i class="fa-solid fa-check-circle text-xl"></i></div>
+                </div>
+                <h3 class="text-slate-500 text-sm font-medium mb-1">Stock เพียงพอ</h3>
+                <p class="text-2xl font-bold text-green-600" id="kpiOk">-</p>
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800"><i class="fa-solid fa-warehouse text-amber-500 me-2"></i>รายการอุปกรณ์คงคลัง</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead><tr>
+                        <th class="ps-4">#</th><th>ชื่ออุปกรณ์</th><th>หน่วย</th>
+                        <th>คงเหลือ</th><th>ขั้นต่ำ</th><th>สถานะ</th><th class="pe-4 text-center">จัดการ</th>
+                    </tr></thead>
+                    <tbody id="itemsBody">
+                        <tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลด...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Item Modal -->
+<div class="modal fade" id="itemModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="itemModalTitle"><i class="fa-solid fa-plus text-primary me-2"></i>เพิ่มอุปกรณ์</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="itemForm" onsubmit="submitItem(event)">
+                    <input type="hidden" id="ifId">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-sm">ชื่ออุปกรณ์ <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="ifName" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold text-sm">หน่วยนับ</label>
+                            <input type="text" class="form-control" id="ifUnit" value="ชิ้น">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold text-sm">จำนวน</label>
+                            <input type="number" class="form-control" id="ifQty" value="0" min="0">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold text-sm">ขั้นต่ำ</label>
+                            <input type="number" class="form-control" id="ifMin" value="5" min="0">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold"><i class="fa-solid fa-save me-1"></i>บันทึก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script>
+const API = 'http://localhost:3000/api/electric';
+let allItems = [];
+
+document.addEventListener('DOMContentLoaded', () => { loadItems(); });
+
+async function loadItems() {
+    if (supabaseClient) {
+        try {
+            const { data, error } = await supabaseClient.from('electric_items').select('*').order('name');
+            if (error) throw error;
+            allItems = data || [];
+        } catch(e) {
+            console.error("Supabase Error:", e);
+            allItems = [];
+        }
+    } else {
+        try { allItems = await fetch(API + '/items').then(r=>r.json()); } catch(e) { allItems = []; }
+    }
+    
+    const lowCount = allItems.filter(i => i.qty <= i.min_qty).length;
+    document.getElementById('kpiTotal').textContent = allItems.length;
+    document.getElementById('kpiLow').textContent = lowCount;
+    document.getElementById('kpiOk').textContent = allItems.length - lowCount;
+    renderItems();
+}
+
+function renderItems() {
+    const tbody = document.getElementById('itemsBody');
+    if (!allItems.length) { tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">ไม่มีข้อมูล</td></tr>'; return; }
+    tbody.innerHTML = allItems.map((item, i) => {
+        const isLow = item.qty <= item.min_qty;
+        const pct = Math.min((item.qty / Math.max(item.min_qty * 3, 1)) * 100, 100);
+        const barColor = isLow ? '#ef4444' : pct > 60 ? '#22c55e' : '#eab308';
+        return `<tr class="${isLow ? 'low-stock' : ''}">
+            <td class="ps-4">${i+1}</td>
+            <td class="fw-semibold">${item.name}</td>
+            <td>${item.unit}</td>
+            <td>
+                <span class="fw-bold ${isLow ? 'text-danger' : ''}">${item.qty}</span>
+                <div class="stock-bar mt-1" style="width:80px;"><div class="stock-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
+            </td>
+            <td class="text-muted">${item.min_qty}</td>
+            <td>${isLow ? '<span class="badge bg-danger">ต่ำ!</span>' : '<span class="badge bg-success">ปกติ</span>'}</td>
+            <td class="pe-4 text-center">
+                <button class="btn btn-xs btn-primary me-1" onclick="editItem('${item.id}')"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn btn-xs btn-outline-danger" onclick="deleteItem('${item.id}')"><i class="fa-solid fa-trash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+async function submitItem(e) {
+    e.preventDefault();
+    const id = document.getElementById('ifId').value;
+    const payload = {
+        name: document.getElementById('ifName').value,
+        unit: document.getElementById('ifUnit').value,
+        qty: parseInt(document.getElementById('ifQty').value),
+        min_qty: parseInt(document.getElementById('ifMin').value)
+    };
+    try {
+        if (supabaseClient) {
+            if (id) {
+                const { error } = await supabaseClient.from('electric_items').update(payload).eq('id', id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabaseClient.from('electric_items').insert([payload]);
+                if (error) throw error;
+            }
+        } else {
+            if (id) {
+                await fetch(API + '/items/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+            } else {
+                await fetch(API + '/items', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+            }
+        }
+        bootstrap.Modal.getInstance(document.getElementById('itemModal')).hide();
+        showToast(id ? 'แก้ไขอุปกรณ์สำเร็จ' : 'เพิ่มอุปกรณ์สำเร็จ','success');
+        loadItems();
+    } catch(e) { 
+        console.error(e);
+        showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล','danger'); 
+    }
+}
+
+function editItem(id) {
+    const item = allItems.find(i => i.id === id);
+    if (!item) return;
+    document.getElementById('ifId').value = item.id;
+    document.getElementById('ifName').value = item.name;
+    document.getElementById('ifUnit').value = item.unit;
+    document.getElementById('ifQty').value = item.qty;
+    document.getElementById('ifMin').value = item.min_qty;
+    document.getElementById('itemModalTitle').innerHTML = '<i class="fa-solid fa-pen text-warning me-2"></i>แก้ไขอุปกรณ์';
+    new bootstrap.Modal(document.getElementById('itemModal')).show();
+}
+
+async function deleteItem(id) {
+    if (!confirm('ยืนยันการลบอุปกรณ์นี้?')) return;
+    try {
+        if (supabaseClient) {
+            const { error } = await supabaseClient.from('electric_items').delete().eq('id', id);
+            if (error) throw error;
+        } else {
+            await fetch(API + '/items/' + id, { method:'DELETE' });
+        }
+        showToast('ลบอุปกรณ์สำเร็จ','success');
+        loadItems();
+    } catch(e) { 
+        console.error(e);
+        showToast('เกิดข้อผิดพลาดในการลบข้อมูล','danger'); 
+    }
+}
+
+document.getElementById('itemModal').addEventListener('hidden.bs.modal', () => {
+    document.getElementById('ifId').value = '';
+    document.getElementById('itemForm').reset();
+    document.getElementById('itemModalTitle').innerHTML = '<i class="fa-solid fa-plus text-primary me-2"></i>เพิ่มอุปกรณ์';
+});
+</script>
+    <script src="assets/js/responsive.js"></script>
+</body>
+</html>

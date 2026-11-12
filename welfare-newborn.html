@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เด็กแรกเกิด - Digital Data Center</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ฐานข้อมูลเด็กแรกเกิด"></div>
+    <div class="page-content">
+        <div class="mb-3"><a href="digital-data-dashboard.html" class="btn btn-light shadow-sm border fw-bold" style="border-radius:10px;"><i class="fa-solid fa-arrow-left me-2"></i>ย้อนกลับ (Digital Data Center)</a></div>
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div><h4 class="fw-bold mb-1"><i class="fa-solid fa-baby me-2" style="color:#10b981"></i>ฐานข้อมูลเด็กแรกเกิด</h4>
+            <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;"><li class="breadcrumb-item"><a href="digital-data-dashboard.html" class="text-decoration-none">Digital Data Center</a></li><li class="breadcrumb-item active">เด็กแรกเกิด</li></ol></nav></div>
+            <div class="d-flex gap-2">
+                <input type="file" id="importExcel" accept=".xlsx, .xls" style="display:none;" onchange="handleImportExcel(event)">
+                <button class="btn btn-sm btn-outline-success" onclick="document.getElementById('importExcel').click()"><i class="fa-solid fa-file-import me-1"></i>นำเข้า</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="exportExcel()"><i class="fa-solid fa-file-excel me-1"></i>Export</button>
+                <button class="btn btn-sm text-white" style="background:#10b981" onclick="showAddNewborn()"><i class="fa-solid fa-plus me-1"></i>เพิ่มข้อมูล</button>
+            </div>
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">เด็กแรกเกิดรวม</div><div class="kpi-value" id="k1">—</div></div><div class="kpi-icon" style="background:rgba(16,185,129,0.1);color:#10b981"><i class="fa-solid fa-baby"></i></div></div></div></div>
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ชาย</div><div class="kpi-value text-primary" id="k2">—</div></div><div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-mars"></i></div></div></div></div>
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">หญิง</div><div class="kpi-value" style="color:#ec4899" id="k3">—</div></div><div class="kpi-icon" style="background:rgba(236,72,153,0.1);color:#ec4899"><i class="fa-solid fa-venus"></i></div></div></div></div>
+            <div class="col-6 col-lg-3"><div class="kpi-card fade-in-up"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">น้ำหนักต่ำกว่าเกณฑ์</div><div class="kpi-value text-warning" id="k4">—</div></div><div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-weight-scale"></i></div></div></div></div>
+        </div>
+        <div class="card mb-3"><div class="card-body py-2"><div class="row g-2 align-items-center">
+            <div class="col-md-8"><div class="input-group input-group-sm"><span class="input-group-text bg-light"><i class="fa-solid fa-search text-muted"></i></span><input type="text" class="form-control" id="sI" placeholder="ค้นหาชื่อเด็ก / ผู้ปกครอง..." onkeyup="ft()"></div></div>
+            <div class="col-md-4 text-end"><span class="text-xs text-muted" id="rc">—</span></div>
+        </div></div></div>
+        <div class="card"><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0">
+            <thead><tr><th class="ps-4">ชื่อเด็ก</th><th>เพศ</th><th>วันเกิด</th><th>น้ำหนักแรกเกิด (กก.)</th><th>ผู้ปกครอง</th><th>บ้านเลขที่</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
+            <tbody id="tB"><tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody>
+        </table></div></div></div>
+    </div>
+</div>
+
+<!-- Add Newborn Modal -->
+<div class="modal fade" id="newbornModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+    <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold" style="color:#10b981"><i class="fa-solid fa-baby me-2"></i>เพิ่มข้อมูลเด็กแรกเกิด</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body p-4">
+        
+        <!-- Step 1: Search Citizen -->
+        <div id="step1-search">
+            <h6 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-1 me-2"></i>ขั้นตอนที่ 1: ค้นหาจากฐานข้อมูลทะเบียนราษฎร์</h6>
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" id="searchCitizenInput" placeholder="พิมพ์ชื่อ, นามสกุล, หรือบ้านเลขที่...">
+                <button class="btn btn-primary" onclick="handleSearchCitizen()"><i class="fa-solid fa-search me-1"></i>ค้นหา</button>
+            </div>
+            <div id="searchCitizenResults" class="list-group mb-3"></div>
+            
+            <div class="text-center mt-4">
+                <p class="text-muted text-sm mb-2">ไม่พบรายชื่อในระบบ? หรือต้องการเพิ่มใหม่</p>
+                <button class="btn btn-outline-success btn-sm" onclick="skipToForm()"><i class="fa-solid fa-user-plus me-1"></i>เพิ่มชื่อเข้าฐานข้อมูลทะเบียนราษฎร์</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Fill Data -->
+        <div id="step2-form" style="display:none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-primary mb-0"><i class="fa-solid fa-2 me-2"></i>ขั้นตอนที่ 2: ระบุข้อมูลเด็กแรกเกิด</h6>
+                <button class="btn btn-sm btn-light" onclick="backToSearch()"><i class="fa-solid fa-arrow-left me-1"></i>กลับไปค้นหา</button>
+            </div>
+            
+            <form id="newbornForm">
+                <div class="p-3 bg-light rounded mb-3 border">
+                    <h6 class="fw-bold mb-2">ข้อมูลส่วนบุคคล</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3"><label class="form-label">คำนำหน้า</label><select class="form-select form-select-sm" id="ePrefix"><option>เด็กชาย</option><option>เด็กหญิง</option></select></div>
+                        <div class="col-md-4"><label class="form-label">ชื่อ <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="eFirstName" required></div>
+                        <div class="col-md-5"><label class="form-label">นามสกุล <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="eLastName" required></div>
+                        
+                        <div class="col-md-3"><label class="form-label">เพศ</label><select class="form-select form-select-sm" id="eGender"><option>ชาย</option><option>หญิง</option></select></div>
+                        <div class="col-md-4"><label class="form-label">วัน/เดือน/ปีเกิด</label><input type="date" class="form-control form-control-sm" id="eBirthDate"></div>
+                        <div class="col-md-5"><label class="form-label">เลขบัตรประชาชน</label><input type="text" class="form-control form-control-sm" id="eCitizenId" maxlength="13"></div>
+                        
+                        <div class="col-md-4"><label class="form-label">บ้านเลขที่ <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="eHouse" required></div>
+                        <div class="col-md-3"><label class="form-label">หมู่ที่ <span class="text-danger">*</span></label><input type="number" class="form-control form-control-sm" id="eVillage" required></div>
+                        <div class="col-md-5"><label class="form-label">ชื่อหมู่บ้าน</label><input type="text" class="form-control form-control-sm" id="eVillageName"></div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded border" style="background:rgba(16,185,129,0.1); border-color:#a7f3d0;">
+                    <h6 class="fw-bold mb-2" style="color:#10b981"><i class="fa-solid fa-baby-carriage me-1"></i>ข้อมูลสูติกรรม</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label">น้ำหนักแรกเกิด (กก.) <span class="text-danger">*</span></label><input type="number" class="form-control form-control-sm" id="nWeight" step="0.1" required placeholder="เช่น 3.2"></div>
+                        <div class="col-md-6"><label class="form-label">ชื่อผู้ปกครอง <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="nGuardian" required placeholder="ชื่อ-สกุล มารดาหรือผู้ปกครอง"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    </div>
+    <div class="modal-footer border-0 bg-light" id="modalFooter" style="display:none;">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn text-white" style="background:#10b981" onclick="saveNewborn()"><i class="fa-solid fa-save me-1"></i>บันทึกข้อมูล</button>
+    </div>
+</div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js?v=2"></script>
+<script src="assets/js/app.js?v=20260922"></script>
+<script src="assets/js/digital-data-service.js?v=2"></script>
+<script src="assets/js/household-service.js?v=2"></script>
+<script src="assets/js/responsive.js?v=2"></script>
+<script>
+let ad=[];
+document.addEventListener('DOMContentLoaded',async()=>{
+    await loadData();
+});
+
+async function loadData() {
+    let d=await HouseholdService.getNewbornList();
+    ad=d; 
+    rn(d);
+    updateKPIs(d);
+}
+
+function updateKPIs(d) {
+    document.getElementById('k1').textContent=d.length;
+    document.getElementById('k2').textContent=d.filter(x=>(x.dd_household_members||{}).gender==='ชาย').length;
+    document.getElementById('k3').textContent=d.filter(x=>(x.dd_household_members||{}).gender==='หญิง').length;
+    document.getElementById('k4').textContent=d.filter(x=>(x.birth_weight||9)<2.5).length;
+}
+
+function rn(d){
+    const tb=document.getElementById('tB');document.getElementById('rc').textContent=d.length+' ราย';
+    if(!d.length){tb.innerHTML='<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';return;}
+    tb.innerHTML=d.map(x=>{const m=x.dd_household_members||{};const h=m.dd_households||{};const low=(x.birth_weight||9)<2.5;return `<tr>
+        <td class="ps-4 fw-semibold">${m.prefix||''} ${m.first_name||''} ${m.last_name||''}</td>
+        <td>${m.gender==='ชาย'?'<i class="fa-solid fa-mars text-primary"></i> ชาย':'<i class="fa-solid fa-venus" style="color:#ec4899"></i> หญิง'}</td>
+        <td class="text-xs">${m.birth_date||'-'}</td>
+        <td class="fw-semibold ${low?'text-danger':''}">${x.birth_weight||'-'} ${low?'<i class="fa-solid fa-triangle-exclamation text-warning ms-1"></i>':''}</td>
+        <td class="text-xs">${x.guardian_name||'-'}</td><td>${h.house_number||'-'} ม.${h.village_no||'-'}</td>
+        <td class="pe-4 text-center">
+            <button class="btn btn-xs btn-outline-info shadow-sm" onclick="viewProfile('${m.household_id || h.id || ''}')" title="ไปยังข้อมูลครัวเรือน"><i class="fa-solid fa-house"></i></button>
+        </td>
+    </tr>`;}).join('');
+}
+function ft(){const q=document.getElementById('sI').value.toLowerCase();let d=ad;if(q)d=d.filter(x=>{const m=x.dd_household_members||{};return(m.first_name||'').toLowerCase().includes(q)||(x.guardian_name||'').toLowerCase().includes(q);});rn(d);}
+
+function viewProfile(id) {
+    if(id && id !== 'undefined') {
+        window.location.href = 'digital-data-profile.html?id=' + id;
+    } else {
+        Swal.fire('ไม่พบข้อมูลครัวเรือน', 'บุคคลนี้ไม่ได้เชื่อมโยงกับครัวเรือนใดๆ', 'warning');
+    }
+}
+
+// 2-Step Modal Logic
+function showAddNewborn(){
+    document.getElementById('step1-search').style.display = 'block';
+    document.getElementById('step2-form').style.display = 'none';
+    document.getElementById('modalFooter').style.display = 'none';
+    document.getElementById('searchCitizenInput').value = '';
+    document.getElementById('searchCitizenResults').innerHTML = '';
+    document.getElementById('newbornForm').reset();
+    new bootstrap.Modal(document.getElementById('newbornModal')).show();
+}
+
+async function handleSearchCitizen() {
+    const q = document.getElementById('searchCitizenInput').value.trim();
+    if(!q) return;
+    const resDiv = document.getElementById('searchCitizenResults');
+    resDiv.innerHTML = '<div class="text-center text-muted py-2"><i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังค้นหา...</div>';
+    
+    try {
+        const results = await DigitalDataService.searchCitizen(q);
+        if(!results.length) {
+            resDiv.innerHTML = '<div class="alert alert-warning py-2 mb-0">ไม่พบรายชื่อในระบบ</div>';
+            return;
+        }
+        resDiv.innerHTML = results.map(r => {
+            const h = r.dd_households || {};
+            return `<button type="button" class="list-group-item list-group-item-action" onclick='selectCitizen(${JSON.stringify(r).replace(/'/g,"&apos;")})'>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${r.prefix||''}${r.first_name||''} ${r.last_name||''}</strong>
+                        <div class="text-xs text-muted">บัตรปชช: ${r.citizen_id||'-'} | บ้านเลขที่: ${h.house_number||'-'} ม.${h.village_no||'-'}</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-muted"></i>
+                </div>
+            </button>`;
+        }).join('');
+    } catch(e) {
+        resDiv.innerHTML = '<div class="alert alert-danger py-2 mb-0">เกิดข้อผิดพลาดในการค้นหา</div>';
+    }
+}
+
+let selectedMemberId = null;
+
+function selectCitizen(r) {
+    selectedMemberId = r.id;
+    const h = r.dd_households || {};
+    document.getElementById('ePrefix').value = r.prefix || 'เด็กชาย';
+    document.getElementById('eFirstName').value = r.first_name || '';
+    document.getElementById('eLastName').value = r.last_name || '';
+    document.getElementById('eGender').value = r.gender || 'ชาย';
+    document.getElementById('eCitizenId').value = r.citizen_id || '';
+    document.getElementById('eHouse').value = h.house_number || '';
+    document.getElementById('eVillage').value = h.village_no || '';
+    document.getElementById('eVillageName').value = h.village_name || '';
+    skipToForm();
+}
+
+function skipToForm() {
+    document.getElementById('step1-search').style.display = 'none';
+    document.getElementById('step2-form').style.display = 'block';
+    document.getElementById('modalFooter').style.display = 'flex';
+}
+
+function backToSearch() {
+    selectedMemberId = null;
+    document.getElementById('step2-form').style.display = 'none';
+    document.getElementById('modalFooter').style.display = 'none';
+    document.getElementById('step1-search').style.display = 'block';
+}
+
+async function saveNewborn() {
+    const fname = document.getElementById('eFirstName').value;
+    const lname = document.getElementById('eLastName').value;
+    const weight = document.getElementById('nWeight').value;
+    const guardian = document.getElementById('nGuardian').value;
+    
+    if(!fname || !lname || !weight || !guardian) { 
+        Swal.fire('ข้อมูลไม่ครบ','กรุณากรอกข้อมูลให้ครบถ้วน','warning'); 
+        return; 
+    }
+    if(!selectedMemberId) { Swal.fire('ไม่สามารถบันทึกได้','กรุณาเลือกประชากรจากฐานข้อมูล','warning'); return; }
+    
+    const newbornDataObj = {
+        household_member_id: selectedMemberId,
+        birth_weight: parseFloat(weight),
+        guardian_name: guardian
+    };
+    
+    try {
+        await HouseholdService.saveNewborn(selectedMemberId, newbornDataObj);
+        
+        await loadData();
+        
+        bootstrap.Modal.getInstance(document.getElementById('newbornModal')).hide();
+        Swal.fire({icon:'success',title:'บันทึกข้อมูลสำเร็จ',timer:1500,showConfirmButton:false});
+    } catch(err) {
+        Swal.fire('เกิดข้อผิดพลาด','ไม่สามารถบันทึกข้อมูลได้: ' + err.message,'error');
+    }
+}
+
+// Export/Import Excel
+function exportExcel() {
+    let exportData = [];
+    if(!ad.length) { 
+        exportData = [{
+            "ลำดับ": "", "คำนำหน้า": "", "ชื่อ": "", "นามสกุล": "", "เพศ": "", "วันเกิด": "", "เลขบัตรประชาชน": "", 
+            "บ้านเลขที่": "", "หมู่ที่": "", "ชื่อหมู่บ้าน": "", "น้ำหนักแรกเกิด (กก.)": "", "ชื่อผู้ปกครอง": ""
+        }];
+    } else {
+        exportData = ad.map((d, idx) => {
+            const m = d.dd_household_members || {};
+            const h = m.dd_households || {};
+            return {
+                "ลำดับ": idx + 1,
+                "คำนำหน้า": m.prefix || '',
+                "ชื่อ": m.first_name || '',
+                "นามสกุล": m.last_name || '',
+                "เพศ": m.gender || '',
+                "วันเกิด": m.birth_date || '',
+                "เลขบัตรประชาชน": m.citizen_id || '',
+                "บ้านเลขที่": h.house_number || '',
+                "หมู่ที่": h.village_no || '',
+                "ชื่อหมู่บ้าน": h.village_name || '',
+                "น้ำหนักแรกเกิด (กก.)": d.birth_weight || '',
+                "ชื่อผู้ปกครอง": d.guardian_name || ''
+            };
+        });
+    }
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "เด็กแรกเกิด");
+    XLSX.writeFile(wb, "newborn_data_export.xlsx");
+}
+
+function handleImportExcel(event) {
+    const file = event.target.files[0];
+    if(!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+            
+            if(!jsonData || jsonData.length === 0) {
+                Swal.fire('ไฟล์ว่างเปล่า','ไม่พบข้อมูลในไฟล์ Excel','error');
+                return;
+            }
+            
+            Swal.fire({
+                title: 'กำลังตรวจสอบข้อมูล...',
+                html: 'ประมวลผล ' + jsonData.length + ' รายการ',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+            
+            const {data: allHouseholds} = await supabaseClient.from('dd_households').select('id, house_number, village_no');
+            const {data: allMembers} = await supabaseClient.from('dd_household_members').select('id, household_id, first_name, last_name, citizen_id');
+            const {data: allNewborns} = await supabaseClient.from('dd_newborns').select('id, household_member_id');
+            
+            pendingImportData = [];
+            let html = '';
+            
+            jsonData.forEach((rawRow, idx) => {
+                const row = {};
+                for (let k in rawRow) row[k.trim()] = rawRow[k];
+                
+                const fName = String(row['ชื่อ'] || '').trim();
+                const lName = String(row['นามสกุล'] || '').trim();
+                const cid = String(row['เลขบัตรประชาชน'] || '').trim();
+                const houseNo = String(row['บ้านเลขที่'] || '').trim();
+                const villageNo = String(row['หมู่ที่'] || '').trim();
+                
+                if(!fName || !lName) return;
+                
+                const searchCid = cid && cid !== '-' ? cid : null;
+                let member = (allMembers||[]).find(m => (m.first_name === fName && m.last_name === lName) || (searchCid && m.citizen_id === searchCid));
+                let household = (allHouseholds||[]).find(h => String(h.house_number) === houseNo && String(h.village_no) === villageNo);
+                let newborn = member ? (allNewborns||[]).find(e => e.household_member_id === member.id) : null;
+                
+                let memberStatus = member ? '<span class="badge bg-success">มีประชากร</span>' : '<span class="badge bg-danger">ไม่มีประชากร</span>';
+                let hhStatus = household ? '<span class="badge bg-success">มีบ้าน</span>' : '<span class="badge bg-warning text-dark">ไม่มีบ้าน (สร้างใหม่)</span>';
+                let targetStatus = newborn ? '<span class="badge bg-info">อัปเดต</span>' : '<span class="badge bg-primary">สร้างใหม่</span>';
+                
+                pendingImportData.push({
+                    row, idx, fName, lName, cid, houseNo, villageNo, 
+                    member, household, newborn, selected: true
+                });
+                
+                html += `
+                    <tr>
+                        <td class="text-center"><input class="form-check-input import-check" type="checkbox" checked data-idx="${pendingImportData.length-1}" onchange="updateImportSelection(this, ${pendingImportData.length-1})"></td>
+                        <td>${fName} ${lName}</td>
+                        <td>${cid}</td>
+                        <td>${houseNo}</td>
+                        <td>${villageNo}</td>
+                        <td>${hhStatus} ${memberStatus}</td>
+                        <td>${targetStatus}</td>
+                    </tr>
+                `;
+            });
+            
+            Swal.close();
+            
+            if(pendingImportData.length === 0) {
+                Swal.fire('ไม่มีข้อมูลที่นำเข้าได้','กรุณาตรวจสอบคอลัมน์ ชื่อ, นามสกุล ในไฟล์ Excel','warning');
+                return;
+            }
+            
+            document.getElementById('importPreviewBody').innerHTML = html;
+            document.getElementById('selectAllImport').checked = true;
+            new bootstrap.Modal(document.getElementById('importPreviewModal')).show();
+            
+        } catch(err) {
+            console.error("Import Error: ", err);
+            Swal.fire('เกิดข้อผิดพลาด', err.message || err, 'error');
+        } finally {
+            event.target.value = '';
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+async function confirmImportExcel() {
+    const selectedData = pendingImportData.filter(d => d.selected);
+    if(selectedData.length === 0) {
+        Swal.fire('ไม่ได้เลือกรายการ','กรุณาเลือกรายการที่ต้องการนำเข้า','warning');
+        return;
+    }
+    
+    bootstrap.Modal.getInstance(document.getElementById('importPreviewModal')).hide();
+    
+    Swal.fire({
+        title: 'กำลังบันทึกข้อมูล...',
+        html: 'โปรดรอสักครู่ ระบบกำลังนำเข้าข้อมูล ' + selectedData.length + ' รายการ',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+    
+    let importCount = 0;
+    let updateCount = 0;
+    let skipCount = 0;
+    
+    const {data: resHouseholds} = await supabaseClient.from('dd_households').select('id, house_number, village_no');
+    const {data: resMembers} = await supabaseClient.from('dd_household_members').select('id, household_id, first_name, last_name, citizen_id');
+    const {data: resNewborns} = await supabaseClient.from('dd_newborns').select('id, household_member_id');
+    
+    const allHouseholds = resHouseholds || [];
+    const allMembers = resMembers || [];
+    const allNewborns = resNewborns || [];
+    
+    for(let item of selectedData) {
+        const {row, fName, lName, cid, houseNo, villageNo} = item;
+        const searchCid = cid && cid !== '-' ? cid : null;
+        
+        let householdId = null;
+        let household = allHouseholds.find(h => String(h.house_number) === houseNo && String(h.village_no) === villageNo);
+        if (household) {
+            householdId = household.id;
+        } else {
+            const {data: newHh} = await supabaseClient.from('dd_households').insert({
+                house_number: houseNo,
+                village_no: parseInt(villageNo)||null,
+                house_code: '-', owner_name: '-'
+            }).select('id').single();
+            if(newHh) {
+                householdId = newHh.id;
+                allHouseholds.push({id: householdId, house_number: houseNo, village_no: villageNo});
+            } else {
+                skipCount++; continue;
+            }
+        }
+        
+        let memberId = null;
+        let member = allMembers.find(m => (m.first_name === fName && m.last_name === lName) || (searchCid && m.citizen_id === searchCid));
+        if (member) {
+            memberId = member.id;
+        } else {
+            const newMember = {
+                household_id: householdId,
+                prefix: row['คำนำหน้า'] || 'เด็กชาย',
+                first_name: fName,
+                last_name: lName,
+                citizen_id: searchCid,
+                gender: row['เพศ'] || 'ชาย',
+                age: parseInt(row['อายุ']) || 0,
+                birth_date: row['วันเกิด'] || null
+            };
+            const {data: newMem} = await supabaseClient.from('dd_household_members').insert(newMember).select('id').single();
+            if (newMem) {
+                memberId = newMem.id;
+                allMembers.push({id: memberId, household_id: householdId, first_name: fName, last_name: lName, citizen_id: searchCid});
+            } else {
+                skipCount++; continue;
+            }
+        }
+        
+        let newborn = allNewborns.find(e => e.household_member_id === memberId);
+        const newbornDataObj = {
+            birth_weight: parseFloat(row['น้ำหนักแรกเกิด (กก.)']) || 3.0,
+            guardian_name: row['ชื่อผู้ปกครอง'] || '-'
+        };
+        
+        if (newborn) {
+            await supabaseClient.from('dd_newborns').update(newbornDataObj).eq('id', newborn.id);
+            updateCount++;
+        } else {
+            newbornDataObj.household_member_id = memberId;
+            const {data: newRec} = await supabaseClient.from('dd_newborns').insert(newbornDataObj).select('id').single();
+            if (newRec) {
+                allNewborns.push({id: newRec.id, household_member_id: memberId});
+                importCount++;
+            } else {
+                skipCount++;
+            }
+        }
+    }
+    
+    await loadData();
+    
+    Swal.fire({
+        title: 'บันทึกสำเร็จ',
+        html: `นำเข้าใหม่: ${importCount} รายการ<br>อัปเดต: ${updateCount} รายการ<br>ข้าม/ผิดพลาด: ${skipCount} รายการ`,
+        icon: 'success'
+    });
+}
+</script>
+</body>
+</html>
